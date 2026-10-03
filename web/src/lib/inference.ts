@@ -126,6 +126,7 @@ async function fetchModelBuffer(onProgress?: ProgressCb): Promise<ArrayBuffer> {
 }
 
 export async function preloadModel(onProgress?: ProgressCb): Promise<ort.InferenceSession> {
+  const alreadyLoading = Boolean(sessionPromise)
   if (!sessionPromise) {
     sessionPromise = (async () => {
       try {
@@ -160,7 +161,17 @@ export async function preloadModel(onProgress?: ProgressCb): Promise<ort.Inferen
       }
     })()
   }
-  return sessionPromise
+  const session = await sessionPromise
+  // Remount / second callers skip the create path — still report ready.
+  if (alreadyLoading && cachedBuffer) {
+    onProgress?.({
+      status: 'ready',
+      loadedBytes: cachedBuffer.byteLength,
+      totalBytes: cachedBuffer.byteLength,
+      message: 'Model ready',
+    })
+  }
+  return session
 }
 
 export async function getSession(onProgress?: ProgressCb): Promise<ort.InferenceSession> {
