@@ -1,3 +1,3 @@
-STATUS=untrained_placeholder
-DESCRIPTION=Random-weight TinyCamNet for UI wiring only. Not trained on PCam.
-REPLACE_WITH=Copy your Colab export to web/public/models/pcam_cam.onnx
+STATUS=quick_baseline
+DESCRIPTION=Quick baseline trained with Cursor's help on a PCam subset (4000 train / 1000 val / 4000 test, 2 epochs, resnet18). To be replaced by Surabhi's own training run.
+TEST_AUC=0.8949

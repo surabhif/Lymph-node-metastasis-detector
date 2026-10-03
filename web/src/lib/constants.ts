@@ -11,12 +11,11 @@ export const MODEL_URL = `${import.meta.env.BASE_URL}models/pcam_cam.onnx`
 
 /**
  * Honest status of the file currently in public/models/.
- * Surabhi should flip this to 'trained' after she drops in her Colab export
- * and update the UI copy in ModelStatusBanner.
+ * Surabhi should replace this with her own Colab export when ready.
  */
 export const MODEL_STATUS = {
-  kind: 'untrained_placeholder' as const,
-  label: 'Untrained placeholder model',
+  kind: 'quick_baseline' as const,
+  label: 'Quick baseline (Cursor-assisted)',
   detail:
-    'The bundled ONNX file has random weights so the site can run before training finishes. It is not a metastasis detector. Replace web/public/models/pcam_cam.onnx with your Colab export when ready.',
+    'Bundled ONNX was trained in a quick subset/epochs run with Cursor’s help so the live demo has a real model. It is a reference baseline — replace web/public/models/pcam_cam.onnx with Surabhi’s own Colab export. See results/baseline_quick_run.json for config and metrics.',
 }

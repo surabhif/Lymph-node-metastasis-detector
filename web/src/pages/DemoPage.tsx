@@ -180,8 +180,8 @@ export default function DemoPage() {
               selectedMeta.testIndex != null
                 ? ` · official test index ${selectedMeta.testIndex}`
                 : ''}
-              . Real CC0 PCam data — with the placeholder model, score agreement is still
-              meaningless.
+              . Real CC0 PCam data — scores come from the quick Cursor-assisted baseline;
+              Surabhi’s own training run should replace this model.
             </p>
           )}
         </section>
