@@ -1,0 +1,90 @@
+:root {
+  --bg: #f3efe6;
+  --bg-deep: #e7e0d2;
+  --ink: #1c2422;
+  --ink-soft: #3d4a46;
+  --muted: #5e6b66;
+  --line: #c9c0b0;
+  --panel: rgba(255, 252, 246, 0.88);
+  --accent: #0f6e56;
+  --accent-deep: #0a4f3d;
+  --warn: #8a3b12;
+  --warn-bg: #f3e2d4;
+  --tumor: #b42318;
+  --normal: #0f6e56;
+  --radius: 10px;
+  --shadow: 0 18px 40px rgba(28, 36, 34, 0.08);
+  --font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --font-display: 'Source Serif 4', Georgia, serif;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #dfece6 0%, transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, #efe4d4 0%, transparent 50%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: var(--accent-deep);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  margin: 0 0 1rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

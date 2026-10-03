@@ -1,0 +1,25 @@
+# Root
+.DS_Store
+*.pt
+*.pth
+*.ckpt
+pcam_data/
+export/
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Node / web
+web/node_modules/
+web/dist/
+web/.env
+web/.env.*
+
+# IDE
+.idea/
+.vscode/
+artifacts/
