@@ -143,14 +143,28 @@ def main() -> None:
     lo, hi = [float(x) for x in np.percentile(boot, [2.5, 97.5])]
 
     fpr, tpr, thr = roc_curve(y_true, y_prob)
+
+    def json_float(x: float) -> float | None:
+        """RFC 8259 JSON cannot represent NaN/±Inf — emit null instead."""
+        v = float(x)
+        if not np.isfinite(v):
+            return None
+        return v
+
     # Downsample ROC points for the web JSON
     step = max(1, len(fpr) // 200)
     roc_points = [
-        {"fpr": float(fpr[i]), "tpr": float(tpr[i]), "threshold": float(thr[i]) if i < len(thr) else 0.0}
+        {
+            "fpr": json_float(fpr[i]),
+            "tpr": json_float(tpr[i]),
+            "threshold": json_float(thr[i]) if i < len(thr) else 0.0,
+        }
         for i in range(0, len(fpr), step)
     ]
-    if roc_points[-1]["fpr"] != float(fpr[-1]):
-        roc_points.append({"fpr": float(fpr[-1]), "tpr": float(tpr[-1]), "threshold": 0.0})
+    if roc_points[-1]["fpr"] != json_float(fpr[-1]):
+        roc_points.append(
+            {"fpr": json_float(fpr[-1]), "tpr": json_float(tpr[-1]), "threshold": 0.0}
+        )
 
     cm = confusion_matrix(y_true, y_pred).tolist()
     cal = reliability_bins(y_true, y_prob)
@@ -236,7 +250,8 @@ def main() -> None:
     }
 
     out_path = OUT_DIR / "metrics.json"
-    out_path.write_text(json.dumps(payload, indent=2) + "\n")
+    # allow_nan=False so NaN/±Inf never ship as invalid browser JSON
+    out_path.write_text(json.dumps(payload, indent=2, allow_nan=False) + "\n")
     print(f"Wrote {out_path}")
     print(f"acc={acc:.4f} auc={auc:.4f} CI=[{lo:.4f},{hi:.4f}] mistakes={len(mistakes)}")
 
