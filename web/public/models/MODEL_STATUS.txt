@@ -1,3 +1,5 @@
-STATUS=quick_baseline
-DESCRIPTION=Quick baseline trained with Cursor's help on a PCam subset (4000 train / 1000 val / 4000 test, 2 epochs, resnet18). To be replaced by Surabhi's own training run.
-TEST_AUC=0.8949
+STATUS=quick_baseline_int8
+DESCRIPTION=Quick Cursor-assisted baseline with dynamic INT8 quantization (~11MB) for browser loading. Replace with Surabhi's Colab export when ready.
+FP32_MB=42.63
+INT8_MB=10.72
+GALLERY_MAX_ABS_DELTA=0.0250

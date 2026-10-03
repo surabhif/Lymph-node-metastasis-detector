@@ -1,0 +1,9 @@
+{
+  "fp32_mb": 42.63,
+  "int8_mb": 10.72,
+  "method": "onnxruntime.quantization.quantize_dynamic QUInt8 (default ops including Conv)",
+  "adopted_for_web": true,
+  "gallery_max_abs_delta": 0.025043725967407227,
+  "gallery_mean_abs_delta": 0.009601812809705734,
+  "note": "Dynamic INT8 weight quantization for browser download size. CAM outputs preserved."
+}

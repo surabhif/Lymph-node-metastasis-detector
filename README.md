@@ -13,32 +13,33 @@ Lymph-node status matters for breast-cancer surgery planning. This project is an
 | Path | Purpose |
 |------|---------|
 | `notebooks/01_train_pcam.ipynb` | Guided Colab teaching notebook (train, evaluate, export ONNX) |
-| `web/` | React + Vite demo (ONNX Runtime Web, gallery, upload, heatmap) |
-| `web/public/models/pcam_cam.onnx` | Quick Cursor-assisted baseline ONNX (replace with Surabhi’s Colab export) |
-| `results/baseline_quick_run.json` | Raw metrics/config for that baseline (not Surabhi’s Results page) |
-| `web/public/samples/` | Real PCam **test-set** gallery patches (CC0; regenerate via `scripts/export_gallery.py`) |
-| `scripts/` | Helpers to rebuild the placeholder model / gallery / notebook |
+| `web/` | React + Vite research site (landing, guided demo, Results, About) |
+| `web/public/models/pcam_cam.onnx` | Quick Cursor-assisted baseline ONNX (**INT8**, ~11 MB) |
+| `web/public/results/metrics.json` | Data-driven Results page (ROC, calibration, CM, mistakes) |
+| `results/baseline_quick_run.json` | Raw baseline training metrics/config |
+| `results/quantization_report.json` | FP32→INT8 size and gallery score deltas |
+| `web/public/samples/` | Real PCam **test-set** gallery patches (CC0) |
+| `scripts/` | Training, gallery export, results export, quantization helpers |
 | `.github/workflows/deploy-pages.yml` | Build & deploy the site to GitHub Pages on push to `main` |
 
 ## Honest status of the bundled model
 
-The file at `web/public/models/pcam_cam.onnx` is a **quick baseline** trained with Cursor’s help on a **subset** of the official PCam splits (ResNet-18, 2 epochs, 4000 train / 1000 val / 4000 test). It exists so the live demo scores real patches before Surabhi finishes her own Colab run. **It is not her final model.** The site banner says so.
+The file at `web/public/models/pcam_cam.onnx` is a **quick baseline** trained with Cursor’s help on a **subset** of the official PCam splits (ResNet-18, 2 epochs, 4000 train / 1000 val / 4000 test), then **dynamically quantized to INT8** (~11 MB, down from ~43 MB FP32; gallery max |ΔP| ≈ 0.025). **It is not Surabhi’s final model.** The site notice says so.
 
-Raw metrics and config for this baseline (for her to beat) live in:
+Reference metrics:
 
-`results/baseline_quick_run.json`
-
-Reproduce / replace:
+- `results/baseline_quick_run.json` — training run dump  
+- `web/public/results/metrics.json` — powers the Results page (overwrite after your run)
 
 ```bash
-# After PCam train/val/test h5 files are under ./pcam_data/pcam/
-python scripts/run_baseline_quick.py   # mirrors the notebook quick-run knobs
-# Or open notebooks/01_train_pcam.ipynb on Colab GPU and export yourself
+python scripts/run_baseline_quick.py      # train quick baseline (mirrors notebook knobs)
+python scripts/export_web_results.py      # refresh Results JSON + mistake images
+python scripts/quantize_onnx.py           # optional INT8 shrink + delta report
 ```
 
 Then overwrite `web/public/models/pcam_cam.onnx` and update `MODEL_STATUS` in `web/src/lib/constants.ts`.
 
-Gallery images under `web/public/samples/` are **real PCam official test-set patches** (CC0), chosen at random with a fixed seed (not cherry-picked). Mosaic tiles are stitched from separate test patches for the sliding-window demo. Regenerate with `python scripts/export_gallery.py` after downloading the test `x`/`y` h5 files.
+The notebook also documents a **MobileNetV2** backbone option (`BACKBONE = "mobilenet_v2"`) if you want a smaller unquantized export.
 
 ## Train in Colab
 
@@ -55,7 +56,7 @@ Gallery images under `web/public/samples/` are **real PCam official test-set pat
 web/public/models/pcam_cam.onnx   ← replace with your Colab export
 ```
 
-Then update the copy in `web/src/lib/constants.ts` (`MODEL_STATUS`) so the banner no longer says “untrained placeholder”.
+Then update the copy in `web/src/lib/constants.ts` (`MODEL_STATUS`) and refresh Results with `python scripts/export_web_results.py`.
 
 Optional: replace gallery PNGs and edit `web/src/data/samples.json`.
 
@@ -67,13 +68,13 @@ npm install
 npm run dev
 ```
 
-Open the printed localhost URL. Click a gallery image — you should see a probability and a heatmap (meaningless with the placeholder weights, but the pipeline works).
+Open the printed localhost URL. Use **Try the detector** / `/demo` — gallery samples should show differentiated scores and a heatmap.
 
-Build:
+Build with the GitHub Pages base path:
 
 ```bash
 cd web
-npm run build
+VITE_BASE=/Lymph-node-metastasis-detector/ npm run build
 npm run preview
 ```
 

@@ -366,6 +366,21 @@ def main() -> None:
     print("Wrote", out_json)
     print(json.dumps({k: results["metrics"][k] for k in ("test_accuracy", "test_roc_auc", "test_roc_auc_bootstrap_95ci")}, indent=2))
 
+    # Also refresh the web Results page data files (ROC, calibration, mistakes gallery).
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "export_web_results", Path(__file__).resolve().parent / "export_web_results.py"
+        )
+        assert spec and spec.loader
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.main()
+    except Exception as exc:  # pragma: no cover
+        print("Note: could not auto-export web/public/results/metrics.json:", exc)
+        print("Run: python scripts/export_web_results.py")
+
 
 if __name__ == "__main__":
     main()
