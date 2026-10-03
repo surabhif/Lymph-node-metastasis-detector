@@ -1,0 +1,83 @@
+{
+  "run_id": "baseline_quick_run",
+  "note": "Quick baseline produced with Cursor's help so the live demo has a real model. Not Surabhi's final results \u2014 she should beat these numbers with her own Colab run.",
+  "hardware": {
+    "device": "cpu",
+    "cuda_available": false,
+    "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "python": "3.12.3",
+    "torch": "2.14.1+cpu"
+  },
+  "config": {
+    "backbone": "resnet18",
+    "epochs": 2,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "seed": 42,
+    "augmentation": [
+      "RandomHorizontalFlip",
+      "RandomVerticalFlip"
+    ],
+    "loss": "BCEWithLogitsLoss",
+    "optimizer": "Adam",
+    "pretrained": "ImageNet",
+    "official_splits_respected": true
+  },
+  "subset_sizes": {
+    "train_used": 4000,
+    "val_used": 1000,
+    "test_used": 4000,
+    "train_official": 262144,
+    "val_official": 32768,
+    "test_official": 32768,
+    "max_train_samples_knob": 4000,
+    "max_val_samples_knob": 1000,
+    "max_test_samples_knob": 4000,
+    "test_selection": "fixed-seed random subset of official test (seed=44); not the full 32768-patch test split"
+  },
+  "runtime_seconds": {
+    "train_and_val_selection": 70.5,
+    "total_script": 87.2
+  },
+  "metrics": {
+    "best_val_auc": 0.8933054309596308,
+    "history": {
+      "train_loss": [
+        0.4900294604301453,
+        0.32894738364219667
+      ],
+      "val_auc": [
+        0.8910647049644085,
+        0.8933054309596308
+      ],
+      "val_acc": [
+        0.726,
+        0.813
+      ]
+    },
+    "test_accuracy": 0.7985,
+    "test_roc_auc": 0.8949286007374845,
+    "test_roc_auc_bootstrap_95ci": [
+      0.8852755701348931,
+      0.9043461544941377
+    ],
+    "bootstrap_resamples": 200,
+    "confusion_matrix_normal_tumor": [
+      [
+        1765,
+        208
+      ],
+      [
+        598,
+        1429
+      ]
+    ],
+    "decision_threshold": 0.5
+  },
+  "artifacts": {
+    "checkpoint": "export/best_model.pt",
+    "onnx": "web/public/models/pcam_cam.onnx",
+    "onnx_size_mb": 42.63
+  }
+}
