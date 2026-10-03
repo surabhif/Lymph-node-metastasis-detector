@@ -1,69 +1,117 @@
 {
-  "disclaimer": "Gallery images are synthetic placeholders so the demo works before real PCam test patches are exported. They are not clinical images.",
+  "disclaimer": "Gallery images are real PatchCamelyon (PCam) official test-set patches (CC0), chosen at random with a fixed seed \u2014 not cherry-picked. Mosaic tiles are stitched from separate patches, not contiguous slides. Inference still runs locally in your browser.",
+  "seed": 42,
+  "source": "PCam official test split (Veeling et al. 2018; Camelyon16 / Bejnordi et al. 2017)",
   "samples": [
     {
-      "id": "syn_tumor_01",
-      "src": "samples/syn_tumor_01.png",
+      "id": "pcam_test_tumor_01_idx2883",
+      "src": "samples/pcam_test_tumor_01_idx2883.png",
       "label": "tumor",
       "groundTruthTumor": true,
       "kind": "patch",
-      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+      "testIndex": 2883,
+      "note": "Real PCam official test-split patch (index 2883, CC0). Selected at random with a fixed seed \u2014 not cherry-picked."
     },
     {
-      "id": "syn_tumor_02",
-      "src": "samples/syn_tumor_02.png",
+      "id": "pcam_test_tumor_02_idx14435",
+      "src": "samples/pcam_test_tumor_02_idx14435.png",
       "label": "tumor",
       "groundTruthTumor": true,
       "kind": "patch",
-      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+      "testIndex": 14435,
+      "note": "Real PCam official test-split patch (index 14435, CC0). Selected at random with a fixed seed \u2014 not cherry-picked."
     },
     {
-      "id": "syn_tumor_03",
-      "src": "samples/syn_tumor_03.png",
+      "id": "pcam_test_tumor_03_idx21314",
+      "src": "samples/pcam_test_tumor_03_idx21314.png",
       "label": "tumor",
       "groundTruthTumor": true,
       "kind": "patch",
-      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+      "testIndex": 21314,
+      "note": "Real PCam official test-split patch (index 21314, CC0). Selected at random with a fixed seed \u2014 not cherry-picked."
     },
     {
-      "id": "syn_normal_01",
-      "src": "samples/syn_normal_01.png",
+      "id": "pcam_test_tumor_04_idx25314",
+      "src": "samples/pcam_test_tumor_04_idx25314.png",
+      "label": "tumor",
+      "groundTruthTumor": true,
+      "kind": "patch",
+      "testIndex": 25314,
+      "note": "Real PCam official test-split patch (index 25314, CC0). Selected at random with a fixed seed \u2014 not cherry-picked."
+    },
+    {
+      "id": "pcam_test_normal_01_idx3223",
+      "src": "samples/pcam_test_normal_01_idx3223.png",
       "label": "normal",
       "groundTruthTumor": false,
       "kind": "patch",
-      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+      "testIndex": 3223,
+      "note": "Real PCam official test-split patch (index 3223, CC0). Selected at random with a fixed seed \u2014 not cherry-picked."
     },
     {
-      "id": "syn_normal_02",
-      "src": "samples/syn_normal_02.png",
+      "id": "pcam_test_normal_02_idx6714",
+      "src": "samples/pcam_test_normal_02_idx6714.png",
       "label": "normal",
       "groundTruthTumor": false,
       "kind": "patch",
-      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+      "testIndex": 6714,
+      "note": "Real PCam official test-split patch (index 6714, CC0). Selected at random with a fixed seed \u2014 not cherry-picked."
     },
     {
-      "id": "syn_normal_03",
-      "src": "samples/syn_normal_03.png",
+      "id": "pcam_test_normal_03_idx17222",
+      "src": "samples/pcam_test_normal_03_idx17222.png",
       "label": "normal",
       "groundTruthTumor": false,
       "kind": "patch",
-      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+      "testIndex": 17222,
+      "note": "Real PCam official test-split patch (index 17222, CC0). Selected at random with a fixed seed \u2014 not cherry-picked."
     },
     {
-      "id": "syn_tile_large",
-      "src": "samples/syn_tile_large.png",
-      "label": "mixed tile",
+      "id": "pcam_test_normal_04_idx22939",
+      "src": "samples/pcam_test_normal_04_idx22939.png",
+      "label": "normal",
+      "groundTruthTumor": false,
+      "kind": "patch",
+      "testIndex": 22939,
+      "note": "Real PCam official test-split patch (index 22939, CC0). Selected at random with a fixed seed \u2014 not cherry-picked."
+    },
+    {
+      "id": "pcam_test_mosaic_01",
+      "src": "samples/pcam_test_mosaic_01.png",
+      "label": "mixed mosaic",
       "groundTruthTumor": null,
       "kind": "tile",
-      "note": "Synthetic 288\u00d7288 tile for patch-wise scanning demo. Not real pathology."
+      "testIndices": [
+        19372,
+        19574,
+        15745,
+        21590,
+        1523,
+        480,
+        1427,
+        11927,
+        27916
+      ],
+      "note": "Stitched mosaic of 9 separate PCam test-set patches (CC0), indices [19372, 19574, 15745, 21590, 1523, 480, 1427, 11927, 27916]. Not a contiguous tissue region \u2014 for sliding-window demo only."
     },
     {
-      "id": "syn_tile_large_2",
-      "src": "samples/syn_tile_large_2.png",
-      "label": "mixed tile",
+      "id": "pcam_test_mosaic_02",
+      "src": "samples/pcam_test_mosaic_02.png",
+      "label": "mixed mosaic",
       "groundTruthTumor": null,
       "kind": "tile",
-      "note": "Synthetic 288\u00d7288 tile for patch-wise scanning demo. Not real pathology."
+      "testIndices": [
+        4672,
+        18573,
+        27113,
+        21513,
+        24771,
+        23379,
+        11112,
+        641,
+        7719
+      ],
+      "note": "Stitched mosaic of 9 separate PCam test-set patches (CC0), indices [4672, 18573, 27113, 21513, 24771, 23379, 11112, 641, 7719]. Not a contiguous tissue region \u2014 for sliding-window demo only."
     }
   ]
 }

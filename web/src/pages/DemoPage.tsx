@@ -9,6 +9,7 @@ export default function DemoPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [sourceUrl, setSourceUrl] = useState<string | null>(null)
   const [groundTruth, setGroundTruth] = useState<boolean | null | undefined>(undefined)
+  const [selectedMeta, setSelectedMeta] = useState<Sample | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<InferenceResult | null>(null)
@@ -57,6 +58,7 @@ export default function DemoPage() {
       if (typeof src !== 'string') objectUrlRef.current = url
       setSourceUrl(url)
       setSelectedId(meta?.id ?? null)
+      setSelectedMeta(meta ?? null)
       setGroundTruth(meta ? meta.groundTruthTumor : undefined)
       const out = await runInference(src)
       setResult(out)
@@ -101,13 +103,15 @@ export default function DemoPage() {
                 />
                 <figcaption>
                   {sample.kind === 'tile' ? (
-                    <span className="badge tile">tile</span>
+                    <span className="badge tile">mosaic</span>
                   ) : sample.groundTruthTumor ? (
                     <span className="badge tumor">tumor</span>
                   ) : (
                     <span className="badge normal">normal</span>
                   )}
-                  {sample.label}
+                  {sample.kind === 'tile'
+                    ? 'stitched mosaic'
+                    : `test #${'testIndex' in sample ? sample.testIndex : '?'}`}
                 </figcaption>
               </button>
             ))}
@@ -167,11 +171,16 @@ export default function DemoPage() {
             <p className="muted" style={{ marginTop: '0.9rem', marginBottom: 0 }}>
               Gallery ground truth:{' '}
               {groundTruth === null
-                ? 'mixed / unlabeled tile'
+                ? 'stitched mosaic of separate PCam test patches (not contiguous tissue)'
                 : groundTruth
-                  ? 'tumor (metastasis-positive patch)'
-                  : 'normal (metastasis-negative patch)'}
-              . Compare with the model score — with the placeholder model, agreement is
+                  ? 'tumor (metastasis-positive PCam test patch)'
+                  : 'normal (metastasis-negative PCam test patch)'}
+              {selectedMeta &&
+              'testIndex' in selectedMeta &&
+              selectedMeta.testIndex != null
+                ? ` · official test index ${selectedMeta.testIndex}`
+                : ''}
+              . Real CC0 PCam data — with the placeholder model, score agreement is still
               meaningless.
             </p>
           )}

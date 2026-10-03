@@ -15,8 +15,8 @@ Lymph-node status matters for breast-cancer surgery planning. This project is an
 | `notebooks/01_train_pcam.ipynb` | Guided Colab teaching notebook (train, evaluate, export ONNX) |
 | `web/` | React + Vite demo (ONNX Runtime Web, gallery, upload, heatmap) |
 | `web/public/models/pcam_cam.onnx` | **Untrained placeholder** model so the site runs before training |
-| `web/public/samples/` | Synthetic H&E-like gallery images (replace with real PCam test patches later) |
-| `scripts/` | Helpers to rebuild the placeholder model / samples / notebook |
+| `web/public/samples/` | Real PCam **test-set** gallery patches (CC0; regenerate via `scripts/export_gallery.py`) |
+| `scripts/` | Helpers to rebuild the placeholder model / gallery / notebook |
 | `.github/workflows/deploy-pages.yml` | Build & deploy the site to GitHub Pages on push to `main` |
 
 ## Honest status of the bundled model
@@ -25,7 +25,7 @@ The file at `web/public/models/pcam_cam.onnx` is an **untrained placeholder** (r
 
 After you train in Colab, download your export and overwrite that path.
 
-Gallery images under `web/public/samples/` are **synthetic placeholders**, not real pathology. The notebook includes a cell to export real CC0 PCam test patches.
+Gallery images under `web/public/samples/` are **real PCam official test-set patches** (CC0), chosen at random with a fixed seed (not cherry-picked). Mosaic tiles are stitched from separate test patches for the sliding-window demo. Regenerate with `python scripts/export_gallery.py` after downloading the test `x`/`y` h5 files.
 
 ## Train in Colab
 
