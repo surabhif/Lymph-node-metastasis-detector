@@ -4,9 +4,19 @@ export default function ModelCardPage() {
       <h1>Model card</h1>
       <p>
         Template following Mitchell et al. (2019). Surabhi fills this in after training — every claim
-        should match what she can explain. The live site currently serves a Cursor-assisted quick
-        baseline (see Results); replace both the ONNX and this card when you ship your own run.
+        should match what she can explain.
       </p>
+
+      <section id="current-model" className="current-model-note">
+        <h2>Current served model</h2>
+        <p>
+          The live demo currently runs a <strong>quick Cursor-assisted baseline</strong> (subset of
+          the official PCam splits, short training) so visitors can try the interface. Scores on the
+          Results page are labeled as that baseline. When Surabhi finishes her own training run, she
+          will replace the in-browser weights and refresh the Results export — details and file
+          paths are in the repository README.
+        </p>
+      </section>
 
       <div className="model-card-grid">
         <section className="placeholder-box">

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { MODEL_STATUS } from '../lib/constants'
 
 export default function HomePage() {
   return (
@@ -23,9 +22,7 @@ export default function HomePage() {
               View results
             </Link>
           </div>
-          <p className="hero-note">
-            {MODEL_STATUS.label} · images stay in your browser · not for clinical use
-          </p>
+          <p className="hero-note">Images stay in your browser · not for clinical use</p>
         </div>
         <div className="hero-visual" aria-hidden="true">
           <div className="hero-orb" />

@@ -24,7 +24,7 @@ Lymph-node status matters for breast-cancer surgery planning. This project is an
 
 ## Honest status of the bundled model
 
-The file at `web/public/models/pcam_cam.onnx` is a **quick baseline** trained with Cursor’s help on a **subset** of the official PCam splits (ResNet-18, 2 epochs, 4000 train / 1000 val / 4000 test), then **dynamically quantized to INT8** (~11 MB, down from ~43 MB FP32; gallery max |ΔP| ≈ 0.025). **It is not Surabhi’s final model.** The site notice says so.
+The file at `web/public/models/pcam_cam.onnx` is a **quick baseline** trained with Cursor’s help on a **subset** of the official PCam splits (ResNet-18, 2 epochs, 4000 train / 1000 val / 4000 test), then **dynamically quantized to INT8** (~11 MB, down from ~43 MB FP32; gallery max |ΔP| ≈ 0.025). **It is not Surabhi’s final model.** The site banner stays visitor-facing; technical paths and quantization notes live here and under Model card → Current served model.
 
 Reference metrics:
 

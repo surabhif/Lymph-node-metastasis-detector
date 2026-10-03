@@ -5,7 +5,7 @@ import DemoPage from './pages/DemoPage'
 import AboutPage from './pages/AboutPage'
 import ResultsPage from './pages/ResultsPage'
 import ModelCardPage from './pages/ModelCardPage'
-import { MODEL_STATUS, SITE } from './lib/constants'
+import { SITE } from './lib/constants'
 import './App.css'
 
 const TITLES: Record<string, string> = {
@@ -31,11 +31,11 @@ export default function App() {
 
       <div className="site-notice" role="note">
         <p>
-          <strong>Research demo — not for clinical use.</strong> Educational project on public
-          PatchCamelyon (PCam) data. Never use it to diagnose patients or guide care.{' '}
-          <span className="notice-status">
-            Model: {MODEL_STATUS.label}. {MODEL_STATUS.detail}
-          </span>
+          Research demo, not for clinical use. Currently running a quick baseline model; results
+          will update when Surabhi&apos;s trained model is added.{' '}
+          <NavLink to="/model-card#current-model" className="notice-learn-more">
+            Learn more
+          </NavLink>
         </p>
       </div>
 

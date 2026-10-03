@@ -13,14 +13,12 @@ export const MODEL_URL = `${import.meta.env.BASE_URL}models/pcam_cam.onnx`
 export const MODEL_CACHE = 'pcam-onnx-v2-int8'
 
 /**
- * Honest status of the file currently in public/models/.
- * Surabhi should replace this with her own Colab export when ready.
+ * Visitor-facing model label. Paths / quantization notes live in the README
+ * and on the Model card “Current served model” section — not in the site banner.
  */
 export const MODEL_STATUS = {
   kind: 'quick_baseline_int8' as const,
-  label: 'Quick Cursor-assisted baseline (INT8)',
-  detail:
-    'Served model is a quick subset/epochs ResNet-18 baseline trained with Cursor’s help, then dynamically quantized to INT8 (~11 MB) for browser download. Replace web/public/models/pcam_cam.onnx with Surabhi’s own Colab export when ready. Metrics: results/metrics.json.',
+  label: 'Quick baseline',
   sizeHintMb: 11,
 }
 

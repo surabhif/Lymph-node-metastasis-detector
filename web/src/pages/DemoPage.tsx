@@ -127,7 +127,7 @@ export default function DemoPage() {
         <h1>Try the detector</h1>
         <p>
           Choose a real PCam test-set patch or upload your own image. Inference runs entirely in
-          your browser ({MODEL_STATUS.label}).
+          your browser.
         </p>
       </header>
 
