@@ -1,0 +1,3 @@
+STATUS=untrained_placeholder
+DESCRIPTION=Random-weight TinyCamNet for UI wiring only. Not trained on PCam.
+REPLACE_WITH=Copy your Colab export to web/public/models/pcam_cam.onnx

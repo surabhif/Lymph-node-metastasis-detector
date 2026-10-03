@@ -1,0 +1,69 @@
+{
+  "disclaimer": "Gallery images are synthetic placeholders so the demo works before real PCam test patches are exported. They are not clinical images.",
+  "samples": [
+    {
+      "id": "syn_tumor_01",
+      "src": "samples/syn_tumor_01.png",
+      "label": "tumor",
+      "groundTruthTumor": true,
+      "kind": "patch",
+      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+    },
+    {
+      "id": "syn_tumor_02",
+      "src": "samples/syn_tumor_02.png",
+      "label": "tumor",
+      "groundTruthTumor": true,
+      "kind": "patch",
+      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+    },
+    {
+      "id": "syn_tumor_03",
+      "src": "samples/syn_tumor_03.png",
+      "label": "tumor",
+      "groundTruthTumor": true,
+      "kind": "patch",
+      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+    },
+    {
+      "id": "syn_normal_01",
+      "src": "samples/syn_normal_01.png",
+      "label": "normal",
+      "groundTruthTumor": false,
+      "kind": "patch",
+      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+    },
+    {
+      "id": "syn_normal_02",
+      "src": "samples/syn_normal_02.png",
+      "label": "normal",
+      "groundTruthTumor": false,
+      "kind": "patch",
+      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+    },
+    {
+      "id": "syn_normal_03",
+      "src": "samples/syn_normal_03.png",
+      "label": "normal",
+      "groundTruthTumor": false,
+      "kind": "patch",
+      "note": "Synthetic H&E-like placeholder (not real PCam). Replace after training."
+    },
+    {
+      "id": "syn_tile_large",
+      "src": "samples/syn_tile_large.png",
+      "label": "mixed tile",
+      "groundTruthTumor": null,
+      "kind": "tile",
+      "note": "Synthetic 288\u00d7288 tile for patch-wise scanning demo. Not real pathology."
+    },
+    {
+      "id": "syn_tile_large_2",
+      "src": "samples/syn_tile_large_2.png",
+      "label": "mixed tile",
+      "groundTruthTumor": null,
+      "kind": "tile",
+      "note": "Synthetic 288\u00d7288 tile for patch-wise scanning demo. Not real pathology."
+    }
+  ]
+}
