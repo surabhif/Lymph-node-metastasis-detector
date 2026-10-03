@@ -1,5 +1,5 @@
 import * as ort from 'onnxruntime-web'
-import { MODEL_URL, PATCH_SIZE } from './constants'
+import { MODEL_CACHE, MODEL_URL, PATCH_SIZE } from './constants'
 import {
   camToOverlay,
   computeCam,
@@ -12,29 +12,170 @@ export type InferenceResult = {
   probability: number
   mode: 'single-patch' | 'sliding-window'
   overlay: ImageData
+  cam?: Float32Array
+  camH?: number
+  camW?: number
   displayWidth: number
   displayHeight: number
   patchMap?: number[][]
 }
 
+export type LoadProgress = {
+  status: 'idle' | 'checking-cache' | 'downloading' | 'creating-session' | 'ready' | 'error'
+  loadedBytes: number
+  totalBytes: number | null
+  message: string
+}
+
+type ProgressCb = (p: LoadProgress) => void
+
 let sessionPromise: Promise<ort.InferenceSession> | null = null
+let cachedBuffer: ArrayBuffer | null = null
 
 function configureOrt(): void {
-  // Load WASM from the same version on jsDelivr so Vite does not need to copy binaries.
-  // Keep in sync with package.json dependency onnxruntime-web.
   ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/'
   ort.env.wasm.numThreads = 1
 }
 
-export async function getSession(): Promise<ort.InferenceSession> {
+async function fetchModelBuffer(onProgress?: ProgressCb): Promise<ArrayBuffer> {
+  if (cachedBuffer) return cachedBuffer
+
+  onProgress?.({
+    status: 'checking-cache',
+    loadedBytes: 0,
+    totalBytes: null,
+    message: 'Checking browser cache…',
+  })
+
+  try {
+    const cache = await caches.open(MODEL_CACHE)
+    const hit = await cache.match(MODEL_URL)
+    if (hit) {
+      const buf = await hit.arrayBuffer()
+      cachedBuffer = buf
+      onProgress?.({
+        status: 'creating-session',
+        loadedBytes: buf.byteLength,
+        totalBytes: buf.byteLength,
+        message: 'Loaded model from cache…',
+      })
+      return buf
+    }
+  } catch {
+    // Cache API may be unavailable (private mode); fall through to fetch.
+  }
+
+  onProgress?.({
+    status: 'downloading',
+    loadedBytes: 0,
+    totalBytes: null,
+    message: 'Downloading model…',
+  })
+
+  const res = await fetch(MODEL_URL)
+  if (!res.ok) throw new Error(`Model download failed (${res.status})`)
+  const total = Number(res.headers.get('Content-Length')) || null
+  const reader = res.body?.getReader()
+  if (!reader) {
+    const buf = await res.arrayBuffer()
+    cachedBuffer = buf
+    return buf
+  }
+
+  const chunks: Uint8Array[] = []
+  let loaded = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (value) {
+      chunks.push(value)
+      loaded += value.byteLength
+      onProgress?.({
+        status: 'downloading',
+        loadedBytes: loaded,
+        totalBytes: total,
+        message: total
+          ? `Downloading model… ${(loaded / 1e6).toFixed(1)} / ${(total / 1e6).toFixed(1)} MB`
+          : `Downloading model… ${(loaded / 1e6).toFixed(1)} MB`,
+      })
+    }
+  }
+
+  const merged = new Uint8Array(loaded)
+  let offset = 0
+  for (const c of chunks) {
+    merged.set(c, offset)
+    offset += c.byteLength
+  }
+  const buf = merged.buffer
+  cachedBuffer = buf
+
+  try {
+    const cache = await caches.open(MODEL_CACHE)
+    await cache.put(
+      MODEL_URL,
+      new Response(buf.slice(0), {
+        headers: { 'Content-Type': 'application/octet-stream' },
+      }),
+    )
+  } catch {
+    // ignore cache write failures
+  }
+
+  return buf
+}
+
+export async function preloadModel(onProgress?: ProgressCb): Promise<ort.InferenceSession> {
+  const alreadyLoading = Boolean(sessionPromise)
   if (!sessionPromise) {
-    configureOrt()
-    sessionPromise = ort.InferenceSession.create(MODEL_URL, {
-      executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all',
+    sessionPromise = (async () => {
+      try {
+        configureOrt()
+        const buffer = await fetchModelBuffer(onProgress)
+        onProgress?.({
+          status: 'creating-session',
+          loadedBytes: buffer.byteLength,
+          totalBytes: buffer.byteLength,
+          message: 'Initializing ONNX Runtime…',
+        })
+        const session = await ort.InferenceSession.create(buffer, {
+          executionProviders: ['wasm'],
+          graphOptimizationLevel: 'all',
+        })
+        onProgress?.({
+          status: 'ready',
+          loadedBytes: buffer.byteLength,
+          totalBytes: buffer.byteLength,
+          message: 'Model ready',
+        })
+        return session
+      } catch (err) {
+        sessionPromise = null
+        onProgress?.({
+          status: 'error',
+          loadedBytes: 0,
+          totalBytes: null,
+          message: err instanceof Error ? err.message : 'Failed to load model',
+        })
+        throw err
+      }
+    })()
+  }
+  const session = await sessionPromise
+  // Remount / second callers skip the create path — still report ready.
+  if (alreadyLoading && cachedBuffer) {
+    onProgress?.({
+      status: 'ready',
+      loadedBytes: cachedBuffer.byteLength,
+      totalBytes: cachedBuffer.byteLength,
+      message: 'Model ready',
     })
   }
-  return sessionPromise
+  return session
+}
+
+export async function getSession(onProgress?: ProgressCb): Promise<ort.InferenceSession> {
+  return preloadModel(onProgress)
 }
 
 async function runPatch(
@@ -42,13 +183,9 @@ async function runPatch(
   tensorData: Float32Array,
 ): Promise<{ probability: number; features: ort.Tensor; camWeights: Float32Array }> {
   const input = new ort.Tensor('float32', tensorData, [1, 3, PATCH_SIZE, PATCH_SIZE])
-  const feeds: Record<string, ort.Tensor> = { input }
-  const out = await session.run(feeds)
-
-  // Prefer named outputs; fall back to positional order if an export renamed weights.
+  const out = await session.run({ input })
   const outputs = session.outputNames
-  const probabilityTensor =
-    out.probability ?? (outputs[0] ? out[outputs[0]] : undefined)
+  const probabilityTensor = out.probability ?? (outputs[0] ? out[outputs[0]] : undefined)
   const featuresTensor = out.features ?? (outputs[1] ? out[outputs[1]] : undefined)
   const weightsTensor = out.cam_weights ?? (outputs[2] ? out[outputs[2]] : undefined)
   if (!probabilityTensor || !featuresTensor || !weightsTensor) {
@@ -56,19 +193,22 @@ async function runPatch(
       `ONNX model must output probability, features, cam_weights (got: ${outputs.join(', ')})`,
     )
   }
-
-  const probability = (probabilityTensor.data as Float32Array)[0] ?? 0
-  const camWeights = weightsTensor.data as Float32Array
-  return { probability, features: featuresTensor, camWeights }
+  return {
+    probability: (probabilityTensor.data as Float32Array)[0] ?? 0,
+    features: featuresTensor,
+    camWeights: weightsTensor.data as Float32Array,
+  }
 }
 
-export async function runInference(source: string | File): Promise<InferenceResult> {
-  const session = await getSession()
+export async function runInference(
+  source: string | File,
+  onProgress?: ProgressCb,
+): Promise<InferenceResult> {
+  const session = await getSession(onProgress)
   const img = await loadImage(source)
   const width = img.naturalWidth
   const height = img.naturalHeight
 
-  // Single-patch path for images at or near PCam size
   if (width <= PATCH_SIZE + 8 && height <= PATCH_SIZE + 8) {
     const tensor = imageToTensor(img)
     const { probability, features, camWeights } = await runPatch(session, tensor)
@@ -80,17 +220,19 @@ export async function runInference(source: string | File): Promise<InferenceResu
       camH,
       camW,
     )
-    const overlay = camToOverlay(cam, camH, camW, width, height)
+    const overlay = camToOverlay(cam, camH, camW, width, height, 1)
     return {
       probability,
       mode: 'single-patch',
       overlay,
+      cam,
+      camH,
+      camW,
       displayWidth: width,
       displayHeight: height,
     }
   }
 
-  // Sliding-window scan for larger tiles
   const stride = Math.max(32, Math.floor(PATCH_SIZE / 2))
   const cols = Math.max(1, Math.floor((width - PATCH_SIZE) / stride) + 1)
   const rows = Math.max(1, Math.floor((height - PATCH_SIZE) / stride) + 1)
@@ -112,7 +254,7 @@ export async function runInference(source: string | File): Promise<InferenceResu
     patchMap.push(row)
   }
 
-  const overlay = probabilityMapOverlay(patchMap, width, height, PATCH_SIZE, stride)
+  const overlay = probabilityMapOverlay(patchMap, width, height, PATCH_SIZE, stride, 1)
   return {
     probability: count ? probSum / count : 0,
     mode: 'sliding-window',

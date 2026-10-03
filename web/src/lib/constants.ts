@@ -9,13 +9,23 @@ export const IMAGENET_STD = [0.229, 0.224, 0.225] as const
 /** Bundled model path (under Vite public/). */
 export const MODEL_URL = `${import.meta.env.BASE_URL}models/pcam_cam.onnx`
 
+/** Cache name for the ONNX weights in the browser Cache API. */
+export const MODEL_CACHE = 'pcam-onnx-v2-int8'
+
 /**
- * Honest status of the file currently in public/models/.
- * Surabhi should replace this with her own Colab export when ready.
+ * Visitor-facing model label. Paths / quantization notes live in the README
+ * and on the Model card “Current served model” section — not in the site banner.
  */
 export const MODEL_STATUS = {
-  kind: 'quick_baseline' as const,
-  label: 'Quick baseline (Cursor-assisted)',
-  detail:
-    'Bundled ONNX was trained in a quick subset/epochs run with Cursor’s help so the live demo has a real model. It is a reference baseline — replace web/public/models/pcam_cam.onnx with Surabhi’s own Colab export. See results/baseline_quick_run.json for config and metrics.',
+  kind: 'quick_baseline_int8' as const,
+  label: 'Quick baseline',
+  sizeHintMb: 11,
+}
+
+export const SITE = {
+  title: 'Lymph Node Metastasis Detector',
+  shortTitle: 'PCam Metastasis Detector',
+  tagline: 'In-browser research demo on PatchCamelyon',
+  githubUrl: 'https://github.com/surabhif/Lymph-node-metastasis-detector',
+  pagesUrl: 'https://surabhif.github.io/Lymph-node-metastasis-detector/',
 }
