@@ -22,3 +22,4 @@ web/.env.*
 # IDE
 .idea/
 .vscode/
+artifacts/

@@ -45,12 +45,15 @@ async function runPatch(
   const feeds: Record<string, ort.Tensor> = { input }
   const out = await session.run(feeds)
 
-  const probabilityTensor = out.probability
-  const featuresTensor = out.features
-  const weightsTensor = out.cam_weights
+  // Prefer named outputs; fall back to positional order if an export renamed weights.
+  const outputs = session.outputNames
+  const probabilityTensor =
+    out.probability ?? (outputs[0] ? out[outputs[0]] : undefined)
+  const featuresTensor = out.features ?? (outputs[1] ? out[outputs[1]] : undefined)
+  const weightsTensor = out.cam_weights ?? (outputs[2] ? out[outputs[2]] : undefined)
   if (!probabilityTensor || !featuresTensor || !weightsTensor) {
     throw new Error(
-      'ONNX model must output named tensors: probability, features, cam_weights',
+      `ONNX model must output probability, features, cam_weights (got: ${outputs.join(', ')})`,
     )
   }
 

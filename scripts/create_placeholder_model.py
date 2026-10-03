@@ -19,13 +19,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
+import onnx
+import onnxruntime as ort
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from onnx import helper, numpy_helper
 
 
 FEATURE_CHANNELS = 64
 PATCH_SIZE = 96
+EXPECTED_OUTPUTS = ("probability", "features", "cam_weights")
 
 
 class TinyCamNet(nn.Module):
@@ -54,19 +59,30 @@ class TinyCamNet(nn.Module):
         pooled = F.adaptive_avg_pool2d(feat, 1).flatten(1)
         logits = self.classifier(pooled)
         probability = torch.sigmoid(logits)
-        cam_weights = self.classifier.weight.squeeze(0)  # [C]
+        # Force a real graph node (raw .weight can export under an anonymous name).
+        cam_weights = self.classifier.weight.squeeze(0) * 1.0
         return probability, feat, cam_weights
 
 
-class OnnxWrapper(nn.Module):
-    """Wrap so ONNX gets named outputs without dynamic classifier weight graph quirks."""
+def ensure_output_names(model: onnx.ModelProto) -> onnx.ModelProto:
+    """Rename graph outputs to the contract names if the exporter used anonymous names."""
+    current = [o.name for o in model.graph.output]
+    if current == list(EXPECTED_OUTPUTS):
+        return model
 
-    def __init__(self, net: TinyCamNet) -> None:
-        super().__init__()
-        self.net = net
-
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        return self.net(x)
+    # Map by position: 0=probability, 1=features, 2=cam_weights
+    for i, desired in enumerate(EXPECTED_OUTPUTS):
+        if i >= len(model.graph.output):
+            break
+        old = model.graph.output[i].name
+        if old == desired:
+            continue
+        # Insert Identity so consumers can read the stable name.
+        model.graph.node.append(
+            helper.make_node("Identity", inputs=[old], outputs=[desired], name=f"rename_{desired}")
+        )
+        model.graph.output[i].name = desired
+    return model
 
 
 def main() -> None:
@@ -75,23 +91,20 @@ def main() -> None:
     out_path = out_dir / "pcam_cam.onnx"
 
     torch.manual_seed(0)
-    net = TinyCamNet()
-    net.eval()
-    wrapper = OnnxWrapper(net)
-    wrapper.eval()
+    net = TinyCamNet().eval()
 
     dummy = torch.randn(1, 3, PATCH_SIZE, PATCH_SIZE)
     with torch.no_grad():
-        prob, feat, weights = wrapper(dummy)
+        prob, feat, weights = net(dummy)
     print(f"shapes: prob={tuple(prob.shape)} feat={tuple(feat.shape)} weights={tuple(weights.shape)}")
 
-    # Use the legacy exporter so weights stay inside one .onnx file (ORT Web friendly).
+    # Legacy exporter → single-file ONNX (ORT Web friendly).
     torch.onnx.export(
-        wrapper,
+        net,
         dummy,
         str(out_path),
         input_names=["input"],
-        output_names=["probability", "features", "cam_weights"],
+        output_names=list(EXPECTED_OUTPUTS),
         dynamic_axes={
             "input": {0: "batch"},
             "probability": {0: "batch"},
@@ -101,25 +114,23 @@ def main() -> None:
         dynamo=False,
     )
 
-    # Ensure no external data sidecar remains
     sidecar = out_path.with_suffix(".onnx.data")
     if sidecar.exists():
         sidecar.unlink()
 
-    import onnx
-
     model = onnx.load(str(out_path))
-    # Re-save as a single file with embedded weights
+    model = ensure_output_names(model)
     onnx.save_model(model, str(out_path), save_as_external_data=False)
     size_mb = out_path.stat().st_size / (1024 * 1024)
     print(f"Wrote {out_path} ({size_mb:.2f} MB) — UNTRAINED PLACEHOLDER")
-
-    # Quick sanity check with onnxruntime
-    import onnxruntime as ort
+    print("graph outputs:", [o.name for o in model.graph.output])
 
     sess = ort.InferenceSession(str(out_path), providers=["CPUExecutionProvider"])
+    names = [o.name for o in sess.get_outputs()]
+    assert names == list(EXPECTED_OUTPUTS), names
     outs = sess.run(None, {"input": dummy.numpy()})
-    print(f"ORT outputs: {[o.shape for o in outs]}")
+    print(f"ORT outputs: {names} shapes={[o.shape for o in outs]}")
+
     meta = out_dir / "MODEL_STATUS.txt"
     meta.write_text(
         "STATUS=untrained_placeholder\n"
