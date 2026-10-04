@@ -435,11 +435,11 @@ export default function LymphExplainer() {
           ))}
         </ul>
         <p className="tiny muted">
-          The upper-torso mesh is derived from BodyParts3D (CC BY 4.0); see Sources and{' '}
-          <code>THIRD_PARTY_NOTICES.md</code>. Lymph vessels/nodes are educational overlays.
-          If the mesh fails to load, a procedural fallback is used. Step 3 remains schematic.
-          Step 5 uses a mosaic of real PCam (CC0) test patches as an honest WSI stand-in — not
-          contiguous tissue.
+          Primary meshes are NIH/HuBMAP Human Reference Atlas female skin, right mammary gland,
+          and lymph node (CC BY 4.0), with BodyParts3D chest cues (CC BY 4.0) under the skin — see
+          Sources and <code>THIRD_PARTY_NOTICES.md</code>. Lymph vessels/axillary nodes are
+          educational overlays. If a mesh fails to load, a procedural fallback is used. Step 5 uses
+          a mosaic of real PCam (CC0) test patches as an honest WSI stand-in — not contiguous tissue.
         </p>
       </details>
     </section>

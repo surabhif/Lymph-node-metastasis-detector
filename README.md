@@ -14,7 +14,7 @@ Lymph-node status matters for breast-cancer surgery planning. This project is an
 |------|---------|
 | `notebooks/01_train_pcam.ipynb` | Guided Colab teaching notebook (train, evaluate, export ONNX) |
 | `web/` | React + Vite research site (3D educational landing, guided demo, Results, About) |
-| `web/src/explainer/` | Lazy-loaded Three.js / R3F lymph-node metastasis explainer (BodyParts3D torso + overlays) |
+| `web/src/explainer/` | Lazy-loaded Three.js / R3F lymph-node metastasis explainer (HRA female anatomy + overlays) |
 | `web/public/models/pcam_cam.onnx` | Quick Cursor-assisted baseline ONNX (**INT8**, ~11 MB) |
 | `web/public/results/metrics.json` | Data-driven Results page (ROC, calibration, CM, mistakes) |
 | `results/baseline_quick_run.json` | Raw baseline training metrics/config |
@@ -23,9 +23,9 @@ Lymph-node status matters for breast-cancer surgery planning. This project is an
 | `scripts/` | Training, gallery export, results export, quantization helpers |
 | `.github/workflows/deploy-pages.yml` | Build & deploy the site to GitHub Pages on push to `main` |
 
-## Third-party anatomy asset
+## Third-party anatomy assets
 
-The landing explainer’s upper-torso mesh is derived from **BodyParts3D** (CC BY 4.0). See [`CREDITS.md`](./CREDITS.md) and [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md) for attribution, license verification URLs, and how the GLB was cropped/compressed. Application code remains MIT; the mesh stays under CC BY 4.0.
+The landing explainer uses **NIH/HuBMAP Human Reference Atlas** female skin, right mammary gland, and lymph-node meshes (**CC BY 4.0**), plus BodyParts3D chest cues (**CC BY 4.0**) under the skin. See [`CREDITS.md`](./CREDITS.md) and [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md) for attribution, license verification URLs, and how the GLBs were cropped/compressed. Application code remains MIT; the meshes stay under CC BY 4.0.
 
 ## Honest status of the bundled model
 

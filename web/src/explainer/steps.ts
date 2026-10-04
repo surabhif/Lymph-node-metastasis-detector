@@ -64,7 +64,7 @@ export const EXPLAINER_STEPS: ExplainerStep[] = [
     shortTitle: 'Surgery',
     title: 'Surgery choices and staging',
     body: 'Sentinel lymph node biopsy samples the first draining node(s) with a smaller operation. Axillary lymph node dissection removes more nodes and is a larger procedure. Node findings feed into the N category of TNM staging — a structured way teams summarize tumor (T), nodes (N), and distant spread (M). This explainer is educational only, not advice about any person’s care.',
-    alt: 'Two side-by-side BodyParts3D torso views: sentinel lymph node biopsy highlighting one to three axillary nodes, versus axillary dissection highlighting levels I and II, with a TNM N-category cue.',
+    alt: 'Two side-by-side female torso views: sentinel lymph node biopsy highlighting one to three axillary nodes, versus axillary dissection highlighting levels I and II, with a TNM N-category cue.',
     callouts: [
       { label: 'SLNB', detail: 'Sentinel lymph node biopsy — fewer nodes sampled' },
       { label: 'ALND', detail: 'Axillary lymph node dissection — more nodes removed' },
@@ -113,9 +113,15 @@ export const EXPLAINER_SOURCES: { name: string; href: string; note: string }[] =
     note: 'Public 96×96 lymph-node patches derived from Camelyon16 (CC0).',
   },
   {
+    name: 'NIH / HuBMAP Human Reference Atlas — 3D Reference Organs',
+    href: 'https://humanatlas.io/3d-reference-library',
+    note:
+      'Female skin (v1.5), right mammary gland (v1.1), and female lymph node (v1.4). License: CC BY 4.0 (verified on CDN JSON-LD). Cropped/pruned/Draco-compressed for the web; educational overlays added in-app.',
+  },
+  {
     name: 'BodyParts3D / Anatomography — Database Center for Life Science',
     href: 'https://dbarchive.biosciencedbc.jp/en/bodyparts3d/desc.html',
     note:
-      'Upper-torso GLB in the explainer (skin, pectoralis major/minor, deltoid, clavicles, sternum, proximal humeri). License: CC BY 4.0 International. Attribution: “BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International”. Cropped/decimated/Draco-compressed for the web; educational lymph overlays added in-app.',
+      'Chest cues under the HRA skin (pectoralis, clavicles, sternum). License: CC BY 4.0 International. Attribution: “BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International”.',
   },
 ]

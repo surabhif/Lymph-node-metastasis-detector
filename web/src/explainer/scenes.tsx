@@ -1,12 +1,13 @@
-import { useMemo, useRef, useEffect, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useEffect, useState, Suspense, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Group, Mesh } from 'three'
 import * as THREE from 'three'
-import { Html, useTexture } from '@react-three/drei'
+import { Html, useGLTF, useTexture } from '@react-three/drei'
 import type { ExplainerStepId } from './steps'
 import { COLORS } from './colors'
-import { AnatomyTorso, landmark } from './AnatomyTorso'
+import { AnatomyTorso, landmark, LYMPH_NODE_URL } from './AnatomyTorso'
+import { CinematicLight, MacroNodeLight } from './CinematicLight'
 import {
   cameraTargetFor,
   SURGERY_PANEL_SCALE,
@@ -29,16 +30,9 @@ type SceneProps = {
   surgeryMode?: 'slnb' | 'alnd' | 'both'
 }
 
-export function SoftLight() {
-  return (
-    <>
-      <ambientLight intensity={0.58} />
-      <hemisphereLight args={['#f7f2e8', '#9aabb0', 0.55]} />
-      <directionalLight position={[3.5, 5.5, 4]} intensity={1.1} color="#fff4e6" />
-      <directionalLight position={[-2.8, 2.0, -1.8]} intensity={0.35} color="#b7c9c0" />
-      <pointLight position={[0.6, 0.9, 1.8]} intensity={0.28} color="#ffe8d6" />
-    </>
-  )
+/** @deprecated Use CinematicLight — kept as a thin alias for any leftover imports. */
+export function SoftLight({ quality = 'high' }: { quality?: SceneQuality } = {}) {
+  return <CinematicLight quality={quality} />
 }
 
 /**
@@ -134,12 +128,14 @@ function LymphTube({
   tubular,
   color,
   opacity = 1,
+  glow = false,
 }: {
   curve: THREE.Curve<THREE.Vector3>
   radius: number
   tubular: number
   color: string
   opacity?: number
+  glow?: boolean
 }) {
   const geom = useMemo(
     () => new THREE.TubeGeometry(curve, tubular, radius, 8, false),
@@ -147,8 +143,73 @@ function LymphTube({
   )
   return (
     <mesh geometry={geom} renderOrder={11}>
-      <OverlayMaterial color={color} opacity={opacity} transparent={opacity < 1} roughness={0.45} />
+      <OverlayMaterial
+        color={color}
+        opacity={opacity}
+        transparent={opacity < 1}
+        roughness={0.45}
+        emissive={glow ? COLORS.vesselGlow : undefined}
+        emissiveIntensity={glow ? 0.35 : 0}
+      />
     </mesh>
+  )
+}
+
+/** Moving dashes / particles along the axillary lymph path. */
+function LymphFlow({
+  curve,
+  reducedMotion,
+  quality,
+  count,
+}: {
+  curve: THREE.Curve<THREE.Vector3>
+  reducedMotion: boolean
+  quality: SceneQuality
+  count?: number
+}) {
+  const n = count ?? (quality === 'high' ? 14 : 8)
+  const dashes = useRef<(Mesh | null)[]>([])
+  const dashGeom = useMemo(() => new THREE.SphereGeometry(0.022, 8, 8), [])
+
+  useFrame(({ clock }) => {
+    if (reducedMotion) return
+    const t = clock.getElapsedTime()
+    dashes.current.forEach((mesh, i) => {
+      if (!mesh) return
+      const u = (t * 0.12 + i / n) % 1
+      mesh.position.copy(curve.getPointAt(u))
+      const pulse = 0.75 + 0.35 * Math.sin(t * 3.2 + i)
+      mesh.scale.setScalar(pulse)
+    })
+  })
+
+  return (
+    <group>
+      {Array.from({ length: n }).map((_, i) => {
+        const u = reducedMotion ? (i + 0.5) / n : 0
+        return (
+          <mesh
+            key={i}
+            ref={(el) => {
+              dashes.current[i] = el
+            }}
+            geometry={dashGeom}
+            position={curve.getPointAt(u)}
+            renderOrder={13}
+          >
+            <meshStandardMaterial
+              color={COLORS.vesselGlow}
+              emissive={COLORS.vesselGlow}
+              emissiveIntensity={0.95}
+              toneMapped={false}
+              transparent
+              opacity={0.85}
+              depthWrite={false}
+            />
+          </mesh>
+        )
+      })}
+    </group>
   )
 }
 
@@ -158,12 +219,16 @@ function AxillaryChain({
   onActiveNode,
   interactive,
   showPath = true,
+  reducedMotion = false,
+  flow = false,
 }: {
   quality: SceneQuality
   activeNode: string | null
   onActiveNode: (id: string | null) => void
   interactive: boolean
   showPath?: boolean
+  reducedMotion?: boolean
+  flow?: boolean
 }) {
   const segs = quality === 'high' ? 28 : 14
   const path = useMemo(() => axillaryPath(), [])
@@ -172,7 +237,16 @@ function AxillaryChain({
   return (
     <group>
       {showPath && (
-        <LymphTube curve={path} radius={0.028} tubular={tubular} color={COLORS.vessel} />
+        <LymphTube
+          curve={path}
+          radius={0.028}
+          tubular={tubular}
+          color={COLORS.vessel}
+          glow
+        />
+      )}
+      {showPath && flow && (
+        <LymphFlow curve={path} reducedMotion={reducedMotion} quality={quality} />
       )}
       {AXILLA_NODES.map((n) => {
         const hot = interactive && activeNode === n.id
@@ -204,8 +278,8 @@ function AxillaryChain({
             <sphereGeometry args={[n.r, segs, segs]} />
             <OverlayMaterial
               color={hot ? COLORS.nodeHot : isSentinel ? COLORS.sentinel : COLORS.node}
-              emissive={isSentinel || hot ? COLORS.sentinel : '#000'}
-              emissiveIntensity={hot ? 0.4 : isSentinel ? 0.22 : 0}
+              emissive={isSentinel || hot ? COLORS.sentinel : COLORS.node}
+              emissiveIntensity={hot ? 0.65 : isSentinel ? 0.45 : 0.18}
             />
           </mesh>
         )
@@ -218,13 +292,15 @@ function AxillaryChain({
 export function LymphaticScene({ quality, reducedMotion, activeNode, onActiveNode }: SceneProps) {
   return (
     <IdleSway reducedMotion={reducedMotion}>
-      <SoftLight />
+      <CinematicLight quality={quality} />
       <AnatomyTorso quality={quality} />
       <AxillaryChain
         quality={quality}
         activeNode={activeNode}
         onActiveNode={onActiveNode}
         interactive
+        reducedMotion={reducedMotion}
+        flow
       />
     </IdleSway>
   )
@@ -235,6 +311,7 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   const path = useMemo(() => axillaryPath(), [])
   const cellCount = quality === 'high' ? 8 : 5
   const cells = useRef<(Mesh | null)[]>([])
+  const glowHalos = useRef<(Mesh | null)[]>([])
 
   useFrame(({ clock }) => {
     if (reducedMotion) return
@@ -244,12 +321,17 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
       const u = (t * 0.09 + i / cellCount) % 1
       mesh.position.copy(path.getPointAt(u))
       mesh.scale.setScalar(0.7 + 0.3 * Math.sin(t * 2.2 + i))
+      const halo = glowHalos.current[i]
+      if (halo) {
+        halo.position.copy(mesh.position)
+        halo.scale.setScalar(1.4 + 0.35 * Math.sin(t * 2.8 + i))
+      }
     })
   })
 
   return (
     <group>
-      <SoftLight />
+      <CinematicLight quality={quality} />
       <AnatomyTorso quality={quality} />
       <AxillaryChain
         quality={quality}
@@ -257,60 +339,97 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
         onActiveNode={() => undefined}
         interactive={false}
         showPath={false}
+        reducedMotion={reducedMotion}
       />
       <LymphTube
         curve={path}
         radius={0.034}
         tubular={quality === 'high' ? 72 : 32}
         color={COLORS.vessel}
+        glow
       />
+      <LymphFlow curve={path} reducedMotion={reducedMotion} quality={quality} count={quality === 'high' ? 10 : 6} />
       {Array.from({ length: cellCount }).map((_, i) => {
         const u = reducedMotion ? (i + 0.5) / cellCount : 0
+        const pos = path.getPointAt(u)
         return (
-          <mesh
-            key={i}
-            ref={(el) => {
-              cells.current[i] = el
-            }}
-            position={path.getPointAt(u)}
-            renderOrder={14}
-          >
-            <sphereGeometry args={[0.05, 12, 12]} />
-            <OverlayMaterial
-              color={COLORS.tumorCell}
-              emissive={COLORS.tumor}
-              emissiveIntensity={0.7}
-            />
-          </mesh>
+          <group key={i}>
+            <mesh
+              ref={(el) => {
+                cells.current[i] = el
+              }}
+              position={pos}
+              renderOrder={14}
+            >
+              <sphereGeometry args={[0.05, 12, 12]} />
+              <OverlayMaterial
+                color={COLORS.tumorCell}
+                emissive={COLORS.tumorGlow}
+                emissiveIntensity={1.05}
+              />
+            </mesh>
+            <mesh
+              ref={(el) => {
+                glowHalos.current[i] = el
+              }}
+              position={pos}
+              renderOrder={13}
+            >
+              <sphereGeometry args={[0.08, 10, 10]} />
+              <meshBasicMaterial
+                color={COLORS.tumorGlow}
+                transparent
+                opacity={0.22}
+                depthWrite={false}
+                toneMapped={false}
+              />
+            </mesh>
+          </group>
         )
       })}
     </group>
   )
 }
 
-/** Step 3 — open cutaway bowl so legend-matched red deposits stay unobstructed */
-export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
+/** Step 3 — HRA lymph-node interior with educational deposit overlays. */
+function HraLymphNodeShell({ quality }: { quality: SceneQuality }) {
+  const { scene } = useGLTF(LYMPH_NODE_URL, true)
+  const cloned = useMemo(() => {
+    const c = scene.clone(true)
+    c.traverse((obj) => {
+      if (!(obj as Mesh).isMesh) return
+      const mesh = obj as Mesh
+      const name = (mesh.name || mesh.parent?.name || '').toLowerCase()
+      const isVessel = /vessel|arter|vein|afferent|efferent/.test(name)
+      const isCapsule = /capsule|hilum/.test(name)
+      mesh.material = new THREE.MeshPhysicalMaterial({
+        color: isVessel ? COLORS.vessel : isCapsule ? COLORS.nodeCapsule : COLORS.lymphoid,
+        roughness: isVessel ? 0.35 : 0.85,
+        metalness: 0,
+        transparent: true,
+        opacity: isVessel ? 0.85 : isCapsule ? 0.55 : 0.72,
+        depthWrite: !isCapsule,
+        side: THREE.DoubleSide,
+        transmission: isCapsule ? 0.15 : 0,
+        thickness: isCapsule ? 0.2 : 0,
+        emissive: new THREE.Color(isVessel ? COLORS.vesselGlow : '#000000'),
+        emissiveIntensity: isVessel ? 0.4 : 0,
+      })
+      mesh.castShadow = false
+      mesh.receiveShadow = false
+    })
+    return c
+  }, [scene])
+
+  // HRA lymph node is authored near origin in metres; scale up for macro framing.
+  const s = quality === 'high' ? 28 : 24
+  return <primitive object={cloned} scale={s} />
+}
+
+function SchematicNodeFallback({ quality }: { quality: SceneQuality }) {
   const segs = quality === 'high' ? 40 : 20
-  const group = useRef<Group>(null)
-
-  useFrame(({ clock }) => {
-    if (reducedMotion || !group.current) return
-    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.45) * 0.28
-  })
-
-  const deposits = [
-    { id: 'itc', pos: [-0.48, 0.38, 0.35] as const, r: 0.065, color: COLORS.itc },
-    { id: 'micro', pos: [0.42, -0.02, 0.32] as const, r: 0.17, color: COLORS.micro },
-    { id: 'macro', pos: [-0.02, 0.02, 0.22] as const, r: 0.4, color: COLORS.macro },
-  ]
-
   return (
-    <group ref={group} position={[0, 0.08, 0]}>
-      <ambientLight intensity={0.7} />
-      <hemisphereLight args={['#f8f5ef', '#d0d4d0', 0.35]} />
-      <directionalLight position={[3.2, 4.5, 5]} intensity={1.15} color="#fff8f0" />
-      <directionalLight position={[-2.2, 1.2, 2]} intensity={0.3} color="#f0f2ef" />
-
+    <group>
       <mesh rotation={[0, Math.PI / 2, 0]}>
         <sphereGeometry args={[1.02, segs, segs, 0, Math.PI, 0, Math.PI]} />
         <meshStandardMaterial
@@ -328,6 +447,38 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
         <circleGeometry args={[1.0, segs]} />
         <meshStandardMaterial color="#f4f7f4" roughness={0.95} side={THREE.DoubleSide} />
       </mesh>
+    </group>
+  )
+}
+
+/** Step 3 — open cutaway so legend-matched red deposits stay unobstructed */
+export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
+  const group = useRef<Group>(null)
+
+  useFrame(({ clock }) => {
+    if (reducedMotion || !group.current) return
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.45) * 0.28
+  })
+
+  const deposits = [
+    { id: 'itc', pos: [-0.48, 0.38, 0.35] as const, r: 0.065, color: COLORS.itc },
+    { id: 'micro', pos: [0.42, -0.02, 0.32] as const, r: 0.17, color: COLORS.micro },
+    { id: 'macro', pos: [-0.02, 0.02, 0.22] as const, r: 0.4, color: COLORS.macro },
+  ]
+
+  return (
+    <group ref={group} position={[0, 0.08, 0]}>
+      <MacroNodeLight quality={quality} />
+
+      <group
+        // Slight cutaway bias so deposits remain readable from the camera
+        rotation={[0.15, -0.4, 0.05]}
+        position={[0, -0.05, 0]}
+      >
+        <Suspense fallback={<SchematicNodeFallback quality={quality} />}>
+          <HraLymphNodeShell quality={quality} />
+        </Suspense>
+      </group>
 
       {deposits.map((d) => (
         <mesh key={d.id} position={d.pos} renderOrder={2}>
@@ -335,7 +486,7 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
           <meshStandardMaterial
             color={d.color}
             emissive={d.color}
-            emissiveIntensity={0.55}
+            emissiveIntensity={0.75}
             roughness={0.22}
             metalness={0.02}
             toneMapped={false}
@@ -358,7 +509,7 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
             <meshStandardMaterial
               color={m.c}
               emissive={m.c}
-              emissiveIntensity={0.4}
+              emissiveIntensity={0.55}
               toneMapped={false}
             />
           </mesh>
@@ -420,7 +571,7 @@ function SurgeryPanelNodes({
 }
 
 /**
- * Step 4 — SLNB vs ALND BodyParts3D torsos.
+ * Step 4 — SLNB vs ALND HRA female torso panels.
  * Desktop: two scaled panels side-by-side with a gap (camera pulls back to fit both).
  * Mobile: one panel at a time (same framing as step 1), toggled via surgeryMode.
  */
@@ -442,7 +593,7 @@ export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: S
 
   return (
     <group ref={group}>
-      <SoftLight />
+      <CinematicLight quality={quality} />
       {showSlnb && (
         <group position={[-panelX, 0, 0]} scale={panelScale} rotation={[0.04, yaw, 0]}>
           <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />

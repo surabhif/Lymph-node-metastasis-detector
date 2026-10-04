@@ -1,11 +1,12 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, Environment, OrbitControls } from '@react-three/drei'
+import { ContactShadows, OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
 import { SceneForStep, type SceneQuality } from './scenes'
 import { cameraTargetFor, getTorsoBounds } from './cameraFit'
+import { PostFX } from './PostFX'
 
 export type SurgeryMode = 'slnb' | 'alnd' | 'both'
 
@@ -51,15 +52,17 @@ function CameraRig({
     const cfg = cameraTargetFor(stepId, mobile, aspect, surgerySingle)
     desiredPos.current.set(...cfg.position)
     desiredLook.current.set(...cfg.lookAt)
-    // Re-snap on surgery mode changes so toggle reframes immediately
-    camera.position.copy(desiredPos.current)
-    target.current.copy(desiredLook.current)
-    camera.lookAt(target.current)
-    if (controlsRef.current) {
-      controlsRef.current.target.copy(target.current)
-      controlsRef.current.update()
+    // First mount only: place camera immediately. Later step changes tween via useFrame.
+    if (!initialized.current || reducedMotion) {
+      camera.position.copy(desiredPos.current)
+      target.current.copy(desiredLook.current)
+      camera.lookAt(target.current)
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(target.current)
+        controlsRef.current.update()
+      }
+      initialized.current = true
     }
-    initialized.current = true
   }, [stepId, mobile, aspect, camera, controlsRef, reducedMotion, surgerySingle])
 
   useEffect(() => {
@@ -78,8 +81,20 @@ function CameraRig({
   }, [stepId, mobile, aspect, surgerySingle])
 
   useFrame((_, dt) => {
-    if (reducedMotion) return
-    const k = 1 - Math.exp(-dt * 3.2)
+    if (reducedMotion) {
+      // Snap when motion is reduced so framing stays exact.
+      camera.position.copy(desiredPos.current)
+      target.current.copy(desiredLook.current)
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(desiredLook.current)
+        controlsRef.current.update()
+      } else {
+        camera.lookAt(target.current)
+      }
+      return
+    }
+    // Smooth cinematic tween between steps (slower than the old snap).
+    const k = 1 - Math.exp(-dt * 2.1)
     camera.position.lerp(desiredPos.current, k)
     target.current.lerp(desiredLook.current, k)
     if (controlsRef.current) {
@@ -132,7 +147,7 @@ export default function ExplainerCanvas({
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0)
         gl.toneMapping = THREE.ACESFilmicToneMapping
-        gl.toneMappingExposure = 1.05
+        gl.toneMappingExposure = 1.12
       }}
       aria-hidden="true"
     >
@@ -153,9 +168,11 @@ export default function ExplainerCanvas({
           surgeryMode={surgeryMode}
         />
         {!isPatches && (
-          <ContactShadows position={[0, shadowY, 0]} opacity={0.22} scale={12} blur={2.8} far={5} />
+          <ContactShadows position={[0, shadowY, 0]} opacity={0.28} scale={12} blur={2.6} far={5} />
         )}
-        {!isPatches && <Environment preset="apartment" environmentIntensity={0.28} />}
+        {!isPatches && (
+          <PostFX quality={quality} reducedMotion={reducedMotion} enabled />
+        )}
         <OrbitControls
           ref={controlsRef}
           enablePan={false}
