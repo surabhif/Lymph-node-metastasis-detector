@@ -393,57 +393,62 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
     group.current.rotation.y += dt * 0.16
   })
 
-  // Relative sizes for schematic scale (not literal mm in world units)
+  // Deposits sit forward on the cutaway face so legend reds read clearly
   const deposits = [
-    { id: 'itc', pos: [-0.42, 0.32, 0.48] as const, r: 0.055, color: COLORS.itc },
-    { id: 'micro', pos: [0.38, -0.08, 0.42] as const, r: 0.15, color: COLORS.micro },
-    { id: 'macro', pos: [-0.05, 0.05, -0.28] as const, r: 0.36, color: COLORS.macro },
+    { id: 'itc', pos: [-0.45, 0.35, 0.55] as const, r: 0.06, color: COLORS.itc },
+    { id: 'micro', pos: [0.4, -0.05, 0.5] as const, r: 0.16, color: COLORS.micro },
+    { id: 'macro', pos: [-0.05, 0.0, 0.35] as const, r: 0.38, color: COLORS.macro },
   ]
 
   return (
     <group ref={group} position={[0, 0.05, 0]}>
-      <ambientLight intensity={0.62} />
-      <hemisphereLight args={['#f8f5ef', '#c8cfcb', 0.4]} />
-      <directionalLight position={[3.5, 5, 4]} intensity={1.05} color="#fff8f0" />
-      <directionalLight position={[-2.5, 1.5, -2]} intensity={0.28} color="#e8ebe8" />
+      <ambientLight intensity={0.65} />
+      <hemisphereLight args={['#f8f5ef', '#c8cfcb', 0.35]} />
+      <directionalLight position={[3.5, 5, 4]} intensity={1.1} color="#fff8f0" />
+      <directionalLight position={[-2.5, 1.5, -2]} intensity={0.25} color="#e8ebe8" />
+      {/* capsule shell — cutaway so interior deposits are visible */}
       <mesh>
-        <sphereGeometry args={[1.08, segs, segs, 0, Math.PI * 1.4, 0, Math.PI]} />
+        <sphereGeometry args={[1.08, segs, segs, 0, Math.PI * 1.55, 0, Math.PI]} />
         <meshStandardMaterial
           color={COLORS.nodeCapsule}
           transparent
-          opacity={0.2}
+          opacity={0.28}
           roughness={0.35}
           side={THREE.DoubleSide}
         />
       </mesh>
+      {/* healthy lymphoid — same cutaway, pale tissue matching legend */}
       <mesh>
-        <sphereGeometry args={[1.0, segs, segs]} />
+        <sphereGeometry args={[1.0, segs, segs, 0, Math.PI * 1.55, 0, Math.PI]} />
         <meshStandardMaterial
           color={COLORS.lymphoid}
           roughness={0.92}
           metalness={0}
           transparent
-          opacity={0.94}
+          opacity={0.88}
+          side={THREE.DoubleSide}
         />
       </mesh>
-      <mesh rotation={[0, 0, Math.PI / 2]}>
+      {/* cut face */}
+      <mesh rotation={[0, Math.PI * 0.275, Math.PI / 2]}>
         <circleGeometry args={[1.0, segs]} />
-        <meshStandardMaterial color="#f7faf7" transparent opacity={0.55} side={THREE.DoubleSide} />
+        <meshStandardMaterial color="#f7faf7" transparent opacity={0.7} side={THREE.DoubleSide} />
       </mesh>
+      {/* deposits sit on the cutaway face so reds read clearly */}
       {deposits.map((d) => (
         <mesh key={d.id} position={d.pos}>
           <sphereGeometry args={[d.r, 24, 24]} />
           <meshStandardMaterial
             color={d.color}
             emissive={d.color}
-            emissiveIntensity={0.45}
-            roughness={0.28}
+            emissiveIntensity={0.55}
+            roughness={0.25}
             metalness={0.02}
           />
         </mesh>
       ))}
       {/* visible scale cue — ITC / micro / macro relative sizes on a bar */}
-      <group position={[0, -1.28, 0.15]}>
+      <group position={[0, -1.28, 0.2]}>
         <mesh>
           <boxGeometry args={[1.5, 0.022, 0.022]} />
           <meshStandardMaterial color={COLORS.scale} />
@@ -455,7 +460,7 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
         ].map((m, i) => (
           <mesh key={i} position={[m.x, 0.08, 0]}>
             <boxGeometry args={m.s} />
-            <meshStandardMaterial color={m.c} emissive={m.c} emissiveIntensity={0.32} />
+            <meshStandardMaterial color={m.c} emissive={m.c} emissiveIntensity={0.35} />
           </mesh>
         ))}
       </group>
