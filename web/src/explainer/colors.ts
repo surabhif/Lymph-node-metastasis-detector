@@ -12,7 +12,7 @@ export const COLORS = {
   itc: '#e8a598',
   micro: '#d47868',
   macro: '#9f2d22',
-  lymphoid: '#e8f0eb',
+  lymphoid: '#edf2ee',
   nodeCapsule: '#0b6b54',
   slide: '#e6ddcf',
   patch: '#a9bfb5',

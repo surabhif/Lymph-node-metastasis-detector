@@ -42,7 +42,7 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
         {step.id === 'inside' && (
           <>
             <circle cx="240" cy="160" r="95" fill="#0b6b54" opacity="0.25" />
-            <circle cx="240" cy="160" r="88" fill="#e8f0eb" />
+            <circle cx="240" cy="160" r="88" fill="#edf2ee" />
             <circle cx="200" cy="140" r="8" fill="#e8a598" />
             <circle cx="270" cy="175" r="18" fill="#d47868" />
             <circle cx="230" cy="120" r="32" fill="#9f2d22" />
