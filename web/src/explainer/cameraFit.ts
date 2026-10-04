@@ -123,8 +123,8 @@ export const SURGERY_PANEL_SCALE = 0.58
  */
 export function insideNodeFocusBox(): THREE.Box3 {
   return new THREE.Box3(
-    new THREE.Vector3(-1.55, -1.12, -0.35),
-    new THREE.Vector3(1.55, 1.05, 0.55),
+    new THREE.Vector3(-1.35, -1.05, -0.35),
+    new THREE.Vector3(1.4, 0.95, 0.55),
   )
 }
 

@@ -502,14 +502,14 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         />
       </mesh>
 
-      {/* Afferent vessels entering capsule (left / top) */}
+      {/* Afferent vessels entering capsule (left / top) — kept short of top-left legend */}
       {[
-        { pos: [-1.35, 0.35, 0.15] as const, rot: [0, 0, 0.45] as const },
-        { pos: [-1.28, -0.25, 0.1] as const, rot: [0, 0, -0.35] as const },
-        { pos: [-1.15, 0.7, 0.12] as const, rot: [0, 0, 0.85] as const },
+        { pos: [-1.15, 0.28, 0.15] as const, rot: [0, 0, 0.35] as const },
+        { pos: [-1.1, -0.2, 0.1] as const, rot: [0, 0, -0.3] as const },
+        { pos: [-1.0, 0.55, 0.12] as const, rot: [0, 0, 0.7] as const },
       ].map((v, i) => (
         <mesh key={`aff-${i}`} position={v.pos} rotation={v.rot} renderOrder={5}>
-          <capsuleGeometry args={[0.045, 0.42, 4, 10]} />
+          <capsuleGeometry args={[0.04, 0.28, 4, 10]} />
           <meshStandardMaterial
             color={COLORS.vessel}
             emissive={COLORS.vesselGlow}
@@ -521,8 +521,8 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       ))}
 
       {/* Efferent vessel at hilum (right) */}
-      <mesh position={[1.35, -0.05, 0.1]} rotation={[0, 0, Math.PI / 2]} renderOrder={5}>
-        <capsuleGeometry args={[0.055, 0.5, 4, 10]} />
+      <mesh position={[1.25, -0.05, 0.1]} rotation={[0, 0, Math.PI / 2]} renderOrder={5}>
+        <capsuleGeometry args={[0.05, 0.38, 4, 10]} />
         <meshStandardMaterial
           color={COLORS.vessel}
           emissive={COLORS.vesselGlow}
@@ -533,7 +533,7 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       </mesh>
 
       {/* Labels — clear of top-left legend; Afferent/Cortex hide on narrow screens */}
-      <Html position={[0.25, 0.68, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[0.25, 0.62, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Cortex / follicles</span>
       </Html>
       <Html position={[0.42, 0.12, 0.4]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
@@ -542,10 +542,10 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       <Html position={[-0.28, -0.08, 0.45]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno soft">Medulla</span>
       </Html>
-      <Html position={[-0.95, -0.85, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[-0.85, -0.78, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Afferent</span>
       </Html>
-      <Html position={[1.28, -0.7, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[1.2, -0.68, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Efferent / hilum</span>
       </Html>
     </group>
