@@ -10,6 +10,8 @@ export type ExplainerStepId =
 export type ExplainerStep = {
   id: ExplainerStepId
   title: string
+  /** Short label for the compact stepper */
+  shortTitle: string
   kicker: string
   body: string
   /** Screen-reader / reduced-motion text alternative for the 3D scene */
@@ -22,6 +24,7 @@ export const EXPLAINER_STEPS: ExplainerStep[] = [
   {
     id: 'lymphatic',
     kicker: 'Step 1 · Anatomy',
+    shortTitle: 'Lymphatics',
     title: 'The lymphatic system near the breast',
     body: 'Lymph vessels carry fluid and immune cells. Around the breast, many of those vessels drain toward lymph nodes in the underarm (axilla). Those nodes help filter lymph before it returns to the bloodstream.',
     alt: 'A stylized torso shows a breast region, thin lymph vessels, and several axillary lymph nodes. You can rotate the view and focus a node to see its label.',
@@ -33,6 +36,7 @@ export const EXPLAINER_STEPS: ExplainerStep[] = [
   {
     id: 'spread',
     kicker: 'Step 2 · Metastasis path',
+    shortTitle: 'Spread',
     title: 'How cancer can travel through lymph',
     body: 'Some breast cancers shed cells that enter lymph vessels. The first node that typically receives drainage from the tumor area is called the sentinel node. Cells may stop there — or, less often, continue to further nodes.',
     alt: 'Animated tumor cells leave a breast tumor, travel along a lymph vessel, arrive at the sentinel node first, then some continue to a farther node.',
@@ -44,6 +48,7 @@ export const EXPLAINER_STEPS: ExplainerStep[] = [
   {
     id: 'inside',
     kicker: 'Step 3 · What pathologists look for',
+    shortTitle: 'Inside node',
     title: 'Inside a lymph node',
     body: 'A cut-away view of a node: healthy lymphoid tissue versus tumor deposits. Pathologists describe deposit size with standard thresholds — isolated tumor cells, micrometastasis, and macrometastasis — which help classify how much tumor is present in the node.',
     alt: 'A cut-away lymph node shows normal tissue and three sizes of metastatic deposit: isolated tumor cells (≤0.2 mm), micrometastasis (greater than 0.2 mm up to 2 mm), and macrometastasis (greater than 2 mm).',
@@ -56,6 +61,7 @@ export const EXPLAINER_STEPS: ExplainerStep[] = [
   {
     id: 'surgery',
     kicker: 'Step 4 · Why surgeons care',
+    shortTitle: 'Surgery',
     title: 'Surgery choices and staging',
     body: 'Sentinel lymph node biopsy samples the first draining node(s) with a smaller operation. Axillary lymph node dissection removes more nodes and is a larger procedure. Node findings feed into the N category of TNM staging — a structured way teams summarize tumor (T), nodes (N), and distant spread (M). This explainer is educational only, not advice about any person’s care.',
     alt: 'Two schematic procedures: a focused sentinel-node biopsy versus a broader axillary dissection, plus a simple TNM diagram highlighting the N (node) category.',
@@ -68,6 +74,7 @@ export const EXPLAINER_STEPS: ExplainerStep[] = [
   {
     id: 'patches',
     kicker: 'Step 5 · Into this research demo',
+    shortTitle: 'Patches',
     title: 'From whole-slide image to 96×96 patches',
     body: 'Pathology slides are enormous. Datasets like PatchCamelyon (PCam) cut them into small 96×96 patches so models can learn to score metastatic tissue. The detector demo runs that idea in your browser and can highlight which regions pushed the score — a class-activation heatmap.',
     alt: 'A whole-slide image is tiled into a grid of 96 by 96 patches. One patch is highlighted, linking to the in-browser detector and heatmap concept.',

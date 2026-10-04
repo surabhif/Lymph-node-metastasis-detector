@@ -132,7 +132,7 @@ export default function LymphExplainer() {
                 onClick={() => go(i)}
               >
                 <span className="step-tab-num">{i + 1}</span>
-                <span className="step-tab-title">{s.title}</span>
+                <span className="step-tab-title">{s.shortTitle}</span>
               </button>
             ))}
           </div>
@@ -181,24 +181,75 @@ export default function LymphExplainer() {
               <ExplainerFallback step={step} />
             )}
             {use3d && (
-              <div className="scene-overlay-labels" aria-hidden="true">
+              <div className="scene-legend" aria-hidden="true">
+                <p className="scene-legend-title">Legend</p>
                 {step.id === 'lymphatic' && (
-                  <span className="scene-chip">
-                    {activeNode === 'sentinel'
-                      ? 'Focused: sentinel axillary node'
-                      : activeNode
-                        ? 'Focused: further axillary node'
-                        : 'Hover or tap a green node'}
-                  </span>
+                  <>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch tumor" /> Breast tumor
+                    </div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch vessel" /> Lymph vessel
+                    </div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch sentinel" /> Sentinel node
+                    </div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch node" /> Further axillary nodes
+                    </div>
+                    {activeNode && (
+                      <div className="scene-legend-row">
+                        Focused: {activeNode === 'sentinel' ? 'sentinel' : 'further node'}
+                      </div>
+                    )}
+                  </>
                 )}
-                {step.id === 'spread' && <span className="scene-chip">Sentinel first → further nodes</span>}
-                {step.id === 'inside' && <span className="scene-chip">ITC · micro · macro deposits</span>}
+                {step.id === 'spread' && (
+                  <>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch tumor" /> Tumor cells
+                    </div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch vessel" /> Travel path
+                    </div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch sentinel" /> Sentinel first
+                    </div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch node" /> Further nodes
+                    </div>
+                  </>
+                )}
+                {step.id === 'inside' && (
+                  <>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch itc" /> ITC ≤ 0.2 mm
+                    </div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch micro" /> Micro ≤ 2 mm
+                    </div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch macro" /> Macro &gt; 2 mm
+                    </div>
+                  </>
+                )}
                 {step.id === 'surgery' && (
-                  <span className="scene-chip tnm-chip">
-                    T · <strong>N</strong> · M
-                  </span>
+                  <>
+                    <div className="scene-legend-row">Left: sentinel biopsy</div>
+                    <div className="scene-legend-row">Right: axillary dissection</div>
+                    <div className="scene-legend-row tnm-chip">
+                      Staging: T · <strong>N</strong> · M
+                    </div>
+                  </>
                 )}
-                {step.id === 'patches' && <span className="scene-chip">Slide → 96×96 patches → detector</span>}
+                {step.id === 'patches' && (
+                  <>
+                    <div className="scene-legend-row">Whole-slide tiled grid</div>
+                    <div className="scene-legend-row">
+                      <span className="scene-swatch patch" /> One 96×96 patch → detector
+                    </div>
+                  </>
+                )}
               </div>
             )}
             <p className="sr-only">{step.alt}</p>

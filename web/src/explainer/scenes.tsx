@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react'
+import type { ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
@@ -16,75 +17,135 @@ type SceneProps = {
 }
 
 const PALETTE = {
-  skin: '#c4b5a0',
-  vessel: '#3d8f7a',
+  skin: '#c9b7a1',
+  skinDeep: '#b39a82',
+  vessel: '#2f8f78',
   node: '#0b6b54',
+  nodeSoft: '#5a9a88',
   nodeHot: '#0e8a6c',
   tumor: '#9f2d22',
   deposit: '#c45c4a',
-  lymphoid: '#d8e8e1',
-  slide: '#e8dfd0',
-  patch: '#b8c9c0',
+  lymphoid: '#d5e6de',
+  slide: '#e6ddcf',
+  patch: '#a9bfb5',
   patchHot: '#0b6b54',
+  board: '#f4efe6',
 }
 
-function SoftLight() {
+export function SoftLight() {
   return (
     <>
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[4, 6, 3]} intensity={1.1} color="#fff6ea" />
-      <directionalLight position={[-3, 2, -4]} intensity={0.35} color="#b7d4cb" />
+      <ambientLight intensity={0.42} />
+      <hemisphereLight args={['#f7f2e8', '#8aa89a', 0.55]} />
+      <directionalLight position={[4.5, 7, 3]} intensity={1.15} color="#fff4e6" castShadow={false} />
+      <directionalLight position={[-4, 2.5, -3]} intensity={0.35} color="#a8c9bc" />
+      <pointLight position={[1.2, 1.6, 2]} intensity={0.35} color="#dff3eb" />
     </>
   )
 }
 
-/** Step 1 — stylized torso / breast / axillary nodes */
-export function LymphaticScene({ quality, activeNode, onActiveNode }: SceneProps) {
-  const segs = quality === 'high' ? 24 : 12
+function IdleSpin({
+  reducedMotion,
+  speed = 0.12,
+  children,
+}: {
+  reducedMotion: boolean
+  speed?: number
+  children: ReactNode
+}) {
+  const ref = useRef<Group>(null)
+  useFrame((_, dt) => {
+    if (reducedMotion || !ref.current) return
+    ref.current.rotation.y += dt * speed
+  })
+  return <group ref={ref}>{children}</group>
+}
+
+/** Shared breast + torso silhouette used by anatomy scenes */
+function TorsoFigure({ quality, showTumor = true }: { quality: SceneQuality; showTumor?: boolean }) {
+  const segs = quality === 'high' ? 32 : 16
+  return (
+    <group>
+      {/* shoulders / upper torso */}
+      <mesh position={[0, 0.15, 0]} rotation={[0.08, 0.4, 0]} castShadow>
+        <capsuleGeometry args={[0.72, 1.35, 8, segs]} />
+        <meshStandardMaterial color={PALETTE.skin} roughness={0.78} metalness={0.04} />
+      </mesh>
+      {/* neck hint */}
+      <mesh position={[-0.05, 1.15, -0.05]}>
+        <cylinderGeometry args={[0.22, 0.26, 0.35, segs]} />
+        <meshStandardMaterial color={PALETTE.skinDeep} roughness={0.8} />
+      </mesh>
+      {/* breast mound */}
+      <mesh position={[0.32, 0.05, 0.62]}>
+        <sphereGeometry args={[0.38, segs, segs]} />
+        <meshStandardMaterial color={PALETTE.skinDeep} roughness={0.72} />
+      </mesh>
+      {showTumor && (
+        <mesh position={[0.42, 0.08, 0.88]}>
+          <sphereGeometry args={[0.09, 16, 16]} />
+          <meshStandardMaterial
+            color={PALETTE.tumor}
+            emissive={PALETTE.tumor}
+            emissiveIntensity={0.28}
+            roughness={0.45}
+          />
+        </mesh>
+      )}
+    </group>
+  )
+}
+
+function vesselCurve() {
+  return new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.42, 0.08, 0.88),
+    new THREE.Vector3(0.7, 0.22, 0.78),
+    new THREE.Vector3(1.05, 0.42, 0.55),
+    new THREE.Vector3(1.28, 0.58, 0.28),
+    new THREE.Vector3(1.42, 0.9, 0.05),
+    new THREE.Vector3(1.28, 1.2, -0.12),
+  ])
+}
+
+/** Step 1 */
+export function LymphaticScene({ quality, reducedMotion, activeNode, onActiveNode }: SceneProps) {
+  const segs = quality === 'high' ? 28 : 14
+  const path = useMemo(() => vesselCurve(), [])
+  const vesselPoints = useMemo(() => path.getPoints(quality === 'high' ? 64 : 28), [path, quality])
   const nodes = useMemo(
     () => [
-      { id: 'sentinel', pos: [1.15, 0.55, 0.55] as const },
-      { id: 'level2', pos: [1.35, 0.95, 0.2] as const },
-      { id: 'level3', pos: [1.05, 1.25, -0.05] as const },
+      { id: 'sentinel', pos: [1.28, 0.58, 0.28] as const, r: 0.13 },
+      { id: 'level2', pos: [1.42, 0.9, 0.05] as const, r: 0.1 },
+      { id: 'level3', pos: [1.28, 1.2, -0.12] as const, r: 0.095 },
     ],
     [],
   )
 
-  const vesselPoints = useMemo(() => {
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0.35, 0.05, 0.55),
-      new THREE.Vector3(0.7, 0.25, 0.65),
-      new THREE.Vector3(1.0, 0.45, 0.6),
-      new THREE.Vector3(1.15, 0.55, 0.55),
-      new THREE.Vector3(1.3, 0.85, 0.3),
-      new THREE.Vector3(1.15, 1.15, 0.05),
-    ])
-    return curve.getPoints(quality === 'high' ? 48 : 24)
-  }, [quality])
-
   return (
-    <group>
+    <IdleSpin reducedMotion={reducedMotion} speed={0.08}>
       <SoftLight />
-      <mesh position={[0, 0.1, 0]} rotation={[0.12, 0.35, 0]}>
-        <capsuleGeometry args={[0.85, 1.6, 6, segs]} />
-        <meshStandardMaterial color={PALETTE.skin} roughness={0.85} metalness={0.02} />
-      </mesh>
-      <mesh position={[0.25, 0.05, 0.7]}>
-        <sphereGeometry args={[0.42, segs, segs]} />
-        <meshStandardMaterial color="#b9a48c" roughness={0.8} />
-      </mesh>
-      <mesh position={[0.35, 0.05, 0.95]}>
-        <sphereGeometry args={[0.08, 12, 12]} />
-        <meshStandardMaterial color={PALETTE.tumor} emissive={PALETTE.tumor} emissiveIntensity={0.15} />
-      </mesh>
-      <Line points={vesselPoints} color={PALETTE.vessel} lineWidth={2} transparent opacity={0.9} />
+      <TorsoFigure quality={quality} />
+      <Line points={vesselPoints} color={PALETTE.vessel} lineWidth={3} transparent opacity={0.95} />
+      {/* secondary faint vessels */}
+      <Line
+        points={[
+          new THREE.Vector3(0.35, 0.0, 0.7),
+          new THREE.Vector3(0.85, 0.35, 0.45),
+          new THREE.Vector3(1.2, 0.75, 0.1),
+        ]}
+        color={PALETTE.vessel}
+        lineWidth={1.5}
+        transparent
+        opacity={0.45}
+      />
       {nodes.map((n) => {
         const hot = activeNode === n.id
+        const isSentinel = n.id === 'sentinel'
         return (
           <mesh
             key={n.id}
             position={n.pos}
-            scale={hot ? 1.25 : 1}
+            scale={hot ? 1.28 : 1}
             onPointerOver={(e: ThreeEvent<PointerEvent>) => {
               e.stopPropagation()
               onActiveNode(n.id)
@@ -95,36 +156,26 @@ export function LymphaticScene({ quality, activeNode, onActiveNode }: SceneProps
               onActiveNode(hot ? null : n.id)
             }}
           >
-            <sphereGeometry args={[0.12, segs, segs]} />
+            <sphereGeometry args={[n.r, segs, segs]} />
             <meshStandardMaterial
-              color={hot ? PALETTE.nodeHot : PALETTE.node}
-              emissive={hot ? PALETTE.nodeHot : '#000'}
-              emissiveIntensity={hot ? 0.2 : 0}
+              color={hot ? PALETTE.nodeHot : isSentinel ? PALETTE.node : PALETTE.nodeSoft}
+              emissive={hot || isSentinel ? PALETTE.node : '#000'}
+              emissiveIntensity={hot ? 0.28 : isSentinel ? 0.12 : 0}
+              roughness={0.4}
             />
           </mesh>
         )
       })}
-    </group>
+    </IdleSpin>
   )
 }
 
-/** Step 2 — cells travel toward sentinel then further */
+/** Step 2 */
 export function SpreadScene({ quality, reducedMotion }: SceneProps) {
-  const segs = quality === 'high' ? 16 : 10
-  const path = useMemo(
-    () =>
-      new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.2, 0, 0.7),
-        new THREE.Vector3(0.55, 0.15, 0.75),
-        new THREE.Vector3(0.95, 0.35, 0.55),
-        new THREE.Vector3(1.2, 0.5, 0.4),
-        new THREE.Vector3(1.35, 0.85, 0.15),
-        new THREE.Vector3(1.2, 1.15, -0.05),
-      ]),
-    [],
-  )
-  const pts = useMemo(() => path.getPoints(quality === 'high' ? 40 : 20), [path, quality])
-  const cellCount = quality === 'high' ? 7 : 4
+  const segs = quality === 'high' ? 22 : 12
+  const path = useMemo(() => vesselCurve(), [])
+  const pts = useMemo(() => path.getPoints(quality === 'high' ? 48 : 24), [path, quality])
+  const cellCount = quality === 'high' ? 8 : 5
   const cells = useRef<(Mesh | null)[]>([])
 
   useFrame(({ clock }) => {
@@ -132,45 +183,38 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
     const t = clock.getElapsedTime()
     cells.current.forEach((mesh, i) => {
       if (!mesh) return
-      const u = (t * 0.12 + i / cellCount) % 1
+      const u = (t * 0.1 + i / cellCount) % 1
       mesh.position.copy(path.getPointAt(u))
-      mesh.scale.setScalar(0.7 + 0.3 * Math.sin(t * 2 + i))
+      const s = 0.65 + 0.35 * Math.sin(t * 2.2 + i)
+      mesh.scale.setScalar(s)
     })
   })
 
   return (
-    <group>
+    <group position={[-0.15, -0.15, 0]}>
       <SoftLight />
-      <mesh position={[0.15, -0.05, 0.55]}>
-        <sphereGeometry args={[0.38, segs, segs]} />
-        <meshStandardMaterial color="#b9a48c" roughness={0.85} />
+      <TorsoFigure quality={quality} />
+      <Line points={pts} color={PALETTE.vessel} lineWidth={3.5} />
+      <mesh position={[1.28, 0.58, 0.28]}>
+        <sphereGeometry args={[0.15, segs, segs]} />
+        <meshStandardMaterial color={PALETTE.node} emissive={PALETTE.node} emissiveIntensity={0.18} />
       </mesh>
-      <mesh position={[0.2, 0, 0.7]}>
-        <sphereGeometry args={[0.14, segs, segs]} />
-        <meshStandardMaterial color={PALETTE.tumor} emissive={PALETTE.tumor} emissiveIntensity={0.25} />
-      </mesh>
-      <Line points={pts} color={PALETTE.vessel} lineWidth={2.5} />
-      <mesh position={[1.2, 0.5, 0.4]}>
-        <sphereGeometry args={[0.16, segs, segs]} />
-        <meshStandardMaterial color={PALETTE.node} />
-      </mesh>
-      <mesh position={[1.2, 1.15, -0.05]}>
-        <sphereGeometry args={[0.13, segs, segs]} />
-        <meshStandardMaterial color={PALETTE.nodeHot} />
+      <mesh position={[1.28, 1.2, -0.12]}>
+        <sphereGeometry args={[0.11, segs, segs]} />
+        <meshStandardMaterial color={PALETTE.nodeSoft} />
       </mesh>
       {Array.from({ length: cellCount }).map((_, i) => {
         const u = reducedMotion ? (i + 0.5) / cellCount : 0
-        const p = path.getPointAt(u)
         return (
           <mesh
             key={i}
             ref={(el) => {
               cells.current[i] = el
             }}
-            position={p}
+            position={path.getPointAt(u)}
           >
-            <sphereGeometry args={[0.05, 10, 10]} />
-            <meshStandardMaterial color={PALETTE.deposit} emissive={PALETTE.tumor} emissiveIntensity={0.3} />
+            <sphereGeometry args={[0.045, 12, 12]} />
+            <meshStandardMaterial color={PALETTE.deposit} emissive={PALETTE.tumor} emissiveIntensity={0.35} />
           </mesh>
         )
       })}
@@ -178,96 +222,108 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   )
 }
 
-/** Step 3 — cutaway node with deposit sizes */
+/** Step 3 */
 export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
-  const segs = quality === 'high' ? 28 : 14
+  const segs = quality === 'high' ? 36 : 18
   const group = useRef<Group>(null)
 
   useFrame((_, dt) => {
     if (reducedMotion || !group.current) return
-    group.current.rotation.y += dt * 0.15
+    group.current.rotation.y += dt * 0.18
   })
 
-  const depositList = [
-    { label: 'itc', pos: [-0.38, 0.22, 0.42] as const, r: 0.055, color: '#e8a598' },
-    { label: 'micro', pos: [0.22, -0.05, 0.48] as const, r: 0.13, color: '#d47868' },
-    { label: 'macro', pos: [-0.05, 0.35, -0.15] as const, r: 0.28, color: PALETTE.tumor },
+  const deposits = [
+    { id: 'itc', pos: [-0.42, 0.28, 0.35] as const, r: 0.06, color: '#e8a598' },
+    { id: 'micro', pos: [0.28, -0.12, 0.42] as const, r: 0.14, color: '#d47868' },
+    { id: 'macro', pos: [-0.08, 0.22, -0.28] as const, r: 0.3, color: PALETTE.tumor },
   ]
 
   return (
-    <group ref={group}>
+    <group ref={group} position={[0, 0.05, 0]}>
       <SoftLight />
+      {/* translucent outer capsule */}
       <mesh>
-        <sphereGeometry args={[0.9, segs, segs, 0, Math.PI]} />
-        <meshStandardMaterial color={PALETTE.node} transparent opacity={0.35} side={THREE.DoubleSide} />
+        <sphereGeometry args={[1.05, segs, segs, 0, Math.PI * 1.35, 0, Math.PI]} />
+        <meshStandardMaterial
+          color={PALETTE.node}
+          transparent
+          opacity={0.22}
+          roughness={0.35}
+          side={THREE.DoubleSide}
+        />
       </mesh>
       <mesh>
-        <sphereGeometry args={[0.88, segs, segs]} />
-        <meshStandardMaterial color={PALETTE.lymphoid} roughness={0.9} transparent opacity={0.85} />
+        <sphereGeometry args={[0.98, segs, segs]} />
+        <meshStandardMaterial color={PALETTE.lymphoid} roughness={0.88} transparent opacity={0.92} />
       </mesh>
       <mesh rotation={[0, 0, Math.PI / 2]}>
-        <circleGeometry args={[0.88, segs]} />
-        <meshStandardMaterial color="#cfe0d8" transparent opacity={0.5} side={THREE.DoubleSide} />
+        <circleGeometry args={[0.98, segs]} />
+        <meshStandardMaterial color="#c5ddd2" transparent opacity={0.55} side={THREE.DoubleSide} />
       </mesh>
-      {depositList.map((d) => (
-        <mesh key={d.label} position={d.pos}>
-          <sphereGeometry args={[d.r, 14, 14]} />
-          <meshStandardMaterial color={d.color} emissive={d.color} emissiveIntensity={0.12} />
+      {deposits.map((d) => (
+        <mesh key={d.id} position={d.pos}>
+          <sphereGeometry args={[d.r, 18, 18]} />
+          <meshStandardMaterial color={d.color} emissive={d.color} emissiveIntensity={0.16} roughness={0.4} />
         </mesh>
       ))}
     </group>
   )
 }
 
-/** Step 4 — SLNB vs ALND */
-export function SurgeryScene({ quality }: SceneProps) {
-  const segs = quality === 'high' ? 16 : 10
-  const nodesLeft = [
-    [0.2, 0.4, 0.2],
-    [0.35, 0.7, 0],
+/** Step 4 */
+export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
+  const segs = quality === 'high' ? 20 : 12
+  const group = useRef<Group>(null)
+  useFrame(({ clock }) => {
+    if (reducedMotion || !group.current) return
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.35) * 0.08
+  })
+
+  const left = [
+    [0.15, 0.35, 0.2],
+    [0.32, 0.62, 0.02],
   ] as const
-  const nodesRight = [
-    [0.15, 0.25, 0.25],
-    [0.35, 0.45, 0.1],
-    [0.45, 0.7, -0.05],
-    [0.25, 0.95, -0.15],
-    [0.55, 0.85, 0.15],
+  const right = [
+    [0.12, 0.22, 0.22],
+    [0.32, 0.4, 0.08],
+    [0.42, 0.65, -0.05],
+    [0.22, 0.88, -0.12],
+    [0.5, 0.78, 0.12],
   ] as const
 
   return (
-    <group>
+    <group ref={group}>
       <SoftLight />
-      <group position={[-1.35, 0, 0]}>
-        <mesh position={[0, 0, -0.4]}>
-          <boxGeometry args={[1.4, 2.1, 0.08]} />
-          <meshStandardMaterial color="#f7f3ea" />
+      <group position={[-1.45, 0, 0]}>
+        <mesh position={[0, 0.1, -0.35]}>
+          <boxGeometry args={[1.5, 2.2, 0.08]} />
+          <meshStandardMaterial color={PALETTE.board} roughness={0.9} />
         </mesh>
-        <mesh position={[0, -0.2, 0]}>
-          <sphereGeometry args={[0.35, segs, segs]} />
-          <meshStandardMaterial color="#b9a48c" />
+        <mesh position={[0, -0.15, 0]}>
+          <sphereGeometry args={[0.34, segs, segs]} />
+          <meshStandardMaterial color={PALETTE.skinDeep} />
         </mesh>
-        {nodesLeft.map((p, i) => (
+        {left.map((p, i) => (
           <mesh key={i} position={p}>
             <sphereGeometry args={[0.1, segs, segs]} />
             <meshStandardMaterial
-              color={i === 0 ? PALETTE.node : '#7a9088'}
+              color={i === 0 ? PALETTE.node : PALETTE.nodeSoft}
               emissive={i === 0 ? PALETTE.node : '#000'}
-              emissiveIntensity={i === 0 ? 0.2 : 0}
+              emissiveIntensity={i === 0 ? 0.22 : 0}
             />
           </mesh>
         ))}
       </group>
-
-      <group position={[1.35, 0, 0]}>
-        <mesh position={[0, 0, -0.4]}>
-          <boxGeometry args={[1.4, 2.1, 0.08]} />
-          <meshStandardMaterial color="#f7f3ea" />
+      <group position={[1.45, 0, 0]}>
+        <mesh position={[0, 0.1, -0.35]}>
+          <boxGeometry args={[1.5, 2.2, 0.08]} />
+          <meshStandardMaterial color={PALETTE.board} roughness={0.9} />
         </mesh>
-        <mesh position={[0, -0.2, 0]}>
-          <sphereGeometry args={[0.35, segs, segs]} />
-          <meshStandardMaterial color="#b9a48c" />
+        <mesh position={[0, -0.15, 0]}>
+          <sphereGeometry args={[0.34, segs, segs]} />
+          <meshStandardMaterial color={PALETTE.skinDeep} />
         </mesh>
-        {nodesRight.map((p, i) => (
+        {right.map((p, i) => (
           <mesh key={i} position={p}>
             <sphereGeometry args={[0.09, segs, segs]} />
             <meshStandardMaterial color={PALETTE.node} />
@@ -278,7 +334,7 @@ export function SurgeryScene({ quality }: SceneProps) {
   )
 }
 
-/** Step 5 — WSI tiled into patches */
+/** Step 5 */
 export function PatchesScene({ quality, reducedMotion }: SceneProps) {
   const cols = quality === 'high' ? 8 : 5
   const rows = quality === 'high' ? 6 : 4
@@ -287,17 +343,20 @@ export function PatchesScene({ quality, reducedMotion }: SceneProps) {
 
   useFrame(({ clock }) => {
     if (reducedMotion || !group.current) return
-    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.25) * 0.12
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.28) * 0.1
+    group.current.rotation.x = Math.sin(clock.getElapsedTime() * 0.18) * 0.04
   })
 
   const tiles = useMemo(() => {
-    const list: { x: number; y: number; hot: boolean }[] = []
+    const list: { x: number; y: number; hot: boolean; shade: string }[] = []
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
+        const n = (r * cols + c) % 3
         list.push({
-          x: (c - (cols - 1) / 2) * 0.28,
-          y: ((rows - 1) / 2 - r) * 0.28,
+          x: (c - (cols - 1) / 2) * 0.3,
+          y: ((rows - 1) / 2 - r) * 0.3,
           hot: c === hot.c && r === hot.r,
+          shade: n === 0 ? '#9eb5ab' : n === 1 ? '#b7c9bf' : '#8fa89d',
         })
       }
     }
@@ -307,17 +366,18 @@ export function PatchesScene({ quality, reducedMotion }: SceneProps) {
   return (
     <group ref={group}>
       <SoftLight />
-      <mesh position={[0, 0, -0.08]}>
-        <planeGeometry args={[cols * 0.28 + 0.2, rows * 0.28 + 0.2]} />
-        <meshStandardMaterial color={PALETTE.slide} />
+      <mesh position={[0, 0, -0.1]}>
+        <planeGeometry args={[cols * 0.3 + 0.35, rows * 0.3 + 0.35]} />
+        <meshStandardMaterial color={PALETTE.slide} roughness={0.95} />
       </mesh>
       {tiles.map((t, i) => (
-        <mesh key={i} position={[t.x, t.y, t.hot ? 0.06 : 0.02]}>
-          <planeGeometry args={[0.24, 0.24]} />
+        <mesh key={i} position={[t.x, t.y, t.hot ? 0.08 : 0.02]}>
+          <planeGeometry args={[0.26, 0.26]} />
           <meshStandardMaterial
-            color={t.hot ? PALETTE.patchHot : PALETTE.patch}
+            color={t.hot ? PALETTE.patchHot : t.shade}
             emissive={t.hot ? PALETTE.patchHot : '#000'}
-            emissiveIntensity={t.hot ? 0.25 : 0}
+            emissiveIntensity={t.hot ? 0.3 : 0}
+            roughness={0.7}
           />
         </mesh>
       ))}
@@ -339,5 +399,27 @@ export function SceneForStep(props: SceneProps & { stepId: ExplainerStepId }) {
       return <PatchesScene {...props} />
     default:
       return null
+  }
+}
+
+export type CameraTarget = {
+  position: [number, number, number]
+  lookAt: [number, number, number]
+}
+
+export function cameraTargetFor(stepId: ExplainerStepId): CameraTarget {
+  switch (stepId) {
+    case 'lymphatic':
+      return { position: [2.9, 1.15, 3.4], lookAt: [0.55, 0.45, 0.2] }
+    case 'spread':
+      return { position: [2.7, 1.05, 3.35], lookAt: [0.55, 0.45, 0.25] }
+    case 'inside':
+      return { position: [0.15, 0.35, 3.55], lookAt: [0, 0.05, 0] }
+    case 'surgery':
+      return { position: [0, 0.55, 4.8], lookAt: [0, 0.15, 0] }
+    case 'patches':
+      return { position: [0.1, 0.35, 3.9], lookAt: [0, 0, 0] }
+    default:
+      return { position: [2.5, 1.2, 3.4], lookAt: [0.4, 0.4, 0] }
   }
 }

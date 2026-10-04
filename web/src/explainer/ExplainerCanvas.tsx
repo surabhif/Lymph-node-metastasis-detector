@@ -1,8 +1,10 @@
-import { Suspense, useEffect, useMemo, useState } from 'react'
-import { Canvas } from '@react-three/fiber'
-import { ContactShadows, OrbitControls } from '@react-three/drei'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { ContactShadows, Environment, OrbitControls } from '@react-three/drei'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
-import { SceneForStep, type SceneQuality } from './scenes'
+import { SceneForStep, cameraTargetFor, type SceneQuality } from './scenes'
 
 type Props = {
   stepId: ExplainerStepId
@@ -12,21 +14,51 @@ type Props = {
   onActiveNode: (id: string | null) => void
 }
 
-function cameraFor(stepId: ExplainerStepId): [number, number, number] {
-  switch (stepId) {
-    case 'lymphatic':
-      return [2.6, 1.4, 3.2]
-    case 'spread':
-      return [2.4, 1.2, 3.0]
-    case 'inside':
-      return [0, 0.2, 3.2]
-    case 'surgery':
-      return [0, 0.4, 4.2]
-    case 'patches':
-      return [0, 0.2, 3.6]
-    default:
-      return [2.5, 1.5, 3.2]
-  }
+function CameraRig({
+  stepId,
+  reducedMotion,
+  controlsRef,
+}: {
+  stepId: ExplainerStepId
+  reducedMotion: boolean
+  controlsRef: React.RefObject<OrbitControlsImpl | null>
+}) {
+  const { camera } = useThree()
+  const target = useRef(new THREE.Vector3())
+  const desiredPos = useRef(new THREE.Vector3())
+  const desiredLook = useRef(new THREE.Vector3())
+  const initialized = useRef(false)
+
+  useEffect(() => {
+    const cfg = cameraTargetFor(stepId)
+    desiredPos.current.set(...cfg.position)
+    desiredLook.current.set(...cfg.lookAt)
+    if (!initialized.current || reducedMotion) {
+      camera.position.copy(desiredPos.current)
+      target.current.copy(desiredLook.current)
+      camera.lookAt(target.current)
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(target.current)
+        controlsRef.current.update()
+      }
+      initialized.current = true
+    }
+  }, [stepId, camera, controlsRef, reducedMotion])
+
+  useFrame((_, dt) => {
+    if (reducedMotion) return
+    const k = 1 - Math.exp(-dt * 3.2)
+    camera.position.lerp(desiredPos.current, k)
+    target.current.lerp(desiredLook.current, k)
+    if (controlsRef.current) {
+      controlsRef.current.target.lerp(desiredLook.current, k)
+      controlsRef.current.update()
+    } else {
+      camera.lookAt(target.current)
+    }
+  })
+
+  return null
 }
 
 export default function ExplainerCanvas({
@@ -36,9 +68,10 @@ export default function ExplainerCanvas({
   activeNode,
   onActiveNode,
 }: Props) {
-  const position = useMemo(() => cameraFor(stepId), [stepId])
-  const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.25]
+  const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.2]
   const [mounted, setMounted] = useState(true)
+  const controlsRef = useRef<OrbitControlsImpl | null>(null)
+  const start = cameraTargetFor(stepId)
 
   useEffect(() => {
     setMounted(true)
@@ -49,17 +82,19 @@ export default function ExplainerCanvas({
 
   return (
     <Canvas
-      key={stepId}
       className="explainer-canvas"
       dpr={dpr}
-      camera={{ position, fov: 42, near: 0.1, far: 40 }}
-      gl={{ antialias: quality === 'high', powerPreference: 'default', alpha: true }}
+      camera={{ position: start.position, fov: 40, near: 0.1, far: 50 }}
+      gl={{ antialias: true, powerPreference: 'default', alpha: true }}
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0)
+        gl.toneMapping = THREE.ACESFilmicToneMapping
+        gl.toneMappingExposure = 1.05
       }}
       aria-hidden="true"
     >
       <Suspense fallback={null}>
+        <CameraRig stepId={stepId} reducedMotion={reducedMotion} controlsRef={controlsRef} />
         <SceneForStep
           stepId={stepId}
           quality={quality}
@@ -68,19 +103,23 @@ export default function ExplainerCanvas({
           onActiveNode={onActiveNode}
         />
         <ContactShadows
-          position={[0, -1.35, 0]}
-          opacity={0.28}
-          scale={8}
-          blur={2.2}
-          far={3.5}
+          position={[0, -1.45, 0]}
+          opacity={0.32}
+          scale={10}
+          blur={2.6}
+          far={4}
         />
+        <Environment preset="apartment" environmentIntensity={0.35} />
         <OrbitControls
+          ref={controlsRef}
           enablePan={false}
           enableZoom
-          minDistance={2.2}
-          maxDistance={7}
-          maxPolarAngle={Math.PI * 0.82}
-          autoRotate={false}
+          minDistance={2.4}
+          maxDistance={7.5}
+          maxPolarAngle={Math.PI * 0.78}
+          minPolarAngle={0.25}
+          enableDamping
+          dampingFactor={0.08}
           makeDefault
         />
       </Suspense>
