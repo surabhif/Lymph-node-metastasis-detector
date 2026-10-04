@@ -48,10 +48,10 @@ BP3D_DIR = Path(os.environ.get('BP3D_DIR', '/tmp/bp3d'))
 OUT_GLB = ROOT / 'web/public/models/explainer/upper_torso.glb'
 OUT_LANDMARKS = ROOT / 'web/src/explainer/landmarks.json'
 
-# Slightly tighter superior/inferior crop to reduce ragged neck/waist silhouettes
-Z_MIN, Z_MAX, X_LIM = 1115.0, 1395.0, 255.0
-# Faces within this mm of a crop plane are dropped so open edges are less frayed
-EDGE_MARGIN = 14.0
+# Crop: neck base → just below breast; include upper arms so axilla is a hollow
+Z_MIN, Z_MAX, X_LIM = 1060.0, 1425.0, 310.0
+# Soft inner margin — faces near the saw-cut are dropped, then shader fades the rest
+EDGE_MARGIN = 8.0
 
 SPECS = [
     # name, FMA, element preferred, face target, kind, humerus crop?
@@ -150,8 +150,9 @@ def main() -> None:
         m = load_mesh(raw / f'{fma}_{eid}.obj')
         if hum:
             cents = m.vertices[m.faces].mean(axis=1)
+            # Proximal humerus through mid-upper arm so the axilla reads as a hollow
             m = m.submesh(
-                [(cents[:, 2] >= 1185) & (cents[:, 2] <= Z_MAX - EDGE_MARGIN)],
+                [(cents[:, 2] >= 1120) & (cents[:, 2] <= Z_MAX - EDGE_MARGIN)],
                 append=True,
             )
         else:

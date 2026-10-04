@@ -1,8 +1,9 @@
-import { Component, type ErrorInfo, type ReactNode, useMemo } from 'react'
+import { Component, type ErrorInfo, type ReactNode, useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { COLORS } from './colors'
 import landmarksData from './landmarks.json'
+import { boundsFromMeshMeters, setTorsoBounds } from './cameraFit'
 
 export type SceneQuality = 'high' | 'low'
 
@@ -18,6 +19,18 @@ export function landmark(key: LandmarkKey): [number, number, number] {
 
 export const TORSO_URL = `${import.meta.env.BASE_URL}models/explainer/upper_torso.glb`
 
+// Seed camera fit from authored mesh bounds (overwritten at runtime when GLB loads).
+const boundsMeta = landmarksData as unknown as {
+  bounds_m?: { min: number[]; max: number[] }
+}
+if (boundsMeta.bounds_m) {
+  const { min, max } = boundsMeta.bounds_m
+  boundsFromMeshMeters(
+    [min[0], min[1], min[2]],
+    [max[0], max[1], max[2]],
+  )
+}
+
 type TorsoProps = {
   quality: SceneQuality
   showTumor?: boolean
@@ -27,8 +40,8 @@ type TorsoProps = {
   dimmed?: boolean
 }
 
-/** Teardrop breast mound: flattened on pec, tapering toward axilla (tail of Spence). */
-function BreastMound({ opacity = 0.18 }: { opacity?: number }) {
+/** Teardrop breast mound sitting ON the pec (flat back, bulk anterior, tail to axilla). */
+function BreastMound({ opacity = 0.28 }: { opacity?: number }) {
   const geom = useMemo(() => {
     const g = new THREE.SphereGeometry(1, 32, 24)
     const pos = g.attributes.position as THREE.BufferAttribute
@@ -36,10 +49,14 @@ function BreastMound({ opacity = 0.18 }: { opacity?: number }) {
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i)
       const ax = Math.max(0, -v.x)
-      // Flatten hard against chest; collapse posterior hemisphere into pec
-      v.z = v.z < 0 ? v.z * 0.12 : v.z * (0.32 + 0.08 * (1 - ax))
-      v.y *= 0.68
-      v.x *= 1.1 + 1.0 * ax // axillary tail
+      // Flatten against chest wall; keep bulk anterior (+Z)
+      if (v.z < 0) {
+        v.z *= 0.08 // collapse into pec contact
+      } else {
+        v.z *= 0.55 + 0.1 * (1 - ax)
+      }
+      v.y *= 0.7
+      v.x *= 1.05 + 0.9 * ax // axillary tail of Spence
       pos.setXYZ(i, v.x, v.y, v.z)
     }
     pos.needsUpdate = true
@@ -49,14 +66,15 @@ function BreastMound({ opacity = 0.18 }: { opacity?: number }) {
 
   const breast = landmarksData.landmarks.breast as [number, number, number]
   return (
-    <mesh geometry={geom} position={breast} scale={[0.062, 0.048, 0.042]} renderOrder={2}>
+    <mesh geometry={geom} position={breast} scale={[0.058, 0.046, 0.05]} renderOrder={6}>
       <meshStandardMaterial
-        color="#c4b09a"
+        color="#c9b4a0"
         transparent
         opacity={opacity}
-        roughness={0.9}
+        roughness={0.88}
         metalness={0.01}
         depthWrite={false}
+        depthTest
         side={THREE.FrontSide}
       />
     </mesh>
@@ -123,7 +141,8 @@ export function ProceduralTorsoFallback({
   )
 }
 
-function attachCropFade(mat: THREE.MeshStandardMaterial, yFade = 0.11, xFade = 0.22) {
+/** Soft fade near crop planes so neck / waist / arm cuts don't look torn. */
+function attachCropFade(mat: THREE.MeshStandardMaterial, yFade = 0.14, xFade = 0.28) {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uYFade = { value: yFade }
     shader.uniforms.uXFade = { value: xFade }
@@ -144,22 +163,25 @@ function attachCropFade(mat: THREE.MeshStandardMaterial, yFade = 0.11, xFade = 0
       .replace(
         '#include <dithering_fragment>',
         `
-        float yEdge = 0.19 - abs(vCropPos.y);
+        // Soften superior/inferior crop and distal arm cuts (mesh-local meters)
+        float yEdge = min(0.195 - abs(vCropPos.y), uYFade);
         float xEdge = uXFade - abs(vCropPos.x);
-        float fade = smoothstep(0.0, uYFade, yEdge) * smoothstep(0.0, 0.045, max(xEdge, 0.0));
-        fade = clamp(fade, 0.0, 1.0);
+        float fadeY = smoothstep(0.0, uYFade, max(yEdge, 0.0));
+        float fadeX = smoothstep(0.0, 0.055, max(xEdge, 0.0));
+        float fade = clamp(fadeY * fadeX, 0.0, 1.0);
         gl_FragColor.a *= fade;
-        if (gl_FragColor.a < 0.035) discard;
+        if (gl_FragColor.a < 0.03) discard;
         #include <dithering_fragment>
         `,
       )
   }
-  mat.customProgramCacheKey = () => `cropfade-v2-${yFade}-${xFade}`
+  mat.customProgramCacheKey = () => `cropfade-v3-${yFade}-${xFade}`
 }
 
 function applyMaterials(root: THREE.Object3D, dimmed = false) {
-  const skinOp = dimmed ? 0.2 : 0.26
-  const muscleOp = dimmed ? 0.75 : 0.88
+  const skinOp = dimmed ? 0.22 : 0.3
+  // Muscle translucent enough that axillary nodes behind the lateral edge still read
+  const muscleOp = dimmed ? 0.48 : 0.55
   root.traverse((obj) => {
     if (!(obj as THREE.Mesh).isMesh) return
     const mesh = obj as THREE.Mesh
@@ -167,7 +189,7 @@ function applyMaterials(root: THREE.Object3D, dimmed = false) {
     if (name.includes('skin')) {
       const mat = new THREE.MeshStandardMaterial({
         color: COLORS.skinTranslucent,
-        roughness: 0.68,
+        roughness: 0.7,
         metalness: 0.02,
         transparent: true,
         opacity: skinOp,
@@ -177,23 +199,23 @@ function applyMaterials(root: THREE.Object3D, dimmed = false) {
         polygonOffsetFactor: 2,
         polygonOffsetUnits: 2,
       })
-      attachCropFade(mat, 0.1, 0.24)
+      attachCropFade(mat, 0.13, 0.29)
       mesh.material = mat
       mesh.renderOrder = 0
     } else if (name.includes('pec') || name.includes('deltoid')) {
       const mat = new THREE.MeshStandardMaterial({
         color: '#a85252',
-        roughness: 0.76,
+        roughness: 0.78,
         metalness: 0.04,
         transparent: true,
         opacity: muscleOp,
-        depthWrite: true,
+        depthWrite: false,
         side: THREE.FrontSide,
         polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -1,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1,
       })
-      attachCropFade(mat, 0.08, 0.23)
+      attachCropFade(mat, 0.12, 0.28)
       mesh.material = mat
       mesh.renderOrder = 1
     } else {
@@ -202,14 +224,14 @@ function applyMaterials(root: THREE.Object3D, dimmed = false) {
         roughness: 0.72,
         metalness: 0.05,
         transparent: true,
-        opacity: dimmed ? 0.7 : 0.85,
+        opacity: dimmed ? 0.65 : 0.82,
         depthWrite: true,
         side: THREE.FrontSide,
         polygonOffset: true,
-        polygonOffsetFactor: -2,
-        polygonOffsetUnits: -2,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1,
       })
-      attachCropFade(mat, 0.08, 0.23)
+      attachCropFade(mat, 0.12, 0.28)
       mesh.material = mat
       mesh.renderOrder = 1
     }
@@ -231,33 +253,45 @@ function GlbTorso({
     return c
   }, [scene, dimmed])
 
+  useEffect(() => {
+    // Measure loaded mesh in scene units for camera fit
+    const box = new THREE.Box3().setFromObject(cloned)
+    // setFromObject includes scale only after parent scale — measure in meters then scale
+    const local = new THREE.Box3()
+    cloned.traverse((obj) => {
+      if ((obj as THREE.Mesh).isMesh) {
+        const mesh = obj as THREE.Mesh
+        mesh.geometry.computeBoundingBox()
+        const b = mesh.geometry.boundingBox
+        if (b) local.union(b)
+      }
+    })
+    if (!local.isEmpty()) {
+      setTorsoBounds(
+        new THREE.Box3(
+          local.min.clone().multiplyScalar(TORSO_SCALE),
+          local.max.clone().multiplyScalar(TORSO_SCALE),
+        ),
+      )
+    } else if (!box.isEmpty()) {
+      setTorsoBounds(box)
+    }
+  }, [cloned])
+
   return (
     <group scale={TORSO_SCALE}>
       <primitive object={cloned} />
-      {showBreast && <BreastMound opacity={dimmed ? 0.12 : 0.16} />}
+      {showBreast && <BreastMound opacity={dimmed ? 0.2 : 0.28} />}
       {showTumor && (
-        <group position={landmarksData.landmarks.tumor as [number, number, number]} renderOrder={12}>
-          {/* Soft halo so the tumor reads through translucent skin */}
-          <mesh renderOrder={12}>
-            <sphereGeometry args={[0.032, 18, 18]} />
+        <group position={landmarksData.landmarks.tumor as [number, number, number]}>
+          {/* Solid red tumor anterior to pec — always readable */}
+          <mesh renderOrder={14}>
+            <sphereGeometry args={[0.014, 18, 18]} />
             <meshStandardMaterial
               color={COLORS.tumor}
               emissive={COLORS.tumor}
-              emissiveIntensity={0.45}
-              transparent
-              opacity={0.4}
-              depthTest={false}
-              depthWrite={false}
-              toneMapped={false}
-            />
-          </mesh>
-          <mesh renderOrder={13}>
-            <sphereGeometry args={[0.019, 18, 18]} />
-            <meshStandardMaterial
-              color={COLORS.tumor}
-              emissive={COLORS.tumor}
-              emissiveIntensity={1.0}
-              roughness={0.25}
+              emissiveIntensity={0.7}
+              roughness={0.28}
               toneMapped={false}
               depthTest={false}
               depthWrite={false}

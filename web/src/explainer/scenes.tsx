@@ -6,8 +6,11 @@ import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
 import { COLORS } from './colors'
 import { AnatomyTorso, landmark } from './AnatomyTorso'
+import { cameraTargetFor, type CameraTarget } from './cameraFit'
 
 export type SceneQuality = 'high' | 'low'
+export type { CameraTarget }
+export { cameraTargetFor }
 
 type SceneProps = {
   quality: SceneQuality
@@ -19,45 +22,40 @@ type SceneProps = {
 export function SoftLight() {
   return (
     <>
-      <ambientLight intensity={0.55} />
+      <ambientLight intensity={0.58} />
       <hemisphereLight args={['#f7f2e8', '#9aabb0', 0.55]} />
-      <directionalLight position={[4.2, 6.5, 3.2]} intensity={1.15} color="#fff4e6" />
-      <directionalLight position={[-3.5, 2.2, -2.5]} intensity={0.38} color="#b7c9c0" />
-      <pointLight position={[0.9, 1.1, 1.9]} intensity={0.32} color="#ffe8d6" />
+      <directionalLight position={[3.5, 5.5, 4]} intensity={1.1} color="#fff4e6" />
+      <directionalLight position={[-2.8, 2.0, -1.8]} intensity={0.35} color="#b7c9c0" />
+      <pointLight position={[0.6, 0.9, 1.8]} intensity={0.28} color="#ffe8d6" />
     </>
   )
 }
 
-function IdleSpin({
+/**
+ * Gentle idle sway — model stays upright (three-quarter angle comes from the camera).
+ */
+function IdleSway({
   reducedMotion,
-  speed: _speed = 0.1,
   children,
-  /** Radians; negative Y turns patient-right axilla toward a three-quarter front camera. */
-  startY = -0.35,
 }: {
   reducedMotion: boolean
-  speed?: number
   children: ReactNode
-  startY?: number
 }) {
-  void _speed
   const ref = useRef<Group>(null)
   useEffect(() => {
     if (ref.current) {
-      ref.current.rotation.y = startY
-      ref.current.rotation.x = 0.06
+      ref.current.rotation.set(0, 0, 0)
     }
-  }, [startY])
+  }, [])
   useFrame(() => {
     if (reducedMotion || !ref.current) return
-    ref.current.rotation.y = startY + Math.sin(performance.now() * 0.00028) * 0.08
+    ref.current.rotation.y = Math.sin(performance.now() * 0.00022) * 0.04
   })
   return <group ref={ref}>{children}</group>
 }
 
 /**
- * Axillary drainage path anchored to BodyParts3D landmarks (patient-right = −X):
- * tumor (breast UOQ) → under skin → Level I (axillary hollow) →
+ * Axillary drainage path: tumor (UOQ, anterior to pec) → Level I hollow →
  * Level II (behind pec minor) → Level III (infraclavicular).
  */
 function axillaryPath() {
@@ -77,17 +75,16 @@ const AXILLA_NODES = [
   { id: 'level3', pos: landmark('level3'), r: 0.07, level: 3 },
 ] as const
 
-/** Extra Level-I satellites for surgery panels (around the sentinel). */
 const LEVEL1_SATELLITES: [number, number, number][] = [
   [
-    landmark('sentinel')[0] + 0.06,
-    landmark('sentinel')[1] + 0.08,
-    landmark('sentinel')[2] - 0.02,
+    landmark('sentinel')[0] + 0.05,
+    landmark('sentinel')[1] + 0.07,
+    landmark('sentinel')[2] - 0.015,
   ],
   [
-    landmark('sentinel')[0] + 0.02,
-    landmark('sentinel')[1] + 0.14,
-    landmark('sentinel')[2] + 0.04,
+    landmark('sentinel')[0] + 0.015,
+    landmark('sentinel')[1] + 0.12,
+    landmark('sentinel')[2] + 0.03,
   ],
 ]
 
@@ -150,17 +147,12 @@ function AxillaryChain({
   activeNode,
   onActiveNode,
   interactive,
-  highlightLevels,
-  dimUnhighlighted = false,
   showPath = true,
 }: {
   quality: SceneQuality
   activeNode: string | null
   onActiveNode: (id: string | null) => void
   interactive: boolean
-  /** If set, only these levels are brightly colored (1=sentinel/L1, 2, 3). */
-  highlightLevels?: number[]
-  dimUnhighlighted?: boolean
   showPath?: boolean
 }) {
   const segs = quality === 'high' ? 28 : 14
@@ -175,14 +167,11 @@ function AxillaryChain({
       {AXILLA_NODES.map((n) => {
         const hot = interactive && activeNode === n.id
         const isSentinel = n.id === 'sentinel'
-        const highlighted =
-          !highlightLevels || highlightLevels.includes(n.level) || (n.level === 1 && highlightLevels.includes(1))
-        const dim = dimUnhighlighted && !highlighted
         return (
           <mesh
             key={n.id}
             position={n.pos}
-            scale={hot ? 1.22 : dim ? 0.85 : 1}
+            scale={hot ? 1.22 : 1}
             renderOrder={12}
             onPointerOver={
               interactive
@@ -204,17 +193,9 @@ function AxillaryChain({
           >
             <sphereGeometry args={[n.r, segs, segs]} />
             <OverlayMaterial
-              color={
-                dim
-                  ? '#8aa89c'
-                  : hot
-                    ? COLORS.nodeHot
-                    : isSentinel || highlighted
-                      ? COLORS.sentinel
-                      : COLORS.node
-              }
-              emissive={dim ? '#000' : isSentinel || hot || highlighted ? COLORS.sentinel : '#000'}
-              emissiveIntensity={dim ? 0 : hot ? 0.4 : isSentinel || highlighted ? 0.22 : 0}
+              color={hot ? COLORS.nodeHot : isSentinel ? COLORS.sentinel : COLORS.node}
+              emissive={isSentinel || hot ? COLORS.sentinel : '#000'}
+              emissiveIntensity={hot ? 0.4 : isSentinel ? 0.22 : 0}
             />
           </mesh>
         )
@@ -226,7 +207,7 @@ function AxillaryChain({
 /** Step 1 */
 export function LymphaticScene({ quality, reducedMotion, activeNode, onActiveNode }: SceneProps) {
   return (
-    <IdleSpin reducedMotion={reducedMotion} speed={0.02} startY={-0.35}>
+    <IdleSway reducedMotion={reducedMotion}>
       <SoftLight />
       <AnatomyTorso quality={quality} />
       <AxillaryChain
@@ -235,7 +216,7 @@ export function LymphaticScene({ quality, reducedMotion, activeNode, onActiveNod
         onActiveNode={onActiveNode}
         interactive
       />
-    </IdleSpin>
+    </IdleSway>
   )
 }
 
@@ -259,44 +240,40 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   return (
     <group>
       <SoftLight />
-      {/* Fixed three-quarter pose so the vessel path and axilla stay readable */}
-      <group rotation={[0.08, -0.35, 0]}>
-        <AnatomyTorso quality={quality} />
-        <AxillaryChain
-          quality={quality}
-          activeNode={null}
-          onActiveNode={() => undefined}
-          interactive={false}
-          showPath={false}
-        />
-        {/* Emphasized travel path above translucent mesh */}
-        <LymphTube
-          curve={path}
-          radius={0.036}
-          tubular={quality === 'high' ? 72 : 32}
-          color={COLORS.vessel}
-        />
-        {Array.from({ length: cellCount }).map((_, i) => {
-          const u = reducedMotion ? (i + 0.5) / cellCount : 0
-          return (
-            <mesh
-              key={i}
-              ref={(el) => {
-                cells.current[i] = el
-              }}
-              position={path.getPointAt(u)}
-              renderOrder={14}
-            >
-              <sphereGeometry args={[0.055, 12, 12]} />
-              <OverlayMaterial
-                color={COLORS.tumorCell}
-                emissive={COLORS.tumor}
-                emissiveIntensity={0.75}
-              />
-            </mesh>
-          )
-        })}
-      </group>
+      <AnatomyTorso quality={quality} />
+      <AxillaryChain
+        quality={quality}
+        activeNode={null}
+        onActiveNode={() => undefined}
+        interactive={false}
+        showPath={false}
+      />
+      <LymphTube
+        curve={path}
+        radius={0.034}
+        tubular={quality === 'high' ? 72 : 32}
+        color={COLORS.vessel}
+      />
+      {Array.from({ length: cellCount }).map((_, i) => {
+        const u = reducedMotion ? (i + 0.5) / cellCount : 0
+        return (
+          <mesh
+            key={i}
+            ref={(el) => {
+              cells.current[i] = el
+            }}
+            position={path.getPointAt(u)}
+            renderOrder={14}
+          >
+            <sphereGeometry args={[0.05, 12, 12]} />
+            <OverlayMaterial
+              color={COLORS.tumorCell}
+              emissive={COLORS.tumor}
+              emissiveIntensity={0.7}
+            />
+          </mesh>
+        )
+      })}
     </group>
   )
 }
@@ -390,72 +367,71 @@ function SurgeryPanelNodes({
 }) {
   const segs = quality === 'high' ? 22 : 12
   if (mode === 'slnb') {
-    // Sentinel + up to two nearby Level I nodes
     const nodes = [landmark('sentinel'), ...LEVEL1_SATELLITES.slice(0, 2)]
     return (
       <group>
         {nodes.map((p, i) => (
           <mesh key={i} position={p} renderOrder={12}>
-            <sphereGeometry args={[i === 0 ? 0.09 : 0.07, segs, segs]} />
+            <sphereGeometry args={[i === 0 ? 0.1 : 0.078, segs, segs]} />
             <OverlayMaterial
               color={COLORS.sentinel}
               emissive={COLORS.sentinel}
-              emissiveIntensity={i === 0 ? 0.35 : 0.18}
+              emissiveIntensity={i === 0 ? 0.4 : 0.22}
             />
           </mesh>
         ))}
       </group>
     )
   }
-  // ALND: Level I cluster + Level II highlighted; Level III dim
   return (
     <group>
       <mesh position={landmark('sentinel')} renderOrder={12}>
-        <sphereGeometry args={[0.09, segs, segs]} />
-        <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.28} />
+        <sphereGeometry args={[0.1, segs, segs]} />
+        <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.32} />
       </mesh>
       {LEVEL1_SATELLITES.map((p, i) => (
         <mesh key={`l1-${i}`} position={p} renderOrder={12}>
-          <sphereGeometry args={[0.072, segs, segs]} />
-          <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.2} />
+          <sphereGeometry args={[0.08, segs, segs]} />
+          <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.22} />
         </mesh>
       ))}
       <mesh position={landmark('level2')} renderOrder={12}>
-        <sphereGeometry args={[0.08, segs, segs]} />
-        <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.25} />
+        <sphereGeometry args={[0.09, segs, segs]} />
+        <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.3} />
       </mesh>
       <mesh position={landmark('level3')} renderOrder={12} scale={0.85}>
-        <sphereGeometry args={[0.065, segs, segs]} />
-        <OverlayMaterial color={COLORS.node} opacity={0.45} transparent />
+        <sphereGeometry args={[0.07, segs, segs]} />
+        <OverlayMaterial color={COLORS.node} opacity={0.4} transparent />
       </mesh>
     </group>
   )
 }
 
 /**
- * Step 4 — SLNB vs ALND on the same BodyParts3D torso (side-by-side mini views).
+ * Step 4 — SLNB vs ALND side-by-side BodyParts3D torsos.
+ * Each panel is large and upright; shared camera uses surgeryFocusBox three-quarter fit.
  */
 export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
   const group = useRef<Group>(null)
   useFrame(({ clock }) => {
     if (reducedMotion || !group.current) return
-    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.28) * 0.06
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.22) * 0.03
   })
 
-  const panelScale = 0.7
-  const yaw = -0.35
+  // Fill each half of the canvas; slight Y yaw so axilla reads in the shared three-quarter camera
+  const panelScale = 0.95
+  const panelX = 1.55
+  const yaw = -0.2
 
   return (
     <group ref={group}>
       <SoftLight />
-      {/* SLNB */}
-      <group position={[-1.6, 0.05, 0]} scale={panelScale} rotation={[0.1, yaw, 0]}>
-        <AnatomyTorso quality={quality} showInternals={false} showTumor={false} dimmed />
+      <group position={[-panelX, 0, 0]} scale={panelScale} rotation={[0.02, yaw, 0]}>
+        <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />
         <SurgeryPanelNodes mode="slnb" quality={quality} />
       </group>
-      {/* ALND */}
-      <group position={[1.6, 0.05, 0]} scale={panelScale} rotation={[0.1, yaw, 0]}>
-        <AnatomyTorso quality={quality} showInternals={false} showTumor={false} dimmed />
+      <group position={[panelX, 0, 0]} scale={panelScale} rotation={[0.02, yaw, 0]}>
+        <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />
         <SurgeryPanelNodes mode="alnd" quality={quality} />
       </group>
     </group>
@@ -527,45 +503,5 @@ export function SceneForStep(props: SceneProps & { stepId: ExplainerStepId }) {
       return <PatchesScene {...props} />
     default:
       return null
-  }
-}
-
-export type CameraTarget = {
-  position: [number, number, number]
-  lookAt: [number, number, number]
-}
-
-export function cameraTargetFor(stepId: ExplainerStepId, mobile = false): CameraTarget {
-  // Three-quarter front from the affected (−X) side; look into the axillary hollow
-  // Sentinel scene ≈ (−1.02, −0.19, −0.09)
-  if (mobile) {
-    switch (stepId) {
-      case 'lymphatic':
-        return { position: [-2.55, 0.22, 1.95], lookAt: [-1.0, -0.16, -0.08] }
-      case 'spread':
-        return { position: [-2.5, 0.2, 1.9], lookAt: [-1.0, -0.16, -0.08] }
-      case 'inside':
-        return { position: [0.1, 0.22, 3.55], lookAt: [0, -0.05, 0] }
-      case 'surgery':
-        return { position: [0, 0.15, 5.2], lookAt: [0, -0.05, 0] }
-      case 'patches':
-        return { position: [0.06, 0.2, 3.75], lookAt: [0, 0, 0] }
-      default:
-        return { position: [-2.0, 0.35, 2.5], lookAt: [-0.8, -0.1, 0] }
-    }
-  }
-  switch (stepId) {
-    case 'lymphatic':
-      return { position: [-2.7, 0.25, 2.15], lookAt: [-1.0, -0.15, -0.08] }
-    case 'spread':
-      return { position: [-2.65, 0.22, 2.1], lookAt: [-1.0, -0.15, -0.08] }
-    case 'inside':
-      return { position: [0.15, 0.25, 3.8], lookAt: [0, -0.05, 0] }
-    case 'surgery':
-      return { position: [0, 0.2, 5.4], lookAt: [0, -0.05, 0] }
-    case 'patches':
-      return { position: [0.1, 0.28, 4.1], lookAt: [0, 0, 0] }
-    default:
-      return { position: [-2.4, 0.3, 2.4], lookAt: [-0.9, -0.12, -0.05] }
   }
 }
