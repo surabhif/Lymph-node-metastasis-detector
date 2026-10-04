@@ -211,9 +211,9 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
   })
 
   const depositList = [
-    { label: 'ITC ≤0.2 mm', pos: [-0.38, 0.22, 0.42] as const, r: 0.055, color: '#e8a598' },
-    { label: 'Micrometastasis', pos: [0.22, -0.05, 0.48] as const, r: 0.13, color: '#d47868' },
-    { label: 'Macrometastasis', pos: [-0.05, 0.35, -0.15] as const, r: 0.28, color: PALETTE.tumor },
+    { label: 'ITC (≤0.2 mm)', pos: [-0.38, 0.22, 0.42] as const, r: 0.055, color: '#e8a598' },
+    { label: 'Micro (≤2 mm)', pos: [0.22, -0.05, 0.48] as const, r: 0.13, color: '#d47868' },
+    { label: 'Macro (>2 mm)', pos: [-0.05, 0.35, -0.15] as const, r: 0.28, color: PALETTE.tumor },
   ]
 
   return (

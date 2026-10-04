@@ -251,9 +251,11 @@
   color: var(--ink);
   padding: 0.28rem 0.5rem;
   border-radius: 8px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-family: var(--font-sans);
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 11rem;
+  line-height: 1.25;
   box-shadow: var(--shadow);
 }
 
