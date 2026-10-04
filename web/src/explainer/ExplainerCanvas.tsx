@@ -17,10 +17,12 @@ type Props = {
 function CameraRig({
   stepId,
   reducedMotion,
+  mobile,
   controlsRef,
 }: {
   stepId: ExplainerStepId
   reducedMotion: boolean
+  mobile: boolean
   controlsRef: React.RefObject<OrbitControlsImpl | null>
 }) {
   const { camera } = useThree()
@@ -30,7 +32,7 @@ function CameraRig({
   const initialized = useRef(false)
 
   useEffect(() => {
-    const cfg = cameraTargetFor(stepId)
+    const cfg = cameraTargetFor(stepId, mobile)
     desiredPos.current.set(...cfg.position)
     desiredLook.current.set(...cfg.lookAt)
     if (!initialized.current || reducedMotion) {
@@ -43,7 +45,7 @@ function CameraRig({
       }
       initialized.current = true
     }
-  }, [stepId, camera, controlsRef, reducedMotion])
+  }, [stepId, mobile, camera, controlsRef, reducedMotion])
 
   useFrame((_, dt) => {
     if (reducedMotion) return
@@ -68,10 +70,11 @@ export default function ExplainerCanvas({
   activeNode,
   onActiveNode,
 }: Props) {
+  const mobile = quality === 'low'
   const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.2]
   const [mounted, setMounted] = useState(true)
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
-  const start = cameraTargetFor(stepId)
+  const start = cameraTargetFor(stepId, mobile)
 
   useEffect(() => {
     setMounted(true)
@@ -84,7 +87,7 @@ export default function ExplainerCanvas({
     <Canvas
       className="explainer-canvas"
       dpr={dpr}
-      camera={{ position: start.position, fov: 40, near: 0.1, far: 50 }}
+      camera={{ position: start.position, fov: mobile ? 42 : 40, near: 0.1, far: 50 }}
       gl={{ antialias: true, powerPreference: 'default', alpha: true }}
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0)
@@ -94,7 +97,12 @@ export default function ExplainerCanvas({
       aria-hidden="true"
     >
       <Suspense fallback={null}>
-        <CameraRig stepId={stepId} reducedMotion={reducedMotion} controlsRef={controlsRef} />
+        <CameraRig
+          stepId={stepId}
+          reducedMotion={reducedMotion}
+          mobile={mobile}
+          controlsRef={controlsRef}
+        />
         <SceneForStep
           stepId={stepId}
           quality={quality}
@@ -102,19 +110,13 @@ export default function ExplainerCanvas({
           activeNode={activeNode}
           onActiveNode={onActiveNode}
         />
-        <ContactShadows
-          position={[0, -1.45, 0]}
-          opacity={0.32}
-          scale={10}
-          blur={2.6}
-          far={4}
-        />
-        <Environment preset="apartment" environmentIntensity={0.35} />
+        <ContactShadows position={[0, -1.35, 0]} opacity={0.3} scale={10} blur={2.6} far={4} />
+        <Environment preset="apartment" environmentIntensity={0.32} />
         <OrbitControls
           ref={controlsRef}
           enablePan={false}
           enableZoom
-          minDistance={2.4}
+          minDistance={2.2}
           maxDistance={7.5}
           maxPolarAngle={Math.PI * 0.78}
           minPolarAngle={0.25}

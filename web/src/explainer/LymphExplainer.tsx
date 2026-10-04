@@ -38,11 +38,108 @@ function useMediaFlag(query: string): boolean {
   return matches
 }
 
+function SceneLegendBody({
+  stepId,
+  activeNode,
+}: {
+  stepId: (typeof EXPLAINER_STEPS)[number]['id']
+  activeNode: string | null
+}) {
+  if (stepId === 'lymphatic') {
+    return (
+      <>
+        <div className="scene-legend-row">
+          <span className="scene-swatch tumor" /> Breast tumor
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch vessel" /> Lymph vessel
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch sentinel" /> Sentinel (level I)
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch node" /> Levels II–III
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch node soft" /> Internal mammary (faint)
+        </div>
+        {activeNode && (
+          <div className="scene-legend-row">
+            Focused:{' '}
+            {activeNode === 'sentinel'
+              ? 'sentinel / level I'
+              : activeNode === 'level2'
+                ? 'level II'
+                : 'level III'}
+          </div>
+        )}
+      </>
+    )
+  }
+  if (stepId === 'spread') {
+    return (
+      <>
+        <div className="scene-legend-row">
+          <span className="scene-swatch tumor-cell" /> Tumor cells
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch vessel" /> Travel path
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch sentinel" /> Sentinel first
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch node" /> Further nodes
+        </div>
+      </>
+    )
+  }
+  if (stepId === 'inside') {
+    return (
+      <>
+        <div className="scene-legend-row">
+          <span className="scene-swatch itc" /> ITC ≤ 0.2 mm
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch micro" /> Micro ≤ 2 mm
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch macro" /> Macro &gt; 2 mm
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch lymphoid" /> Healthy lymphoid tissue
+        </div>
+        <div className="scene-legend-row muted">Bar below = relative size cue</div>
+      </>
+    )
+  }
+  if (stepId === 'surgery') {
+    return (
+      <>
+        <div className="scene-legend-row">Left: sentinel biopsy</div>
+        <div className="scene-legend-row">Right: axillary dissection</div>
+        <div className="scene-legend-row tnm-chip">
+          Staging: T · <strong>N</strong> · M
+        </div>
+      </>
+    )
+  }
+  return (
+    <>
+      <div className="scene-legend-row">Whole-slide tiled grid</div>
+      <div className="scene-legend-row">
+        <span className="scene-swatch patch" /> One 96×96 patch → detector
+      </div>
+    </>
+  )
+}
+
 export default function LymphExplainer() {
   const [stepIndex, setStepIndex] = useState(0)
   const [activeNode, setActiveNode] = useState<string | null>(null)
   const [webgl, setWebgl] = useState(true)
   const [forceStatic, setForceStatic] = useState(false)
+  const [legendOpen, setLegendOpen] = useState(true)
   const headingId = useId()
   const panelId = useId()
 
@@ -59,6 +156,11 @@ export default function LymphExplainer() {
   useEffect(() => {
     setActiveNode(null)
   }, [stepIndex])
+
+  useEffect(() => {
+    // On narrow screens start with legend collapsed so the model is unobstructed.
+    setLegendOpen(!isMobile)
+  }, [isMobile])
 
   const go = useCallback(
     (next: number) => {
@@ -161,113 +263,60 @@ export default function LymphExplainer() {
 
         <div className="explainer-grid" role="tabpanel" id={panelId} aria-label={step.title}>
           <div className="explainer-viewport panel">
-            {use3d ? (
-              <Suspense
-                fallback={
-                  <div className="explainer-loading" role="status">
-                    Loading 3D scene…
-                  </div>
-                }
-              >
-                <ExplainerCanvas
-                  stepId={step.id}
-                  quality={quality}
-                  reducedMotion={reducedMotion}
-                  activeNode={activeNode}
-                  onActiveNode={setActiveNode}
-                />
-              </Suspense>
-            ) : (
-              <ExplainerFallback step={step} />
-            )}
-            {use3d && (
-              <div className="scene-legend" aria-hidden="true">
-                <p className="scene-legend-title">Legend</p>
-                {step.id === 'lymphatic' && (
+            <div className="explainer-canvas-host">
+              {use3d ? (
+                <Suspense
+                  fallback={
+                    <div className="explainer-loading" role="status">
+                      Loading 3D scene…
+                    </div>
+                  }
+                >
+                  <ExplainerCanvas
+                    stepId={step.id}
+                    quality={quality}
+                    reducedMotion={reducedMotion}
+                    activeNode={activeNode}
+                    onActiveNode={setActiveNode}
+                  />
+                </Suspense>
+              ) : (
+                <ExplainerFallback step={step} />
+              )}
+              <p className="sr-only">{step.alt}</p>
+              <div className="explainer-viewport-hint muted tiny">
+                {use3d
+                  ? 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
+                  : reducedMotion
+                    ? 'Motion reduced — showing a static illustration'
+                    : '3D unavailable — showing a static illustration'}
+                {webgl && !reducedMotion && (
                   <>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch tumor" /> Breast tumor
-                    </div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch vessel" /> Lymph vessel
-                    </div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch sentinel" /> Sentinel node
-                    </div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch node" /> Further axillary nodes
-                    </div>
-                    {activeNode && (
-                      <div className="scene-legend-row">
-                        Focused: {activeNode === 'sentinel' ? 'sentinel' : 'further node'}
-                      </div>
-                    )}
-                  </>
-                )}
-                {step.id === 'spread' && (
-                  <>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch tumor" /> Tumor cells
-                    </div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch vessel" /> Travel path
-                    </div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch sentinel" /> Sentinel first
-                    </div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch node" /> Further nodes
-                    </div>
-                  </>
-                )}
-                {step.id === 'inside' && (
-                  <>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch itc" /> ITC ≤ 0.2 mm
-                    </div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch micro" /> Micro ≤ 2 mm
-                    </div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch macro" /> Macro &gt; 2 mm
-                    </div>
-                  </>
-                )}
-                {step.id === 'surgery' && (
-                  <>
-                    <div className="scene-legend-row">Left: sentinel biopsy</div>
-                    <div className="scene-legend-row">Right: axillary dissection</div>
-                    <div className="scene-legend-row tnm-chip">
-                      Staging: T · <strong>N</strong> · M
-                    </div>
-                  </>
-                )}
-                {step.id === 'patches' && (
-                  <>
-                    <div className="scene-legend-row">Whole-slide tiled grid</div>
-                    <div className="scene-legend-row">
-                      <span className="scene-swatch patch" /> One 96×96 patch → detector
-                    </div>
+                    {' · '}
+                    <button type="button" className="text-button" onClick={() => setForceStatic((v) => !v)}>
+                      {forceStatic ? 'Use 3D view' : 'Use static view'}
+                    </button>
                   </>
                 )}
               </div>
-            )}
-            <p className="sr-only">{step.alt}</p>
-            <div className="explainer-viewport-hint muted tiny">
-              {use3d
-                ? 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
-                : reducedMotion
-                  ? 'Motion reduced — showing a static illustration'
-                  : '3D unavailable — showing a static illustration'}
-              {webgl && !reducedMotion && (
-                <>
-                  {' · '}
-                  <button type="button" className="text-button" onClick={() => setForceStatic((v) => !v)}>
-                    {forceStatic ? 'Use 3D view' : 'Use static view'}
-                  </button>
-                </>
-              )}
             </div>
+            {use3d && (
+              <div className={`scene-legend-wrap${legendOpen ? ' open' : ''}`}>
+                <button
+                  type="button"
+                  className="legend-toggle"
+                  aria-expanded={legendOpen}
+                  onClick={() => setLegendOpen((v) => !v)}
+                >
+                  Legend
+                </button>
+                {legendOpen && (
+                  <div className="scene-legend" aria-hidden="true">
+                    <SceneLegendBody stepId={step.id} activeNode={activeNode} />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <aside className="explainer-sidebar panel">

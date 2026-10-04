@@ -16,7 +16,7 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
           <>
             <ellipse cx="190" cy="170" rx="70" ry="110" fill="#c4b5a0" />
             <circle cx="230" cy="150" r="36" fill="#b9a48c" />
-            <path d="M250 150 C300 140 340 120 370 90" stroke="#3d8f7a" strokeWidth="4" fill="none" />
+            <path d="M250 150 C300 140 340 120 370 90" stroke="#2f8f78" strokeWidth="4" fill="none" />
             <circle cx="370" cy="90" r="14" fill="#0b6b54" />
             <circle cx="390" cy="120" r="11" fill="#0b6b54" />
             <circle cx="355" cy="55" r="10" fill="#0e8a6c" />
@@ -29,7 +29,7 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
           <>
             <circle cx="110" cy="180" r="40" fill="#b9a48c" />
             <circle cx="120" cy="175" r="14" fill="#9f2d22" />
-            <path d="M134 175 C200 150 260 140 320 130" stroke="#3d8f7a" strokeWidth="4" fill="none" />
+            <path d="M134 175 C200 150 260 140 320 130" stroke="#2f8f78" strokeWidth="4" fill="none" />
             <circle cx="200" cy="155" r="6" fill="#c45c4a" />
             <circle cx="250" cy="142" r="6" fill="#c45c4a" />
             <circle cx="320" cy="130" r="18" fill="#0b6b54" />
@@ -42,7 +42,7 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
         {step.id === 'inside' && (
           <>
             <circle cx="240" cy="160" r="95" fill="#0b6b54" opacity="0.25" />
-            <circle cx="240" cy="160" r="88" fill="#d8e8e1" />
+            <circle cx="240" cy="160" r="88" fill="#e8f0eb" />
             <circle cx="200" cy="140" r="8" fill="#e8a598" />
             <circle cx="270" cy="175" r="18" fill="#d47868" />
             <circle cx="230" cy="120" r="32" fill="#9f2d22" />
