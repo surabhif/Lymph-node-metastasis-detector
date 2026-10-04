@@ -67,17 +67,17 @@ export function PostFX({
       <Suspense fallback={null}>
         <EffectComposer multisampling={tier === 'full' ? 4 : 0} enableNormalPass={tier === 'full'}>
           <Bloom
-            luminanceThreshold={0.72}
-            luminanceSmoothing={0.35}
-            intensity={tier === 'full' ? 0.55 : 0.35}
+            luminanceThreshold={0.45}
+            luminanceSmoothing={0.4}
+            intensity={tier === 'full' ? 1.15 : 0.75}
             mipmapBlur
           />
           {tier === 'full' ? (
-            <N8AO aoRadius={0.45} intensity={0.55} distanceFalloff={0.6} quality="performance" />
+            <N8AO aoRadius={0.4} intensity={0.7} distanceFalloff={0.55} quality="performance" />
           ) : (
             <></>
           )}
-          {tier === 'full' ? <Vignette offset={0.28} darkness={0.42} /> : <></>}
+          {tier === 'full' ? <Vignette offset={0.22} darkness={0.65} /> : <Vignette offset={0.25} darkness={0.45} />}
         </EffectComposer>
       </Suspense>
     </>

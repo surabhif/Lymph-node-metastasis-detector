@@ -1,15 +1,15 @@
 {
   "landmarks": {
-    "tumor": [-0.132, 0.455, 0.062],
-    "sentinel": [-0.195, 0.405, -0.015],
-    "level2": [-0.145, 0.455, -0.035],
-    "level3": [-0.075, 0.505, -0.01],
-    "vessel_mid1": [-0.155, 0.435, 0.035],
-    "vessel_mid2": [-0.175, 0.415, 0.005],
-    "im_1": [-0.03, 0.36, 0.07],
-    "im_2": [-0.03, 0.4, 0.065],
-    "im_3": [-0.03, 0.44, 0.06],
-    "breast": [-0.115, 0.392, 0.086]
+    "tumor": [-0.125, 0.455, 0.048],
+    "sentinel": [-0.225, 0.392, -0.072],
+    "level2": [-0.175, 0.445, -0.095],
+    "level3": [-0.1, 0.515, -0.062],
+    "vessel_mid1": [-0.152, 0.435, 0.008],
+    "vessel_mid2": [-0.195, 0.408, -0.038],
+    "im_1": [-0.03, 0.36, 0.048],
+    "im_2": [-0.03, 0.4, 0.042],
+    "im_3": [-0.03, 0.44, 0.038],
+    "breast": [-0.115, 0.392, 0.065]
   },
   "hra_center_m": [-0.086, 0.438, 0.032],
   "units": "meters_y_up_visible_human_female",
@@ -17,5 +17,5 @@
     "min": [-0.34, 0.22, -0.18],
     "max": [0.28, 0.72, 0.1]
   },
-  "notes": "NIH/HuBMAP HRA female skin + right mammary (CC BY 4.0). Patient-right = −X. Tumor in UOQ of right breast; sentinel/level I in axilla; level II behind pec minor; level III infraclavicular. Coordinates are Visible Human Female metres before recentering on hra_center_m."
+  "notes": "NIH/HuBMAP HRA female skin + right mammary (CC BY 4.0). Patient-right = −X. Tumor in UOQ inside skin; axillary chain deep in axilla (behind skin / lateral chest wall); level II behind pec minor; level III infraclavicular."
 }

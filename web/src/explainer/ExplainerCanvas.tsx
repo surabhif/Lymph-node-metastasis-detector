@@ -4,7 +4,7 @@ import { ContactShadows, OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
-import { SceneForStep, type SceneQuality } from './scenes'
+import { SceneForStep, type DepositMode, type SceneQuality } from './scenes'
 import { cameraTargetFor, getTorsoBounds } from './cameraFit'
 import { PostFX } from './PostFX'
 
@@ -17,6 +17,7 @@ type Props = {
   activeNode: string | null
   onActiveNode: (id: string | null) => void
   surgeryMode?: SurgeryMode
+  depositMode?: DepositMode
 }
 
 function CameraRig({
@@ -115,6 +116,7 @@ export default function ExplainerCanvas({
   activeNode,
   onActiveNode,
   surgeryMode = 'both',
+  depositMode = 'all',
 }: Props) {
   const mobile = quality === 'low'
   const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.2]
@@ -148,7 +150,7 @@ export default function ExplainerCanvas({
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0)
         gl.toneMapping = THREE.ACESFilmicToneMapping
-        gl.toneMappingExposure = 1.12
+        gl.toneMappingExposure = 1.28
       }}
       aria-hidden="true"
     >
@@ -167,6 +169,7 @@ export default function ExplainerCanvas({
           activeNode={activeNode}
           onActiveNode={onActiveNode}
           surgeryMode={surgeryMode}
+          depositMode={depositMode}
         />
         {!isPatches && !isInside && (
           <ContactShadows position={[0, shadowY, 0]} opacity={0.28} scale={12} blur={2.6} far={5} />

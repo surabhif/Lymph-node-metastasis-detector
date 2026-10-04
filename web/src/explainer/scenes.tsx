@@ -1,12 +1,12 @@
-import { useMemo, useRef, useEffect, useState, Suspense, type ReactNode } from 'react'
+import { useMemo, useRef, useEffect, useState, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Group, Mesh } from 'three'
 import * as THREE from 'three'
-import { Html, useGLTF, useTexture } from '@react-three/drei'
+import { Html, useTexture } from '@react-three/drei'
 import type { ExplainerStepId } from './steps'
 import { COLORS } from './colors'
-import { AnatomyTorso, landmark, LYMPH_NODE_URL, DRACO_PATH } from './AnatomyTorso'
+import { AnatomyTorso, landmark } from './AnatomyTorso'
 import { CinematicLight, MacroNodeLight } from './CinematicLight'
 import {
   cameraTargetFor,
@@ -18,6 +18,7 @@ import {
 import patchesMeta from './patchesMeta.json'
 
 export type SceneQuality = 'high' | 'low'
+export type DepositMode = 'all' | 'itc' | 'micro' | 'macro'
 export type { CameraTarget }
 export { cameraTargetFor }
 
@@ -28,6 +29,8 @@ type SceneProps = {
   onActiveNode: (id: string | null) => void
   /** Surgery step: which panel(s) to show. Desktop uses 'both'. */
   surgeryMode?: 'slnb' | 'alnd' | 'both'
+  /** Step 3: which deposit size(s) to highlight. */
+  depositMode?: DepositMode
 }
 
 /** @deprecated Use CinematicLight — kept as a thin alias for any leftover imports. */
@@ -99,6 +102,7 @@ function OverlayMaterial({
   roughness = 0.36,
   transparent = false,
   opacity = 1,
+  depthTest = true,
 }: {
   color: string
   emissive?: string
@@ -106,6 +110,8 @@ function OverlayMaterial({
   roughness?: number
   transparent?: boolean
   opacity?: number
+  /** Keep true so glass skin can softly occlude vessels/nodes inside the body. */
+  depthTest?: boolean
 }) {
   return (
     <meshStandardMaterial
@@ -115,7 +121,7 @@ function OverlayMaterial({
       roughness={roughness}
       transparent={transparent || opacity < 1}
       opacity={opacity}
-      depthTest={false}
+      depthTest={depthTest}
       depthWrite={false}
       toneMapped={emissiveIntensity > 0 ? false : true}
     />
@@ -149,7 +155,7 @@ function LymphTube({
         transparent={opacity < 1}
         roughness={0.45}
         emissive={glow ? COLORS.vesselGlow : undefined}
-        emissiveIntensity={glow ? 0.35 : 0}
+        emissiveIntensity={glow ? 0.85 : 0}
       />
     </mesh>
   )
@@ -200,10 +206,10 @@ function LymphFlow({
             <meshStandardMaterial
               color={COLORS.vesselGlow}
               emissive={COLORS.vesselGlow}
-              emissiveIntensity={0.95}
+              emissiveIntensity={1.4}
               toneMapped={false}
               transparent
-              opacity={0.85}
+              opacity={0.9}
               depthWrite={false}
             />
           </mesh>
@@ -239,10 +245,11 @@ function AxillaryChain({
       {showPath && (
         <LymphTube
           curve={path}
-          radius={0.028}
+          radius={0.022}
           tubular={tubular}
           color={COLORS.vessel}
           glow
+          opacity={0.92}
         />
       )}
       {showPath && flow && (
@@ -278,8 +285,8 @@ function AxillaryChain({
             <sphereGeometry args={[n.r, segs, segs]} />
             <OverlayMaterial
               color={hot ? COLORS.nodeHot : isSentinel ? COLORS.sentinel : COLORS.node}
-              emissive={isSentinel || hot ? COLORS.sentinel : COLORS.node}
-              emissiveIntensity={hot ? 0.65 : isSentinel ? 0.45 : 0.18}
+              emissive={isSentinel || hot ? COLORS.sentinel : COLORS.vesselGlow}
+              emissiveIntensity={hot ? 1.1 : isSentinel ? 0.85 : 0.45}
             />
           </mesh>
         )
@@ -391,151 +398,233 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   )
 }
 
-/** Step 3 — HRA lymph-node interior with educational deposit overlays. */
-function HraLymphNodeShell({ quality }: { quality: SceneQuality }) {
-  const { scene } = useGLTF(LYMPH_NODE_URL, DRACO_PATH)
-  const cloned = useMemo(() => {
-    const c = scene.clone(true)
-    c.traverse((obj) => {
-      if (!(obj as Mesh).isMesh) return
-      const mesh = obj as Mesh
-      const name = (mesh.name || mesh.parent?.name || '').toLowerCase()
-      const isVessel = /vessel|arter|vein|afferent|efferent|blood/.test(name)
-      const isCapsule = /capsule/.test(name)
-      const isMedulla = /medulla/.test(name)
-      const isCortex = /follicle|paracortex|cortex/.test(name)
-      let color: string = COLORS.lymphoid
-      let opacity = 0.55
-      let emissive: string = '#000000'
-      let emissiveIntensity = 0
-      if (isVessel) {
-        color = COLORS.vessel
-        opacity = 0.9
-        emissive = COLORS.vesselGlow
-        emissiveIntensity = 0.45
-      } else if (isCapsule) {
-        color = COLORS.nodeCapsule
-        opacity = 0.28
-      } else if (isMedulla) {
-        color = '#e8efe9'
-        opacity = 0.5
-      } else if (isCortex) {
-        color = '#dfe8e1'
-        opacity = 0.62
-      }
-      mesh.material = new THREE.MeshPhysicalMaterial({
-        color,
-        roughness: isVessel ? 0.35 : 0.78,
-        metalness: 0,
-        transparent: true,
-        opacity,
-        depthWrite: !isCapsule,
-        side: THREE.DoubleSide,
-        transmission: isCapsule ? 0.35 : 0.05,
-        thickness: isCapsule ? 0.25 : 0.1,
-        emissive: new THREE.Color(emissive),
-        emissiveIntensity,
-      })
-      mesh.castShadow = false
-      mesh.receiveShadow = false
-    })
-    return c
-  }, [scene])
+/** Step 3 — clean educational cut-away (readable schematic inspired by HRA node topology). */
+function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
+  const segs = quality === 'high' ? 48 : 28
+  const follicleCount = quality === 'high' ? 10 : 7
 
-  // Asset is ~2 cm across, centered at origin; scale to ~2 scene units for macro framing.
-  const s = quality === 'high' ? 110 : 95
-  return <primitive object={cloned} scale={s} rotation={[0.35, -0.85, 0.15]} />
-}
+  const follicles = useMemo(() => {
+    const pts: [number, number, number, number][] = []
+    for (let i = 0; i < follicleCount; i++) {
+      const a = (i / follicleCount) * Math.PI * 1.55 + 0.35
+      const r = 0.78
+      pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.85, 0.12 + (i % 3) * 0.04, 0.09 + (i % 2) * 0.02])
+    }
+    return pts
+  }, [follicleCount])
 
-function SchematicNodeFallback({ quality }: { quality: SceneQuality }) {
-  const segs = quality === 'high' ? 40 : 20
   return (
     <group>
-      <mesh rotation={[0, Math.PI / 2, 0]}>
-        <sphereGeometry args={[1.02, segs, segs, 0, Math.PI, 0, Math.PI]} />
-        <meshStandardMaterial
-          color={COLORS.lymphoid}
-          roughness={0.92}
-          metalness={0}
+      {/* Semi-transparent capsule shell — open cut-away toward camera (+Z) */}
+      <mesh rotation={[0, 0, 0]} renderOrder={1}>
+        <sphereGeometry args={[1.05, segs, segs, 0, Math.PI * 2, 0, Math.PI * 0.72]} />
+        <meshPhysicalMaterial
+          color={COLORS.nodeCapsule}
+          transparent
+          opacity={0.22}
+          roughness={0.25}
+          transmission={0.35}
+          thickness={0.2}
+          depthWrite={false}
           side={THREE.DoubleSide}
         />
       </mesh>
-      <mesh rotation={[0, Math.PI / 2, 0]}>
-        <torusGeometry args={[1.02, 0.035, 10, Math.max(24, segs)]} />
-        <meshStandardMaterial color={COLORS.nodeCapsule} roughness={0.4} metalness={0.05} />
+      {/* Capsule rim */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
+        <torusGeometry args={[1.05, 0.028, 10, Math.max(32, segs)]} />
+        <meshStandardMaterial
+          color={COLORS.nodeCapsule}
+          emissive={COLORS.vesselGlow}
+          emissiveIntensity={0.35}
+          roughness={0.35}
+        />
       </mesh>
-      <mesh position={[0, 0, -0.02]}>
-        <circleGeometry args={[1.0, segs]} />
-        <meshStandardMaterial color="#f4f7f4" roughness={0.95} side={THREE.DoubleSide} />
+      {/* Cut face */}
+      <mesh position={[0, 0, 0]} rotation={[0, 0, 0]} renderOrder={0}>
+        <circleGeometry args={[1.02, segs]} />
+        <meshStandardMaterial color="#152028" roughness={0.95} side={THREE.DoubleSide} />
       </mesh>
-    </group>
-  )
-}
 
-/** Step 3 — open cutaway so legend-matched red deposits stay unobstructed */
-export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
-  const group = useRef<Group>(null)
+      {/* Cortex band (outer ring of tissue) */}
+      <mesh position={[0, 0, 0.04]} renderOrder={3}>
+        <ringGeometry args={[0.62, 0.95, segs]} />
+        <meshStandardMaterial
+          color={COLORS.cortex}
+          transparent
+          opacity={0.7}
+          roughness={0.85}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
 
-  useFrame(({ clock }) => {
-    if (reducedMotion || !group.current) return
-    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.45) * 0.28
-  })
-
-  const deposits = [
-    { id: 'itc', pos: [-0.48, 0.38, 0.35] as const, r: 0.065, color: COLORS.itc },
-    { id: 'micro', pos: [0.42, -0.02, 0.32] as const, r: 0.17, color: COLORS.micro },
-    { id: 'macro', pos: [-0.02, 0.02, 0.22] as const, r: 0.4, color: COLORS.macro },
-  ]
-
-  return (
-    <group ref={group} position={[0, 0.08, 0]}>
-      <MacroNodeLight quality={quality} />
-
-      <group
-        // Slight cutaway bias so deposits remain readable from the camera
-        rotation={[0.15, -0.4, 0.05]}
-        position={[0, -0.05, 0]}
-      >
-        <Suspense fallback={<SchematicNodeFallback quality={quality} />}>
-          <HraLymphNodeShell quality={quality} />
-        </Suspense>
-      </group>
-
-      {deposits.map((d) => (
-        <mesh key={d.id} position={d.pos} renderOrder={2}>
-          <sphereGeometry args={[d.r, 28, 28]} />
+      {/* Follicles — soft spheres near the capsule edge */}
+      {follicles.map((f, i) => (
+        <mesh key={i} position={[f[0], f[1], f[2]]} renderOrder={4}>
+          <sphereGeometry args={[f[3], 14, 14]} />
           <meshStandardMaterial
-            color={d.color}
-            emissive={d.color}
-            emissiveIntensity={0.75}
-            roughness={0.22}
-            metalness={0.02}
-            toneMapped={false}
+            color={COLORS.lymphoid}
+            emissive={COLORS.lymphoid}
+            emissiveIntensity={0.15}
+            roughness={0.7}
+            transparent
+            opacity={0.85}
           />
         </mesh>
       ))}
 
-      <group position={[0, -1.3, 0.25]}>
-        <mesh>
-          <boxGeometry args={[1.5, 0.022, 0.022]} />
-          <meshStandardMaterial color={COLORS.scale} />
+      {/* Paracortex */}
+      <mesh position={[0.12, -0.05, 0.06]} renderOrder={3}>
+        <sphereGeometry args={[0.42, segs, segs]} />
+        <meshStandardMaterial
+          color={COLORS.paracortex}
+          transparent
+          opacity={0.55}
+          roughness={0.8}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Medulla (center) */}
+      <mesh position={[-0.08, 0.02, 0.08]} renderOrder={3}>
+        <sphereGeometry args={[0.28, segs, segs]} />
+        <meshStandardMaterial
+          color={COLORS.medulla}
+          transparent
+          opacity={0.65}
+          roughness={0.75}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Afferent vessels entering capsule (left / top) */}
+      {[
+        { pos: [-1.35, 0.35, 0.15] as const, rot: [0, 0, 0.45] as const },
+        { pos: [-1.28, -0.25, 0.1] as const, rot: [0, 0, -0.35] as const },
+        { pos: [-1.15, 0.7, 0.12] as const, rot: [0, 0, 0.85] as const },
+      ].map((v, i) => (
+        <mesh key={`aff-${i}`} position={v.pos} rotation={v.rot} renderOrder={5}>
+          <capsuleGeometry args={[0.045, 0.42, 4, 10]} />
+          <meshStandardMaterial
+            color={COLORS.vessel}
+            emissive={COLORS.vesselGlow}
+            emissiveIntensity={0.7}
+            toneMapped={false}
+            roughness={0.4}
+          />
         </mesh>
-        {[
-          { x: -0.58, s: [0.1, 0.045, 0.045] as const, c: COLORS.itc },
-          { x: -0.12, s: [0.28, 0.075, 0.075] as const, c: COLORS.micro },
-          { x: 0.48, s: [0.52, 0.13, 0.13] as const, c: COLORS.macro },
-        ].map((m, i) => (
-          <mesh key={i} position={[m.x, 0.08, 0]} renderOrder={2}>
-            <boxGeometry args={m.s} />
+      ))}
+
+      {/* Efferent vessel at hilum (right) */}
+      <mesh position={[1.35, -0.05, 0.1]} rotation={[0, 0, Math.PI / 2]} renderOrder={5}>
+        <capsuleGeometry args={[0.055, 0.5, 4, 10]} />
+        <meshStandardMaterial
+          color={COLORS.vessel}
+          emissive={COLORS.vesselGlow}
+          emissiveIntensity={0.85}
+          toneMapped={false}
+          roughness={0.35}
+        />
+      </mesh>
+
+      {/* Labels — kept clear of deposit zones */}
+      <Html position={[-0.55, 1.05, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+        <span className="node-anno">Cortex / follicles</span>
+      </Html>
+      <Html position={[0.35, 0.15, 0.4]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+        <span className="node-anno">Paracortex</span>
+      </Html>
+      <Html position={[-0.35, 0.0, 0.45]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+        <span className="node-anno soft">Medulla</span>
+      </Html>
+      <Html position={[-1.5, 0.55, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+        <span className="node-anno">Afferent</span>
+      </Html>
+      <Html position={[1.55, -0.35, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+        <span className="node-anno">Efferent / hilum</span>
+      </Html>
+    </group>
+  )
+}
+
+/** Proportionate deposits: ITC cells in subcapsular sinus, micro cluster, macro mass. */
+function NodeDeposits({ mode }: { mode: DepositMode }) {
+  const show = (id: DepositMode) => mode === 'all' || mode === id
+  return (
+    <group>
+      {show('itc') &&
+        [
+          [-0.72, 0.55, 0.18],
+          [-0.62, 0.48, 0.2],
+          [-0.78, 0.42, 0.16],
+        ].map((p, i) => (
+          <mesh key={`itc-${i}`} position={p as [number, number, number]} renderOrder={8}>
+            <sphereGeometry args={[0.035, 12, 12]} />
             <meshStandardMaterial
-              color={m.c}
-              emissive={m.c}
-              emissiveIntensity={0.55}
+              color={COLORS.itc}
+              emissive={COLORS.itc}
+              emissiveIntensity={0.9}
               toneMapped={false}
             />
           </mesh>
         ))}
-      </group>
+      {show('micro') && (
+        <group position={[0.55, 0.35, 0.15]}>
+          {[
+            [0, 0, 0],
+            [0.08, 0.05, 0.02],
+            [-0.06, 0.06, 0.01],
+            [0.04, -0.07, 0.03],
+            [-0.05, -0.04, 0.02],
+          ].map((p, i) => (
+            <mesh key={`micro-${i}`} position={p as [number, number, number]} renderOrder={8}>
+              <sphereGeometry args={[0.055, 14, 14]} />
+              <meshStandardMaterial
+                color={COLORS.micro}
+                emissive={COLORS.micro}
+                emissiveIntensity={0.75}
+                toneMapped={false}
+              />
+            </mesh>
+          ))}
+        </group>
+      )}
+      {show('macro') && (
+        <mesh position={[-0.2, -0.42, 0.1]} scale={[1.0, 0.75, 0.65]} renderOrder={7}>
+          <sphereGeometry args={[0.22, 28, 28]} />
+          <meshStandardMaterial
+            color={COLORS.macro}
+            emissive={COLORS.macro}
+            emissiveIntensity={0.55}
+            roughness={0.35}
+            toneMapped={false}
+            transparent
+            opacity={0.9}
+          />
+        </mesh>
+      )}
+    </group>
+  )
+}
+
+/** Step 3 — readable cut-away with optional deposit focus. */
+export function InsideNodeScene({
+  quality,
+  reducedMotion,
+  depositMode = 'all',
+}: SceneProps & { depositMode?: DepositMode }) {
+  const group = useRef<Group>(null)
+
+  useFrame(({ clock }) => {
+    if (reducedMotion || !group.current) return
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.35) * 0.2
+  })
+
+  return (
+    <group ref={group} position={[0, 0.05, 0]}>
+      <MacroNodeLight quality={quality} />
+      <CutawayLymphNode quality={quality} />
+      <NodeDeposits mode={depositMode} />
     </group>
   )
 }
@@ -897,7 +986,7 @@ export function SceneForStep(props: SceneProps & { stepId: ExplainerStepId }) {
     case 'spread':
       return <SpreadScene {...props} />
     case 'inside':
-      return <InsideNodeScene {...props} />
+      return <InsideNodeScene {...props} depositMode={props.depositMode ?? 'all'} />
     case 'surgery':
       return <SurgeryScene {...props} />
     case 'patches':

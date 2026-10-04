@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom'
 import { EXPLAINER_SOURCES, EXPLAINER_STEPS } from './steps'
 import ExplainerFallback from './ExplainerFallback'
 import patchesMeta from './patchesMeta.json'
+import type { DepositMode } from './scenes'
 import './explainer.css'
 
 const ExplainerCanvas = lazy(() => import('./ExplainerCanvas'))
@@ -110,7 +111,6 @@ function SceneLegendBody({
         <div className="scene-legend-row">
           <span className="scene-swatch lymphoid" /> Healthy lymphoid tissue
         </div>
-        <div className="scene-legend-row muted">Bar below = relative size cue</div>
       </>
     )
   }
@@ -150,6 +150,7 @@ export default function LymphExplainer() {
   const [forceStatic, setForceStatic] = useState(false)
   const [legendOpen, setLegendOpen] = useState(true)
   const [surgeryPanel, setSurgeryPanel] = useState<'slnb' | 'alnd'>('slnb')
+  const [depositMode, setDepositMode] = useState<DepositMode>('all')
   const headingId = useId()
   const panelId = useId()
 
@@ -167,6 +168,7 @@ export default function LymphExplainer() {
   useEffect(() => {
     setActiveNode(null)
     if (EXPLAINER_STEPS[stepIndex]?.id === 'surgery') setSurgeryPanel('slnb')
+    if (EXPLAINER_STEPS[stepIndex]?.id === 'inside') setDepositMode('all')
     // Keep the patches mosaic unobstructed; legend can be reopened via toggle.
     if (EXPLAINER_STEPS[stepIndex]?.id === 'patches') setLegendOpen(false)
   }, [stepIndex])
@@ -276,7 +278,7 @@ export default function LymphExplainer() {
         </div>
 
         <div className="explainer-grid" role="tabpanel" id={panelId} aria-label={step.title}>
-          <div className="explainer-viewport panel">
+          <div className={`explainer-viewport panel cinematic${step.id === 'patches' ? ' light-panel' : ''}`}>
             <div className="explainer-canvas-host">
               {use3d ? (
                 <Suspense
@@ -293,6 +295,7 @@ export default function LymphExplainer() {
                     activeNode={activeNode}
                     onActiveNode={setActiveNode}
                     surgeryMode={surgeryMode}
+                    depositMode={depositMode}
                   />
                 </Suspense>
               ) : (
@@ -328,6 +331,36 @@ export default function LymphExplainer() {
                       <span>Axillary dissection</span>
                     </div>
                   )}
+                </div>
+              )}
+              {use3d && step.id === 'inside' && (
+                <div className="node-deposit-bar" role="toolbar" aria-label="Deposit size focus">
+                  {(
+                    [
+                      ['all', 'All'],
+                      ['itc', 'ITC'],
+                      ['micro', 'Micro'],
+                      ['macro', 'Macro'],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={depositMode === id ? 'active' : ''}
+                      aria-pressed={depositMode === id}
+                      onClick={() => setDepositMode(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {use3d && step.id === 'inside' && (
+                <div className="node-scale-cue" aria-hidden="true">
+                  <span className="cue itc" />
+                  <span className="cue micro" />
+                  <span className="cue macro" />
+                  <em>Relative size</em>
                 </div>
               )}
               <p className="sr-only">{step.alt}</p>
@@ -436,10 +469,11 @@ export default function LymphExplainer() {
         </ul>
         <p className="tiny muted">
           Primary meshes are NIH/HuBMAP Human Reference Atlas female skin, right mammary gland,
-          and lymph node (CC BY 4.0), with BodyParts3D chest cues (CC BY 4.0) under the skin — see
-          Sources and <code>THIRD_PARTY_NOTICES.md</code>. Lymph vessels/axillary nodes are
-          educational overlays. If a mesh fails to load, a procedural fallback is used. Step 5 uses
-          a mosaic of real PCam (CC0) test patches as an honest WSI stand-in — not contiguous tissue.
+          and lymph-node reference geometry (CC BY 4.0), with BodyParts3D chest cues (CC BY 4.0)
+          under the skin — see Sources and <code>THIRD_PARTY_NOTICES.md</code>. Axillary vessels/nodes
+          are educational overlays. Step 3 uses a clean cut-away schematic (HRA-inspired) so deposit
+          sizes stay readable. If a mesh fails to load, a procedural fallback is used. Step 5 uses a
+          mosaic of real PCam (CC0) test patches as an honest WSI stand-in — not contiguous tissue.
         </p>
       </details>
     </section>
