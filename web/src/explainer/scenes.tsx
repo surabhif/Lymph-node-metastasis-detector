@@ -383,73 +383,68 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   )
 }
 
-/** Step 3 — cutaway with legend-matched red deposits + scale cue */
+/** Step 3 — open cutaway bowl so legend-matched red deposits stay unobstructed */
 export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
   const segs = quality === 'high' ? 40 : 20
   const group = useRef<Group>(null)
 
   useFrame(({ clock }) => {
     if (reducedMotion || !group.current) return
-    // Gentle sway keeps the cutaway face toward the camera so deposit colors stay readable
-    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.45) * 0.35
+    // Gentle sway keeps the open face toward the camera
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.45) * 0.28
   })
 
-  // Deposits sit forward on the cutaway face so legend reds read clearly
+  // Deposits sit in the open bowl, fully in front of the rear shell
   const deposits = [
-    { id: 'itc', pos: [-0.45, 0.35, 0.55] as const, r: 0.06, color: COLORS.itc },
-    { id: 'micro', pos: [0.4, -0.05, 0.5] as const, r: 0.16, color: COLORS.micro },
-    { id: 'macro', pos: [-0.05, 0.0, 0.35] as const, r: 0.38, color: COLORS.macro },
+    { id: 'itc', pos: [-0.48, 0.38, 0.35] as const, r: 0.065, color: COLORS.itc },
+    { id: 'micro', pos: [0.42, -0.02, 0.32] as const, r: 0.17, color: COLORS.micro },
+    { id: 'macro', pos: [-0.02, 0.02, 0.22] as const, r: 0.4, color: COLORS.macro },
   ]
 
   return (
-    <group ref={group} position={[0, 0.05, 0]}>
-      <ambientLight intensity={0.65} />
-      <hemisphereLight args={['#f8f5ef', '#c8cfcb', 0.35]} />
-      <directionalLight position={[3.5, 5, 4]} intensity={1.1} color="#fff8f0" />
-      <directionalLight position={[-2.5, 1.5, -2]} intensity={0.25} color="#e8ebe8" />
-      {/* capsule shell — cutaway opening faces +Z / camera */}
-      <mesh rotation={[0, -0.55, 0]}>
-        <sphereGeometry args={[1.08, segs, segs, 0, Math.PI * 1.45, 0, Math.PI]} />
-        <meshStandardMaterial
-          color={COLORS.nodeCapsule}
-          transparent
-          opacity={0.28}
-          roughness={0.35}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-      {/* healthy lymphoid — same cutaway, pale tissue matching legend */}
-      <mesh rotation={[0, -0.55, 0]}>
-        <sphereGeometry args={[1.0, segs, segs, 0, Math.PI * 1.45, 0, Math.PI]} />
+    <group ref={group} position={[0, 0.08, 0]}>
+      <ambientLight intensity={0.7} />
+      <hemisphereLight args={['#f8f5ef', '#d0d4d0', 0.35]} />
+      <directionalLight position={[3.2, 4.5, 5]} intensity={1.15} color="#fff8f0" />
+      <directionalLight position={[-2.2, 1.2, 2]} intensity={0.3} color="#f0f2ef" />
+
+      {/* Rear lymphoid bowl — open face toward +Z / camera */}
+      <mesh rotation={[0, Math.PI / 2, 0]}>
+        <sphereGeometry args={[1.02, segs, segs, 0, Math.PI, 0, Math.PI]} />
         <meshStandardMaterial
           color={COLORS.lymphoid}
           roughness={0.92}
           metalness={0}
-          transparent
-          opacity={0.82}
           side={THREE.DoubleSide}
         />
       </mesh>
-      {/* cut face toward camera */}
-      <mesh rotation={[0, 0.18, Math.PI / 2]} position={[0.05, 0, 0.15]}>
-        <circleGeometry args={[1.0, segs]} />
-        <meshStandardMaterial color="#f7faf7" transparent opacity={0.65} side={THREE.DoubleSide} />
+      {/* thin capsule rim */}
+      <mesh rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[1.02, 0.035, 10, Math.max(24, segs)]} />
+        <meshStandardMaterial color={COLORS.nodeCapsule} roughness={0.4} metalness={0.05} />
       </mesh>
-      {/* deposits sit on the cutaway face so reds read clearly */}
+      {/* cut-face disk (slightly behind deposits) */}
+      <mesh position={[0, 0, -0.02]}>
+        <circleGeometry args={[1.0, segs]} />
+        <meshStandardMaterial color="#f4f7f4" roughness={0.95} side={THREE.DoubleSide} />
+      </mesh>
+
       {deposits.map((d) => (
-        <mesh key={d.id} position={d.pos}>
-          <sphereGeometry args={[d.r, 24, 24]} />
+        <mesh key={d.id} position={d.pos} renderOrder={2}>
+          <sphereGeometry args={[d.r, 28, 28]} />
           <meshStandardMaterial
             color={d.color}
             emissive={d.color}
             emissiveIntensity={0.55}
-            roughness={0.25}
+            roughness={0.22}
             metalness={0.02}
+            toneMapped={false}
           />
         </mesh>
       ))}
-      {/* visible scale cue — ITC / micro / macro relative sizes on a bar */}
-      <group position={[0, -1.28, 0.2]}>
+
+      {/* visible scale cue — ITC / micro / macro relative sizes */}
+      <group position={[0, -1.3, 0.25]}>
         <mesh>
           <boxGeometry args={[1.5, 0.022, 0.022]} />
           <meshStandardMaterial color={COLORS.scale} />
@@ -459,9 +454,14 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
           { x: -0.12, s: [0.28, 0.075, 0.075] as const, c: COLORS.micro },
           { x: 0.48, s: [0.52, 0.13, 0.13] as const, c: COLORS.macro },
         ].map((m, i) => (
-          <mesh key={i} position={[m.x, 0.08, 0]}>
+          <mesh key={i} position={[m.x, 0.08, 0]} renderOrder={2}>
             <boxGeometry args={m.s} />
-            <meshStandardMaterial color={m.c} emissive={m.c} emissiveIntensity={0.35} />
+            <meshStandardMaterial
+              color={m.c}
+              emissive={m.c}
+              emissiveIntensity={0.4}
+              toneMapped={false}
+            />
           </mesh>
         ))}
       </group>
