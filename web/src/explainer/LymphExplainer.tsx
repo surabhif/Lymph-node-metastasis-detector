@@ -185,9 +185,11 @@ export default function LymphExplainer() {
     setLegendOpen(!isMobile)
   }, [isMobile])
 
-  // GSAP ScrollTrigger: pin stage shell and scrub camera progress 0→1
+  // GSAP ScrollTrigger: scrub progress from the tall track. Use CSS sticky
+  // instead of ScrollTrigger pin — pin's position:fixed reparents the WebGL
+  // canvas and freezes R3F scene updates under SwiftShader.
   useEffect(() => {
-    if (!scrollDriven || !trackRef.current || !pinRef.current) {
+    if (!scrollDriven || !trackRef.current) {
       triggerRef.current = null
       return
     }
@@ -197,9 +199,7 @@ export default function LymphExplainer() {
         trigger: trackRef.current,
         start: 'top top',
         end: 'bottom bottom',
-        pin: pinRef.current,
         scrub: isMobile ? 0.85 : 0.55,
-        anticipatePin: 1,
         invalidateOnRefresh: true,
         snap: {
           snapTo: (value) => {
@@ -237,23 +237,26 @@ export default function LymphExplainer() {
 
   const scrollToStep = useCallback((index: number) => {
     const next = Math.max(0, Math.min(EXPLAINER_STEPS.length - 1, index))
+    const p = STEP_SNAP[next] ?? 0
+    // Drive 3D from the snap immediately so canvas never lags the tab/legend.
+    setStepIndex(next)
+    setProgress(p)
+
     const st = triggerRef.current
     if (scrollDriven && st) {
-      const p = STEP_SNAP[next] ?? 0
-      const y = st.start + (st.end - st.start) * p
       scrollingToRef.current = true
-      setStepIndex(next)
-      setProgress(p)
-      window.scrollTo({ top: y, behavior: reducedMotion ? 'auto' : 'smooth' })
+      const y = st.start + (st.end - st.start) * p
+      window.scrollTo(0, y)
+      st.scroll(y)
       window.setTimeout(() => {
+        // Keep the explicit snap progress — do not trust a lagging st.progress
+        setProgress(p)
+        setStepIndex(next)
         scrollingToRef.current = false
-        ScrollTrigger.update()
-      }, reducedMotion ? 50 : 700)
+      }, 180)
       return
     }
-    setStepIndex(next)
-    setProgress(STEP_SNAP[next] ?? 0)
-  }, [scrollDriven, reducedMotion])
+  }, [scrollDriven])
 
   const go = useCallback(
     (next: number) => {
@@ -360,7 +363,11 @@ export default function LymphExplainer() {
         </div>
 
         <div className="explainer-grid" role="tabpanel" id={panelId} aria-label={step.title}>
-          <div className={`explainer-viewport panel cinematic${step.id === 'patches' ? ' light-panel' : ''}`}>
+          <div
+            className={`explainer-viewport panel cinematic${step.id === 'patches' ? ' light-panel' : ''}`}
+            data-progress={progress.toFixed(3)}
+            data-step={step.id}
+          >
             <div className="explainer-canvas-host">
               {use3d ? (
                 <Suspense

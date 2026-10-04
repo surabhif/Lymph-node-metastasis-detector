@@ -30,6 +30,12 @@
 
 .explainer-scroll-track.scroll-driven .explainer-stage-shell {
   width: 100%;
+  position: sticky;
+  top: 0;
+  /* Keep shell in normal flow — avoid fixed pin reparenting the WebGL canvas */
+  z-index: 1;
+  padding-top: 0.25rem;
+  background: transparent;
 }
 
 .explainer-stage-shell:focus-visible {

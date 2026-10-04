@@ -179,7 +179,6 @@ export function CinematicWorld({
   const [sentinelHot, setSentinelHot] = useState(0)
   const onArrive = useCallback((s: number) => setSentinelHot(s), [])
 
-  const torsoOpacity = 1 - blendBetween(progress, 1, 2) * 0.85
   const nodeReveal = blendBetween(progress, 1, 2) // 2→3
   const torsoOut = blendBetween(progress, 3, 4) // 4→5
   const patchesIn = torsoOut
@@ -191,35 +190,26 @@ export function CinematicWorld({
   const cellAmt = THREE.MathUtils.clamp(cellIntensity, 0, 1)
   const vesselIntensity = Math.max(0.2, stepWeight(progress, 0) + stepWeight(progress, 1) * 1.2)
 
-  // Moving clipping plane for the cut-away reveal (world +Z opens as we dive in)
-  const clipRef = useRef(0)
-  useFrame(() => {
-    clipRef.current = THREE.MathUtils.lerp(clipRef.current, -1.2 + nodeReveal * 2.4, 0.12)
-  })
-
-  const showTorso = torsoOut < 0.92
-  const showNode = nodeReveal > 0.08 && torsoOut < 0.85
+  // Hide torso once we have fully entered the node cut-away
+  const showTorso = torsoOut < 0.92 && nodeReveal < 0.85
+  const showNode = nodeReveal > 0.15 && torsoOut < 0.85
   const showPatches = patchesIn > 0.12
 
   return (
     <group>
       {showTorso && (
         <group
-          visible={torsoOpacity > 0.04}
-          // soft scale-down as we dive into the node
-          scale={1 - nodeReveal * 0.35}
-          position={[0, -nodeReveal * 0.15, 0]}
+          visible
+          scale={1 - nodeReveal * 0.45}
+          position={[0, -nodeReveal * 0.2, 0]}
         >
           <CinematicLight quality={quality} />
-          <group>
-            {/* Dim torso under glass as scroll progresses into the node */}
-            <AnatomyTorso
-              quality={quality}
-              showTumor={stepWeight(progress, 0) + stepWeight(progress, 1) > 0.15}
-              showBreast
-              dimmed={nodeReveal > 0.45 || stepWeight(progress, 3) > 0.5}
-            />
-          </group>
+          <AnatomyTorso
+            quality={quality}
+            showTumor={stepWeight(progress, 0) + stepWeight(progress, 1) > 0.15}
+            showBreast
+            dimmed={nodeReveal > 0.35 || stepWeight(progress, 3) > 0.5}
+          />
           <PulsingVessel curve={path} quality={quality} intensity={vesselIntensity * (1 - nodeReveal)} />
           <AxillaNodes
             quality={quality}
@@ -242,7 +232,7 @@ export function CinematicWorld({
       )}
 
       {showNode && (
-        <group position={[0, 0.05, 0]} scale={0.35 + nodeReveal * 0.75}>
+        <group position={[0, 0.05, 0]} scale={0.55 + nodeReveal * 0.7} visible={nodeReveal > 0.15}>
           <InsideNodeScene
             quality={quality}
             reducedMotion={reducedMotion}

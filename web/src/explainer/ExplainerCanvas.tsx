@@ -7,8 +7,8 @@ import type { ExplainerStepId } from './steps'
 import { SceneForStep, type DepositMode, type SceneQuality } from './scenes'
 import { cameraTargetFor, getTorsoBounds } from './cameraFit'
 import { PostFX } from './PostFX'
-import { CinematicWorld } from './CinematicWorld'
-import { buildCameraPaths } from './scrollPath'
+import { buildCameraPaths, axillaryPathCurve } from './scrollPath'
+import { InstancedTumorCells } from './InstancedTumorCells'
 
 export type SurgeryMode = 'slnb' | 'alnd' | 'both'
 
@@ -171,7 +171,6 @@ function ScrollCameraRig({
       }
       return
     }
-    // Tight follow so scrub feels locked to scroll without jitter
     const k = 1 - Math.exp(-dt * 10)
     camera.position.lerp(desiredPos.current, k)
     target.current.lerp(desiredLook.current, k)
@@ -220,6 +219,11 @@ export default function ExplainerCanvas({
   const isPatches = stepId === 'patches'
   // During scroll scrub, allow gentle orbit nudge but prefer scroll ownership
   const orbitEnabled = !scrollDriven || isPatches
+  // Spread step: stream instanced cells along the vessel as a motion layer
+  const showCells = scrollDriven && stepId === 'spread'
+  const cellPath = useMemo(() => (showCells ? axillaryPathCurve() : null), [showCells])
+  // Keep progress referenced so scroll scrub state stays wired for future camera path
+  const cellIntensity = showCells ? 0.55 + 0.45 * Math.min(1, Math.abs(progress - 0.25) * 4) : 0
 
   return (
     <Canvas
@@ -243,16 +247,24 @@ export default function ExplainerCanvas({
               mobile={mobile}
               controlsRef={controlsRef}
             />
-            <CinematicWorld
-              progress={progress}
+            <SceneForStep
+              key={stepId}
+              stepId={stepId}
               quality={quality}
               reducedMotion={reducedMotion}
               activeNode={activeNode}
               onActiveNode={onActiveNode}
               surgeryMode={surgeryMode}
               depositMode={depositMode}
-              particleCount={particleCount}
             />
+            {showCells && cellPath && (
+              <InstancedTumorCells
+                curve={cellPath}
+                count={particleCount}
+                reducedMotion={reducedMotion}
+                intensity={cellIntensity}
+              />
+            )}
           </>
         ) : (
           <>
