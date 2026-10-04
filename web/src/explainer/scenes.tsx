@@ -468,10 +468,10 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
           <meshStandardMaterial
             color={COLORS.follicle}
             emissive={COLORS.follicleGlow}
-            emissiveIntensity={0.65}
-            roughness={0.55}
+            emissiveIntensity={0.95}
+            roughness={0.48}
             transparent
-            opacity={0.88}
+            opacity={0.92}
             depthWrite={false}
             toneMapped={false}
           />
@@ -533,7 +533,7 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       </mesh>
 
       {/* Labels — clear of top-left legend; Afferent/Cortex hide on narrow screens */}
-      <Html position={[0.2, 0.78, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[0.25, 0.68, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Cortex / follicles</span>
       </Html>
       <Html position={[0.42, 0.12, 0.4]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
@@ -542,10 +542,10 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       <Html position={[-0.28, -0.08, 0.45]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno soft">Medulla</span>
       </Html>
-      <Html position={[-1.05, -0.78, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[-0.95, -0.85, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Afferent</span>
       </Html>
-      <Html position={[1.35, -0.62, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[1.28, -0.7, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Efferent / hilum</span>
       </Html>
     </group>
@@ -649,7 +649,7 @@ function SurgeryPanelNodes({
       <group>
         {nodes.map((p, i) => (
           <mesh key={i} position={p} renderOrder={12}>
-            <sphereGeometry args={[i === 0 ? 0.13 : 0.1, segs, segs]} />
+            <sphereGeometry args={[i === 0 ? 0.1 : 0.078, segs, segs]} />
             <OverlayMaterial
               color={COLORS.sentinel}
               emissive={COLORS.sentinel}
@@ -664,21 +664,21 @@ function SurgeryPanelNodes({
   return (
     <group>
       <mesh position={landmark('sentinel')} renderOrder={12}>
-        <sphereGeometry args={[0.12, segs, segs]} />
+        <sphereGeometry args={[0.095, segs, segs]} />
         <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.45} />
       </mesh>
       {LEVEL1_SATELLITES.map((p, i) => (
         <mesh key={`l1-${i}`} position={p} renderOrder={12}>
-          <sphereGeometry args={[0.1, segs, segs]} />
+          <sphereGeometry args={[0.078, segs, segs]} />
           <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.35} />
         </mesh>
       ))}
       <mesh position={landmark('level2')} renderOrder={12}>
-        <sphereGeometry args={[0.115, segs, segs]} />
+        <sphereGeometry args={[0.09, segs, segs]} />
         <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.42} />
       </mesh>
       <mesh position={landmark('level3')} renderOrder={12} scale={0.8}>
-        <sphereGeometry args={[0.075, segs, segs]} />
+        <sphereGeometry args={[0.065, segs, segs]} />
         <OverlayMaterial color={COLORS.node} opacity={0.28} transparent />
       </mesh>
     </group>
@@ -701,7 +701,7 @@ export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: S
   // Match step-1 three-quarter feel via local yaw; dual layout synced with cameraFit
   const panelScale = single ? 1 : SURGERY_PANEL_SCALE
   const panelX = single ? 0 : SURGERY_PANEL_X
-  const yaw = -0.38 // ~22° — gentle three-quarter, flatter for dual-panel read
+  const yaw = -0.28 // ~16° — keep axilla hollow readable without flaring the outer arm
 
   const showSlnb = surgeryMode === 'slnb' || surgeryMode === 'both'
   const showAlnd = surgeryMode === 'alnd' || surgeryMode === 'both'
