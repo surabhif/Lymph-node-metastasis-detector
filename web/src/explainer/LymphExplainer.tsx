@@ -5,15 +5,21 @@ import {
   useEffect,
   useId,
   useMemo,
+  useRef,
   useState,
   type KeyboardEvent,
 } from 'react'
 import { Link } from 'react-router-dom'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { EXPLAINER_SOURCES, EXPLAINER_STEPS } from './steps'
 import ExplainerFallback from './ExplainerFallback'
 import patchesMeta from './patchesMeta.json'
 import type { DepositMode } from './scenes'
+import { STEP_SNAP, stepIndexFromProgress } from './scrollSteps'
 import './explainer.css'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const ExplainerCanvas = lazy(() => import('./ExplainerCanvas'))
 
@@ -142,6 +148,7 @@ function SceneLegendBody({
 
 export default function LymphExplainer() {
   const [stepIndex, setStepIndex] = useState(0)
+  const [progress, setProgress] = useState(0)
   const [activeNode, setActiveNode] = useState<string | null>(null)
   const [webgl, setWebgl] = useState(true)
   const [forceStatic, setForceStatic] = useState(false)
@@ -150,12 +157,17 @@ export default function LymphExplainer() {
   const [depositMode, setDepositMode] = useState<DepositMode>('all')
   const headingId = useId()
   const panelId = useId()
+  const trackRef = useRef<HTMLDivElement>(null)
+  const pinRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<ScrollTrigger | null>(null)
+  const scrollingToRef = useRef(false)
 
   const reducedMotion = useMediaFlag('(prefers-reduced-motion: reduce)')
   const isMobile = useMediaFlag('(max-width: 720px)')
   const step = EXPLAINER_STEPS[stepIndex]
   const quality = isMobile ? 'low' : 'high'
   const use3d = webgl && !forceStatic && !reducedMotion
+  const scrollDriven = use3d
   const surgeryMode = step.id === 'surgery' ? (isMobile ? surgeryPanel : 'both') : 'both'
 
   useEffect(() => {
@@ -166,20 +178,88 @@ export default function LymphExplainer() {
     setActiveNode(null)
     if (EXPLAINER_STEPS[stepIndex]?.id === 'surgery') setSurgeryPanel('slnb')
     if (EXPLAINER_STEPS[stepIndex]?.id === 'inside') setDepositMode('all')
-    // Keep the patches mosaic unobstructed; legend can be reopened via toggle.
     if (EXPLAINER_STEPS[stepIndex]?.id === 'patches') setLegendOpen(false)
   }, [stepIndex])
 
   useEffect(() => {
-    // On narrow screens start with legend collapsed so the model is unobstructed.
     setLegendOpen(!isMobile)
   }, [isMobile])
 
+  // GSAP ScrollTrigger: pin stage shell and scrub camera progress 0→1
+  useEffect(() => {
+    if (!scrollDriven || !trackRef.current || !pinRef.current) {
+      triggerRef.current = null
+      return
+    }
+
+    const ctx = gsap.context(() => {
+      const st = ScrollTrigger.create({
+        trigger: trackRef.current,
+        start: 'top top',
+        end: 'bottom bottom',
+        pin: pinRef.current,
+        scrub: isMobile ? 0.85 : 0.55,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        snap: {
+          snapTo: (value) => {
+            let best: number = STEP_SNAP[0]!
+            let bestDist = Infinity
+            for (const s of STEP_SNAP) {
+              const d = Math.abs(value - s)
+              if (d < bestDist) {
+                bestDist = d
+                best = s
+              }
+            }
+            return best
+          },
+          duration: { min: 0.12, max: 0.4 },
+          ease: 'power1.inOut',
+          delay: 0.04,
+        },
+        onUpdate: (self) => {
+          if (scrollingToRef.current) return
+          const p = self.progress
+          setProgress(p)
+          const idx = stepIndexFromProgress(p)
+          setStepIndex((prev) => (prev === idx ? prev : idx))
+        },
+      })
+      triggerRef.current = st
+    })
+
+    return () => {
+      triggerRef.current = null
+      ctx.revert()
+    }
+  }, [scrollDriven, isMobile])
+
+  const scrollToStep = useCallback((index: number) => {
+    const next = Math.max(0, Math.min(EXPLAINER_STEPS.length - 1, index))
+    const st = triggerRef.current
+    if (scrollDriven && st) {
+      const p = STEP_SNAP[next] ?? 0
+      const y = st.start + (st.end - st.start) * p
+      scrollingToRef.current = true
+      setStepIndex(next)
+      setProgress(p)
+      window.scrollTo({ top: y, behavior: reducedMotion ? 'auto' : 'smooth' })
+      window.setTimeout(() => {
+        scrollingToRef.current = false
+        ScrollTrigger.update()
+      }, reducedMotion ? 50 : 700)
+      return
+    }
+    setStepIndex(next)
+    setProgress(STEP_SNAP[next] ?? 0)
+  }, [scrollDriven, reducedMotion])
+
   const go = useCallback(
     (next: number) => {
-      setStepIndex(Math.max(0, Math.min(EXPLAINER_STEPS.length - 1, next)))
+      scrollToStep(next)
     },
-    [],
+    [scrollToStep],
   )
 
   const onKeyNav = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -229,11 +309,16 @@ export default function LymphExplainer() {
 
       <div
         id="explainer-stages"
-        className="explainer-stage-shell"
-        tabIndex={0}
-        onKeyDown={onKeyNav}
-        aria-describedby={panelId}
+        ref={trackRef}
+        className={`explainer-scroll-track${scrollDriven ? ' scroll-driven' : ''}`}
       >
+        <div
+          ref={pinRef}
+          className="explainer-stage-shell"
+          tabIndex={0}
+          onKeyDown={onKeyNav}
+          aria-describedby={panelId}
+        >
         <div className="explainer-toolbar" role="toolbar" aria-label="Explainer steps">
           <div className="explainer-step-tabs" role="tablist" aria-label="Explainer chapters">
             {EXPLAINER_STEPS.map((s, i) => (
@@ -293,6 +378,8 @@ export default function LymphExplainer() {
                     onActiveNode={setActiveNode}
                     surgeryMode={surgeryMode}
                     depositMode={depositMode}
+                    progress={progress}
+                    scrollDriven={scrollDriven}
                   />
                 </Suspense>
               ) : (
@@ -363,7 +450,9 @@ export default function LymphExplainer() {
               <p className="sr-only">{step.alt}</p>
               <div className="explainer-viewport-hint muted tiny">
                 {use3d
-                  ? 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
+                  ? scrollDriven
+                    ? 'Scroll to travel · drag to glance · Tab to step controls · arrow keys snap steps'
+                    : 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
                   : reducedMotion
                     ? 'Motion reduced — showing a static illustration'
                     : '3D unavailable — showing a static illustration'}
@@ -430,6 +519,7 @@ export default function LymphExplainer() {
             )}
           </aside>
         </div>
+        </div>
       </div>
 
       <section className="home-strip" aria-label="Project pillars">
@@ -466,9 +556,10 @@ export default function LymphExplainer() {
         </ul>
         <p className="tiny muted">
           Primary meshes are NIH/HuBMAP Human Reference Atlas female skin, right mammary gland,
-          and lymph-node reference geometry (CC BY 4.0), with BodyParts3D chest cues (CC BY 4.0)
-          under the skin — see Sources and <code>THIRD_PARTY_NOTICES.md</code>. Axillary vessels/nodes
-          are educational overlays. Step 3 uses a clean cut-away schematic (HRA-inspired) so deposit
+          and lymph-node reference geometry (CC BY 4.0). BodyParts3D (CC BY 4.0) is credited in
+          Sources / <code>THIRD_PARTY_NOTICES.md</code> but pec/chest fragments are omitted — they
+          misaligned under glass and read as dark mid-chest smudges. Axillary vessels/nodes are
+          educational overlays. Step 3 uses a clean cut-away schematic (HRA-inspired) so deposit
           sizes stay readable. If a mesh fails to load, a procedural fallback is used. Step 5 uses a
           mosaic of real PCam (CC0) test patches as an honest WSI stand-in — not contiguous tissue.
         </p>

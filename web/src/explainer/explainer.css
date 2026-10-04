@@ -18,6 +18,20 @@
   width: 100%;
 }
 
+.explainer-scroll-track {
+  width: 100%;
+}
+
+.explainer-scroll-track.scroll-driven {
+  /* Tall scrub runway: ~1 viewport per step so snap feels deliberate */
+  height: 520vh;
+  position: relative;
+}
+
+.explainer-scroll-track.scroll-driven .explainer-stage-shell {
+  width: 100%;
+}
+
 .explainer-stage-shell:focus-visible {
   box-shadow: 0 0 0 3px rgba(11, 107, 84, 0.35);
 }
@@ -766,9 +780,14 @@
 }
 
 @media (max-width: 640px) {
+  .explainer-scroll-track.scroll-driven {
+    height: 420vh;
+  }
+
   .node-deposit-bar {
-    top: auto;
-    bottom: 2.35rem;
+    /* Keep deposit toggles at top — bottom collided with viewport hint */
+    top: 0.55rem;
+    bottom: auto;
     left: 0.45rem;
     right: 0.45rem;
     max-width: none;
@@ -782,7 +801,7 @@
   .node-scale-cue {
     left: 50%;
     transform: translateX(-50%);
-    bottom: 4.15rem;
+    bottom: 2.45rem;
     max-width: calc(100% - 1rem);
     padding: 0.16rem 0.45rem;
   }
