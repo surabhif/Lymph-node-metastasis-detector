@@ -76,11 +76,12 @@ export const EXPLAINER_STEPS: ExplainerStep[] = [
     kicker: 'Step 5 · Into this research demo',
     shortTitle: 'Patches',
     title: 'From whole-slide image to 96×96 patches',
-    body: 'Pathology slides are enormous. Datasets like PatchCamelyon (PCam) cut them into small 96×96 patches so models can learn to score metastatic tissue. The detector demo runs that idea in your browser and can highlight which regions pushed the score — a class-activation heatmap.',
-    alt: 'A whole-slide image is tiled into a grid of 96 by 96 patches. One patch is highlighted, linking to the in-browser detector and heatmap concept.',
+    body: 'Pathology slides are enormous. Datasets like PatchCamelyon (PCam) cut them into small 96×96 patches so models can learn to score metastatic tissue. In PCam, a patch is labeled tumor if the center 32×32 region contains tumor tissue. The mosaic here is stitched from real PCam test patches (not one contiguous slide) to show that tiling. The detector demo runs the same idea in your browser with a class-activation heatmap.',
+    alt: 'A mosaic of real H&E-stained PCam patches stands in for a whole-slide image. A grid marks 96 by 96 tiles; tumor-labeled tiles are tinted. One tumor patch lifts and zooms to show its ground-truth label and the center 32 by 32 labeling region.',
     callouts: [
-      { label: 'PCam', detail: 'Public PatchCamelyon dataset of lymph-node patches (CC0)' },
-      { label: 'Heatmap', detail: 'Shows regions that most influenced the model score' },
+      { label: 'PCam mosaic', detail: 'Real H&E test patches (CC0) stitched as a WSI stand-in — not contiguous tissue' },
+      { label: '96×96 tiles', detail: 'Grid aligned to patch boundaries' },
+      { label: 'Center 32×32', detail: 'PCam labels a patch tumor if this central region contains tumor' },
     ],
   },
 ]

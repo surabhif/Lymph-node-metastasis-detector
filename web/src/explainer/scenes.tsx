@@ -1,8 +1,9 @@
-import { useMemo, useRef, useEffect, type ReactNode } from 'react'
+import { useMemo, useRef, useEffect, useState, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Group, Mesh } from 'three'
 import * as THREE from 'three'
+import { Html, useTexture } from '@react-three/drei'
 import type { ExplainerStepId } from './steps'
 import { COLORS } from './colors'
 import { AnatomyTorso, landmark } from './AnatomyTorso'
@@ -10,8 +11,10 @@ import {
   cameraTargetFor,
   SURGERY_PANEL_SCALE,
   SURGERY_PANEL_X,
+  PATCHES_LAYOUT,
   type CameraTarget,
 } from './cameraFit'
+import patchesMeta from './patchesMeta.json'
 
 export type SceneQuality = 'high' | 'low'
 export type { CameraTarget }
@@ -456,53 +459,261 @@ export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: S
   )
 }
 
-/** Step 5 */
-export function PatchesScene({ quality, reducedMotion }: SceneProps) {
-  const cols = quality === 'high' ? 8 : 5
-  const rows = quality === 'high' ? 6 : 4
-  const hot = { c: 3, r: 2 }
-  const group = useRef<Group>(null)
+/**
+ * Step 5 — real H&E PCam mosaic standing in for a whole-slide image.
+ * Continuous mosaic plane + seam gutters so frames and the hot tile stay pixel-aligned.
+ */
+export function PatchesScene({ reducedMotion }: SceneProps) {
+  const grid = PATCHES_LAYOUT.grid
+  const TILE = PATCHES_LAYOUT.tile
+  const GUTTER = PATCHES_LAYOUT.gutter
+  const mosaicSize = grid * TILE
+  const half = mosaicSize / 2
+  const ZOOM_SCALE = 1.4
+
+  const mosaicUrl = `${import.meta.env.BASE_URL}${patchesMeta.mosaicSrc}`
+  const hotUrl = `${import.meta.env.BASE_URL}${patchesMeta.hotTile.src}`
+  const [mosaicTex, hotBaseTex] = useTexture([mosaicUrl, hotUrl]) as [THREE.Texture, THREE.Texture]
+  const labelRef = useRef<HTMLDivElement>(null)
+  const [hotTex, setHotTex] = useState<THREE.Texture | null>(null)
+
+  useEffect(() => {
+    mosaicTex.colorSpace = THREE.SRGBColorSpace
+    mosaicTex.minFilter = THREE.NearestFilter
+    mosaicTex.magFilter = THREE.NearestFilter
+    mosaicTex.generateMipmaps = false
+    mosaicTex.needsUpdate = true
+
+    const img = hotBaseTex.image as HTMLImageElement | ImageBitmap | undefined
+    const applyNearest = (tex: THREE.Texture) => {
+      tex.colorSpace = THREE.SRGBColorSpace
+      tex.minFilter = THREE.NearestFilter
+      tex.magFilter = THREE.NearestFilter
+      tex.generateMipmaps = false
+      tex.needsUpdate = true
+    }
+    if (!img) {
+      applyNearest(hotBaseTex)
+      setHotTex(hotBaseTex)
+      return
+    }
+    const srcW = 'width' in img ? Number(img.width) : 96
+    const srcH = 'height' in img ? Number(img.height) : 96
+    const scale = 4
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(srcW * scale))
+    canvas.height = Math.max(1, Math.round(srcH * scale))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      applyNearest(hotBaseTex)
+      setHotTex(hotBaseTex)
+      return
+    }
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(img as CanvasImageSource, 0, 0, canvas.width, canvas.height)
+    const crisp = new THREE.CanvasTexture(canvas)
+    applyNearest(crisp)
+    setHotTex(crisp)
+    return () => {
+      crisp.dispose()
+    }
+  }, [mosaicTex, hotBaseTex])
+
+  const cellCenter = (row: number, col: number) => {
+    const x = -half + TILE / 2 + col * TILE
+    const y = half - TILE / 2 - row * TILE
+    return [x, y] as const
+  }
+
+  const hotRow = patchesMeta.hotTile.row
+  const hotCol = patchesMeta.hotTile.col
+  const [hotLocalX, hotLocalY] = cellCenter(hotRow, hotCol)
+
+  const mosaicGroup = useRef<Group>(null)
+  const hotRoot = useRef<Group>(null)
+  const hotVisual = useRef<Group>(null)
+  const labelAnchor = useRef<Group>(null)
 
   useFrame(({ clock }) => {
-    if (reducedMotion || !group.current) return
-    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.28) * 0.1
-    group.current.rotation.x = Math.sin(clock.getElapsedTime() * 0.18) * 0.04
-  })
+    if (!hotRoot.current || !hotVisual.current || !mosaicGroup.current || !labelAnchor.current) {
+      return
+    }
 
-  const tiles = useMemo(() => {
-    const list: { x: number; y: number; hot: boolean; shade: string }[] = []
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const n = (r * cols + c) % 3
-        list.push({
-          x: (c - (cols - 1) / 2) * 0.3,
-          y: ((rows - 1) / 2 - r) * 0.3,
-          hot: c === hot.c && r === hot.r,
-          shade: n === 0 ? '#9eb5ab' : n === 1 ? '#b7c9bf' : '#8fa89d',
-        })
+    const placeLabel = (scale: number, zoomAmt: number) => {
+      // Below the scaled patch once zoomed; mosaic is faded so this does not cover neighbors.
+      const down = -(TILE * scale * 0.5 + 0.42)
+      labelAnchor.current!.position.set(0, down * Math.max(zoomAmt, 0.001), 0.08)
+    }
+
+    const forced =
+      typeof window !== 'undefined'
+        ? (window as Window & { __EXPLAINER_PATCH_Z?: number }).__EXPLAINER_PATCH_Z
+        : undefined
+
+    let z: number
+    if (typeof forced === 'number' && Number.isFinite(forced)) {
+      z = THREE.MathUtils.clamp(forced, 0, 1)
+    } else if (reducedMotion) {
+      z = 1
+    } else {
+      const cycle = 8
+      const t = clock.getElapsedTime() % cycle
+      let raw = 0
+      if (t < 2.6) raw = 0
+      else if (t < 3.8) raw = (t - 2.6) / 1.2
+      else if (t < 6.2) raw = 1
+      else raw = 1 - (t - 6.2) / 1.8
+      z = THREE.MathUtils.smoothstep(raw, 0, 1)
+    }
+
+    const lift = THREE.MathUtils.smoothstep(z, 0, 0.45)
+    const zoom = THREE.MathUtils.smoothstep(z, 0.45, 1)
+
+    const x = THREE.MathUtils.lerp(hotLocalX, 0, lift)
+    const y = THREE.MathUtils.lerp(hotLocalY, 0.22, lift)
+    const elev = THREE.MathUtils.lerp(0.02, 0.24, lift)
+    const s = THREE.MathUtils.lerp(1, ZOOM_SCALE, zoom)
+    hotRoot.current.position.set(x, y, elev)
+    hotVisual.current.scale.setScalar(s)
+    // Keep the rest pose mosaic-only so the hot tile cannot look offset in-grid.
+    hotRoot.current.visible = lift > 0.02 || typeof forced === 'number' && forced > 0.02
+    placeLabel(s, zoom)
+
+    // Dim the mosaic slightly when zoomed so the lifted patch reads clearly
+    mosaicGroup.current.traverse((obj) => {
+      const mesh = obj as Mesh
+      if (!mesh.isMesh || !mesh.userData.fadable) return
+      const mat = mesh.material as THREE.MeshBasicMaterial
+      if (mat && 'opacity' in mat) {
+        const next = THREE.MathUtils.lerp(1, 0.18, lift)
+        mat.opacity = next
+        mat.transparent = next < 0.999
+        mat.depthWrite = next >= 0.999
+      }
+    })
+
+    if (labelRef.current) {
+      if (typeof forced === 'number') {
+        labelRef.current.style.opacity = z >= 0.85 ? '1' : '0'
+      } else {
+        const lo = zoom < 0.4 ? 0 : THREE.MathUtils.smoothstep((zoom - 0.4) / 0.35, 0, 1)
+        labelRef.current.style.opacity = String(reducedMotion ? 1 : lo)
       }
     }
-    return list
-  }, [cols, rows])
+  })
+
+  const frameStroke = Math.max(GUTTER * 1.15, 0.028)
+
+  const makeFrame = (size: number, color: string, z: number) => {
+    const s = frameStroke
+    return (
+      <group position={[0, 0, z]}>
+        <mesh position={[0, size / 2 - s / 2, 0]}>
+          <planeGeometry args={[size, s]} />
+          <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} depthTest={false} />
+        </mesh>
+        <mesh position={[0, -size / 2 + s / 2, 0]}>
+          <planeGeometry args={[size, s]} />
+          <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} depthTest={false} />
+        </mesh>
+        <mesh position={[-size / 2 + s / 2, 0, 0]}>
+          <planeGeometry args={[s, size - s * 2]} />
+          <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} depthTest={false} />
+        </mesh>
+        <mesh position={[size / 2 - s / 2, 0, 0]}>
+          <planeGeometry args={[s, size - s * 2]} />
+          <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} depthTest={false} />
+        </mesh>
+      </group>
+    )
+  }
+
+  // Cream seam lines ≈ 1–2 px gutters once camera-fitted
+  const seamLines = useMemo(() => {
+    const lines: ReactNode[] = []
+    for (let i = 1; i < grid; i++) {
+      const x = -half + i * TILE
+      const y = half - i * TILE
+      lines.push(
+        <mesh key={`v-${i}`} position={[x, 0, 0.008]}>
+          <planeGeometry args={[GUTTER, mosaicSize]} />
+          <meshBasicMaterial color="#ffffff" toneMapped={false} depthWrite={false} />
+        </mesh>,
+      )
+      lines.push(
+        <mesh key={`h-${i}`} position={[0, y, 0.008]}>
+          <planeGeometry args={[mosaicSize, GUTTER]} />
+          <meshBasicMaterial color="#ffffff" toneMapped={false} depthWrite={false} />
+        </mesh>,
+      )
+    }
+    return lines
+  }, [grid, half, mosaicSize])
+
+  if (!hotTex) {
+    return (
+      <group>
+        <ambientLight intensity={1} />
+      </group>
+    )
+  }
 
   return (
-    <group ref={group}>
-      <SoftLight />
-      <mesh position={[0, 0, -0.1]}>
-        <planeGeometry args={[cols * 0.3 + 0.35, rows * 0.3 + 0.35]} />
-        <meshStandardMaterial color={COLORS.slide} roughness={0.95} />
-      </mesh>
-      {tiles.map((t, i) => (
-        <mesh key={i} position={[t.x, t.y, t.hot ? 0.08 : 0.02]}>
-          <planeGeometry args={[0.26, 0.26]} />
-          <meshStandardMaterial
-            color={t.hot ? COLORS.patchHot : t.shade}
-            emissive={t.hot ? COLORS.patchHot : '#000'}
-            emissiveIntensity={t.hot ? 0.3 : 0}
-            roughness={0.7}
-          />
+    <group>
+      <ambientLight intensity={1} />
+      <directionalLight position={[1.5, 2, 4]} intensity={0.3} color="#fff8f0" />
+
+      <group ref={mosaicGroup}>
+        <mesh userData={{ fadable: true }} position={[0, 0, 0]}>
+          <planeGeometry args={[mosaicSize, mosaicSize]} />
+          <meshBasicMaterial map={mosaicTex} toneMapped={false} transparent opacity={1} />
         </mesh>
-      ))}
+        {seamLines}
+        {patchesMeta.tiles.map((t) => {
+          if (!t.isTumor) return null
+          const [x, y] = cellCenter(t.row, t.col)
+          return (
+            <group key={`frame-${t.row}-${t.col}`} position={[x, y, 0]}>
+              {makeFrame(TILE * 0.985, COLORS.tumor, 0.015)}
+            </group>
+          )
+        })}
+      </group>
+
+      <group ref={hotRoot} position={[hotLocalX, hotLocalY, 0.02]}>
+        <group ref={hotVisual}>
+          <mesh>
+            <planeGeometry args={[TILE, TILE]} />
+            <meshBasicMaterial map={hotTex} toneMapped={false} />
+          </mesh>
+          {makeFrame(TILE, COLORS.tumor, 0.01)}
+          <mesh position={[0, 0, 0.014]}>
+            <planeGeometry args={[TILE * (32 / 96), TILE * (32 / 96)]} />
+            <meshBasicMaterial
+              color={COLORS.tumor}
+              transparent
+              opacity={0.14}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+          {makeFrame(TILE * (32 / 96), '#fffcf6', 0.018)}
+        </group>
+        <group ref={labelAnchor} position={[0, -(TILE * 0.5 + 0.42), 0.08]}>
+          <Html
+            center
+            distanceFactor={5.2}
+            style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
+            zIndexRange={[40, 0]}
+          >
+            <div ref={labelRef} className="patch-float-label" style={{ opacity: 0 }}>
+              <strong>96×96 patch</strong>
+              <span>Ground truth: tumor</span>
+              <em>Center 32×32 decides the label</em>
+            </div>
+          </Html>
+        </group>
+      </group>
     </group>
   )
 }

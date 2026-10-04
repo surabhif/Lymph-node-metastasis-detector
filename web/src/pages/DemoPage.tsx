@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import samplesManifest from '../data/samples.json'
 import { MODEL_STATUS } from '../lib/constants'
 import {
@@ -17,6 +18,7 @@ function formatPct(p: number) {
 }
 
 export default function DemoPage() {
+  const [searchParams] = useSearchParams()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedMeta, setSelectedMeta] = useState<Sample | null>(null)
   const [sourceUrl, setSourceUrl] = useState<string | null>(null)
@@ -32,6 +34,7 @@ export default function DemoPage() {
   })
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectUrlRef = useRef<string | null>(null)
+  const preloadDone = useRef(false)
 
   useEffect(() => {
     void getSession(setLoadProgress).catch(() => {
@@ -109,6 +112,16 @@ export default function DemoPage() {
       setBusy(false)
     }
   }
+
+  useEffect(() => {
+    if (preloadDone.current) return
+    const id = searchParams.get('sample')
+    if (!id) return
+    const sample = samplesManifest.samples.find((s) => s.id === id)
+    if (!sample) return
+    preloadDone.current = true
+    void analyze(`${import.meta.env.BASE_URL}${sample.src}`, sample)
+  }, [searchParams])
 
   const progressPct =
     loadProgress.totalBytes && loadProgress.totalBytes > 0

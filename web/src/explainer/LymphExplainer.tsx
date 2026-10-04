@@ -11,6 +11,7 @@ import {
 import { Link } from 'react-router-dom'
 import { EXPLAINER_SOURCES, EXPLAINER_STEPS } from './steps'
 import ExplainerFallback from './ExplainerFallback'
+import patchesMeta from './patchesMeta.json'
 import './explainer.css'
 
 const ExplainerCanvas = lazy(() => import('./ExplainerCanvas'))
@@ -130,10 +131,14 @@ function SceneLegendBody({
   }
   return (
     <>
-      <div className="scene-legend-row">Whole-slide tiled grid</div>
+      <div className="scene-legend-row muted">Real PCam H&amp;E mosaic (WSI stand-in)</div>
       <div className="scene-legend-row">
-        <span className="scene-swatch patch" /> One 96×96 patch → detector
+        <span className="scene-swatch tumor soft-tint" /> Tumor-labeled tile (frame)
       </div>
+      <div className="scene-legend-row">
+        <span className="scene-swatch tumor" /> Highlighted 96×96 tumor patch
+      </div>
+      <div className="scene-legend-row muted">Label if center 32×32 has tumor</div>
     </>
   )
 }
@@ -162,6 +167,8 @@ export default function LymphExplainer() {
   useEffect(() => {
     setActiveNode(null)
     if (EXPLAINER_STEPS[stepIndex]?.id === 'surgery') setSurgeryPanel('slnb')
+    // Keep the patches mosaic unobstructed; legend can be reopened via toggle.
+    if (EXPLAINER_STEPS[stepIndex]?.id === 'patches') setLegendOpen(false)
   }, [stepIndex])
 
   useEffect(() => {
@@ -340,6 +347,9 @@ export default function LymphExplainer() {
                 )}
               </div>
             </div>
+            {step.id === 'patches' && (
+              <p className="patch-mosaic-caption under-canvas">{patchesMeta.label}</p>
+            )}
             {use3d && (
               <div className={`scene-legend-wrap${legendOpen ? ' open' : ''}`}>
                 <button
@@ -363,6 +373,21 @@ export default function LymphExplainer() {
             <p className="explainer-kicker">{step.kicker}</p>
             <h2 className="explainer-step-title">{step.title}</h2>
             <p>{step.body}</p>
+            {step.id === 'patches' && (
+              <div className="explainer-cta-block">
+                <p className="patch-rule-note">
+                  PCam labeling rule: a patch is labeled <strong>tumor</strong> if the{' '}
+                  <strong>center 32×32</strong> region contains tumor tissue.
+                </p>
+                <Link className="btn" to={`/demo?sample=${patchesMeta.hotTile.galleryId}`}>
+                  Open this patch in the demo
+                </Link>
+                <p className="muted tiny">
+                  Preloads the same highlighted 96×96 test patch (index 2883, CC0) and runs the
+                  ONNX model in your browser.
+                </p>
+              </div>
+            )}
             {step.callouts && (
               <ul className="explainer-callouts">
                 {step.callouts.map((c) => (
@@ -372,16 +397,6 @@ export default function LymphExplainer() {
                   </li>
                 ))}
               </ul>
-            )}
-            {step.id === 'patches' && (
-              <div className="explainer-cta-block">
-                <Link className="btn" to="/demo">
-                  Try the detector
-                </Link>
-                <p className="muted tiny">
-                  Run the ONNX model on real PCam test patches and inspect the heatmap.
-                </p>
-              </div>
             )}
           </aside>
         </div>
@@ -423,6 +438,8 @@ export default function LymphExplainer() {
           The upper-torso mesh is derived from BodyParts3D (CC BY 4.0); see Sources and{' '}
           <code>THIRD_PARTY_NOTICES.md</code>. Lymph vessels/nodes are educational overlays.
           If the mesh fails to load, a procedural fallback is used. Step 3 remains schematic.
+          Step 5 uses a mosaic of real PCam (CC0) test patches as an honest WSI stand-in — not
+          contiguous tissue.
         </p>
       </details>
     </section>

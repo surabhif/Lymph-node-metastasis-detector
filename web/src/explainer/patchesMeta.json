@@ -1,0 +1,89 @@
+{
+  "mosaicSrc": "samples/explainer_pcam_mosaic.png",
+  "grid": 3,
+  "patchPx": 96,
+  "label": "Mosaic of real PCam patches standing in for a whole-slide image",
+  "disclaimer": "Stitched from separate PatchCamelyon (PCam) official test-set patches (CC0). Not a contiguous whole-slide region \u2014 an honest stand-in for tiling.",
+  "labelingRule": "In PCam, a patch is labeled tumor if the center 32\u00d732 region contains tumor tissue.",
+  "source": "PCam official test split (Veeling et al. 2018; Camelyon16 / Bejnordi et al. 2017)",
+  "hotTile": {
+    "row": 1,
+    "col": 1,
+    "galleryId": "pcam_test_tumor_01_idx2883",
+    "src": "samples/pcam_test_tumor_01_idx2883.png"
+  },
+  "tiles": [
+    {
+      "row": 0,
+      "col": 0,
+      "isTumor": false,
+      "galleryId": "pcam_test_normal_01_idx3223",
+      "src": "samples/pcam_test_normal_01_idx3223.png",
+      "hot": false
+    },
+    {
+      "row": 0,
+      "col": 1,
+      "isTumor": true,
+      "galleryId": "pcam_test_tumor_02_idx14435",
+      "src": "samples/pcam_test_tumor_02_idx14435.png",
+      "hot": false
+    },
+    {
+      "row": 0,
+      "col": 2,
+      "isTumor": false,
+      "galleryId": "pcam_test_normal_02_idx6714",
+      "src": "samples/pcam_test_normal_02_idx6714.png",
+      "hot": false
+    },
+    {
+      "row": 1,
+      "col": 0,
+      "isTumor": false,
+      "galleryId": "pcam_test_normal_03_idx17222",
+      "src": "samples/pcam_test_normal_03_idx17222.png",
+      "hot": false
+    },
+    {
+      "row": 1,
+      "col": 1,
+      "isTumor": true,
+      "galleryId": "pcam_test_tumor_01_idx2883",
+      "src": "samples/pcam_test_tumor_01_idx2883.png",
+      "hot": true
+    },
+    {
+      "row": 1,
+      "col": 2,
+      "isTumor": false,
+      "galleryId": "pcam_test_normal_04_idx22939",
+      "src": "samples/pcam_test_normal_04_idx22939.png",
+      "hot": false
+    },
+    {
+      "row": 2,
+      "col": 0,
+      "isTumor": true,
+      "galleryId": "pcam_test_tumor_03_idx21314",
+      "src": "samples/pcam_test_tumor_03_idx21314.png",
+      "hot": false
+    },
+    {
+      "row": 2,
+      "col": 1,
+      "isTumor": true,
+      "galleryId": "pcam_test_tumor_04_idx25314",
+      "src": "samples/pcam_test_tumor_04_idx25314.png",
+      "hot": false
+    },
+    {
+      "row": 2,
+      "col": 2,
+      "isTumor": false,
+      "galleryId": "pcam_test_normal_01_idx3223",
+      "src": "samples/pcam_test_normal_01_idx3223.png",
+      "hot": false
+    }
+  ]
+}

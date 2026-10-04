@@ -228,6 +228,10 @@
 
 /* Keep in sync with web/src/explainer/colors.ts */
 .scene-swatch.tumor { background: #9f2d22; }
+.scene-swatch.tumor.soft-tint {
+  background: rgba(159, 45, 34, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(159, 45, 34, 0.55);
+}
 .scene-swatch.tumor-cell { background: #c45c4a; }
 .scene-swatch.vessel { background: #2f8f78; }
 .scene-swatch.sentinel { background: #0b6b54; box-shadow: 0 0 0 2px rgba(11, 107, 84, 0.25); }
@@ -238,6 +242,110 @@
 .scene-swatch.macro { background: #9f2d22; }
 .scene-swatch.lymphoid { background: #edf2ee; border: 1px solid #b7c9bf; }
 .scene-swatch.patch { background: #0b6b54; }
+
+.patch-float-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.08rem;
+  padding: 0.28rem 0.45rem;
+  background: rgba(255, 252, 246, 0.96);
+  border: 1px solid rgba(159, 45, 34, 0.45);
+  border-radius: 0.35rem;
+  box-shadow: 0 3px 10px rgba(26, 36, 33, 0.1);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  color: #1a2421;
+  line-height: 1.15;
+  transform: scale(0.92);
+  transform-origin: top center;
+}
+
+.patch-float-label strong {
+  font-size: 0.78rem;
+  color: #9f2d22;
+}
+
+.patch-float-label span {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.patch-float-label em {
+  font-size: 0.65rem;
+  font-style: normal;
+  color: #5a6762;
+}
+
+.patch-float-label.fallback {
+  margin: 0.55rem auto 0;
+  width: fit-content;
+}
+
+.patch-mosaic-caption {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #3a4540;
+  background: rgba(255, 252, 246, 0.9);
+  border-radius: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+/* Outside the WebGL canvas — sits between the canvas and legend/hint overlays */
+.patch-mosaic-caption.under-canvas {
+  position: static;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.4rem 0.75rem 0.45rem;
+  width: 100%;
+  text-align: center;
+  background: rgba(255, 252, 246, 0.88);
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 1;
+}
+
+.patch-mosaic-caption.sidebar {
+  margin: 0.15rem 0 0.35rem;
+  text-align: left;
+  padding: 0.35rem 0.55rem;
+  background: rgba(11, 107, 84, 0.06);
+  border: 1px solid rgba(11, 107, 84, 0.18);
+}
+
+.patch-rule-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.explainer-fallback-patches {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.explainer-fallback-mosaic {
+  width: min(100%, 288px);
+  height: auto;
+  border-radius: 0.35rem;
+  display: block;
+}
+
+.explainer-fallback-grid {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  width: min(100%, 288px);
+  height: auto;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
 
 .explainer-viewport-hint .text-button {
   pointer-events: auto;
@@ -306,11 +414,22 @@
 }
 
 .explainer-cta-block {
-  margin-top: auto;
-  padding-top: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.35rem;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+}
+
+.explainer-cta-block .btn {
+  align-self: flex-start;
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .explainer-cta-block .btn {
+    align-self: stretch;
+  }
 }
 
 .explainer-sources {
