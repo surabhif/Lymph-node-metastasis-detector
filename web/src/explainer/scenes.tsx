@@ -372,11 +372,11 @@ function SurgeryPanelNodes({
       <group>
         {nodes.map((p, i) => (
           <mesh key={i} position={p} renderOrder={12}>
-            <sphereGeometry args={[i === 0 ? 0.1 : 0.078, segs, segs]} />
+            <sphereGeometry args={[i === 0 ? 0.12 : 0.09, segs, segs]} />
             <OverlayMaterial
               color={COLORS.sentinel}
               emissive={COLORS.sentinel}
-              emissiveIntensity={i === 0 ? 0.4 : 0.22}
+              emissiveIntensity={i === 0 ? 0.5 : 0.28}
             />
           </mesh>
         ))}
@@ -386,21 +386,21 @@ function SurgeryPanelNodes({
   return (
     <group>
       <mesh position={landmark('sentinel')} renderOrder={12}>
-        <sphereGeometry args={[0.1, segs, segs]} />
-        <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.32} />
+        <sphereGeometry args={[0.12, segs, segs]} />
+        <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.4} />
       </mesh>
       {LEVEL1_SATELLITES.map((p, i) => (
         <mesh key={`l1-${i}`} position={p} renderOrder={12}>
-          <sphereGeometry args={[0.08, segs, segs]} />
-          <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.22} />
+          <sphereGeometry args={[0.095, segs, segs]} />
+          <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.28} />
         </mesh>
       ))}
       <mesh position={landmark('level2')} renderOrder={12}>
-        <sphereGeometry args={[0.09, segs, segs]} />
-        <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.3} />
+        <sphereGeometry args={[0.105, segs, segs]} />
+        <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.35} />
       </mesh>
       <mesh position={landmark('level3')} renderOrder={12} scale={0.85}>
-        <sphereGeometry args={[0.07, segs, segs]} />
+        <sphereGeometry args={[0.08, segs, segs]} />
         <OverlayMaterial color={COLORS.node} opacity={0.4} transparent />
       </mesh>
     </group>

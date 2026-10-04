@@ -285,17 +285,18 @@ function GlbTorso({
       {showBreast && <BreastMound opacity={dimmed ? 0.22 : 0.32} />}
       {showTumor && (
         <group position={landmarksData.landmarks.tumor as [number, number, number]}>
-          {/* Solid red tumor clearly anterior to pec */}
+          {/* Dark rim so the solid tumor reads against translucent red pec */}
+          <mesh renderOrder={13}>
+            <sphereGeometry args={[0.022, 16, 16]} />
+            <meshBasicMaterial color="#4a100c" depthTest={false} depthWrite={false} toneMapped={false} />
+          </mesh>
           <mesh renderOrder={14}>
-            <sphereGeometry args={[0.018, 18, 18]} />
-            <meshStandardMaterial
+            <sphereGeometry args={[0.017, 18, 18]} />
+            <meshBasicMaterial
               color={COLORS.tumor}
-              emissive={COLORS.tumor}
-              emissiveIntensity={0.85}
-              roughness={0.25}
-              toneMapped={false}
               depthTest={false}
               depthWrite={false}
+              toneMapped={false}
             />
           </mesh>
         </group>
