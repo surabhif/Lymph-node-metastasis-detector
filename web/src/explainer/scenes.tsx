@@ -388,9 +388,10 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
   const segs = quality === 'high' ? 40 : 20
   const group = useRef<Group>(null)
 
-  useFrame((_, dt) => {
+  useFrame(({ clock }) => {
     if (reducedMotion || !group.current) return
-    group.current.rotation.y += dt * 0.16
+    // Gentle sway keeps the cutaway face toward the camera so deposit colors stay readable
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.45) * 0.35
   })
 
   // Deposits sit forward on the cutaway face so legend reds read clearly
@@ -406,9 +407,9 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
       <hemisphereLight args={['#f8f5ef', '#c8cfcb', 0.35]} />
       <directionalLight position={[3.5, 5, 4]} intensity={1.1} color="#fff8f0" />
       <directionalLight position={[-2.5, 1.5, -2]} intensity={0.25} color="#e8ebe8" />
-      {/* capsule shell — cutaway so interior deposits are visible */}
-      <mesh>
-        <sphereGeometry args={[1.08, segs, segs, 0, Math.PI * 1.55, 0, Math.PI]} />
+      {/* capsule shell — cutaway opening faces +Z / camera */}
+      <mesh rotation={[0, -0.55, 0]}>
+        <sphereGeometry args={[1.08, segs, segs, 0, Math.PI * 1.45, 0, Math.PI]} />
         <meshStandardMaterial
           color={COLORS.nodeCapsule}
           transparent
@@ -418,21 +419,21 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
         />
       </mesh>
       {/* healthy lymphoid — same cutaway, pale tissue matching legend */}
-      <mesh>
-        <sphereGeometry args={[1.0, segs, segs, 0, Math.PI * 1.55, 0, Math.PI]} />
+      <mesh rotation={[0, -0.55, 0]}>
+        <sphereGeometry args={[1.0, segs, segs, 0, Math.PI * 1.45, 0, Math.PI]} />
         <meshStandardMaterial
           color={COLORS.lymphoid}
           roughness={0.92}
           metalness={0}
           transparent
-          opacity={0.88}
+          opacity={0.82}
           side={THREE.DoubleSide}
         />
       </mesh>
-      {/* cut face */}
-      <mesh rotation={[0, Math.PI * 0.275, Math.PI / 2]}>
+      {/* cut face toward camera */}
+      <mesh rotation={[0, 0.18, Math.PI / 2]} position={[0.05, 0, 0.15]}>
         <circleGeometry args={[1.0, segs]} />
-        <meshStandardMaterial color="#f7faf7" transparent opacity={0.7} side={THREE.DoubleSide} />
+        <meshStandardMaterial color="#f7faf7" transparent opacity={0.65} side={THREE.DoubleSide} />
       </mesh>
       {/* deposits sit on the cutaway face so reds read clearly */}
       {deposits.map((d) => (
