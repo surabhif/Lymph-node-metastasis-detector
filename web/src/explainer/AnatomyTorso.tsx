@@ -294,29 +294,25 @@ function HraSkin({ dimmed }: { dimmed: boolean }) {
   return <primitive object={cloned} />
 }
 
+/** Mammary AABB center from mammary_r.glb POSITION accessor (VH meters). */
+const MAMMARY_CENTER_M: [number, number, number] = [-0.1059569, 0.41539925, 0.05461578]
+/**
+ * Seat target inside the glass right-breast mound (toward nipple / UOQ side).
+ * More lateral (−X), higher, and more anterior than the raw HRA mammary center.
+ */
+const MAMMARY_TARGET_M: [number, number, number] = [-0.158, 0.462, 0.082]
+
 function HraMammary({ dimmed }: { dimmed: boolean }) {
   const { scene } = useGLTF(MAMMARY_URL, DRACO_PATH)
-  const { object, center } = useMemo(() => {
+  const object = useMemo(() => {
     const c = scene.clone(true)
     applyMammaryMaterials(c, dimmed)
-    const box = new THREE.Box3().setFromObject(c)
-    const ctr = box.getCenter(new THREE.Vector3())
-    // Recenter about local AABB so any scale cannot pivot through VH origin
-    // (that was dropping lobules into the abdomen).
-    c.position.sub(ctr)
-    return { object: c, center: ctr }
+    // Origin = AABB center so scale/rotation never pivot through VH world origin
+    c.position.set(-MAMMARY_CENTER_M[0], -MAMMARY_CENTER_M[1], -MAMMARY_CENTER_M[2])
+    return c
   }, [scene, dimmed])
-  /**
-   * Seat the mammary mass inside the glass right-breast mound, radiating
-   * toward the nipple: slightly lateral (−X), lifted, and more anterior.
-   */
-  const placed: [number, number, number] = [
-    center.x - 0.055,
-    center.y + 0.062,
-    center.z + 0.032,
-  ]
   return (
-    <group position={placed} scale={1.18} rotation={[0.06, -0.18, 0.04]}>
+    <group position={MAMMARY_TARGET_M} scale={1.16} rotation={[0.08, -0.22, 0.05]}>
       <primitive object={object} />
     </group>
   )
