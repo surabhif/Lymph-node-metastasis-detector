@@ -419,18 +419,19 @@ export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
   })
 
   // Fill each half of the canvas; tiny yaw so axilla reads under the shared three-quarter camera
-  const panelScale = 1.05
-  const panelX = 1.35
-  const yaw = -0.12
+  // Each panel uses the same local three-quarter yaw; shared camera stays near-frontal
+  const panelScale = 1.08
+  const panelX = 1.32
+  const yaw = -0.48 // ~27.5° — gentle three-quarter toward affected side
 
   return (
     <group ref={group}>
       <SoftLight />
-      <group position={[-panelX, 0, 0]} scale={panelScale} rotation={[0.02, yaw, 0]}>
+      <group position={[-panelX, 0, 0]} scale={panelScale} rotation={[0.04, yaw, 0]}>
         <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />
         <SurgeryPanelNodes mode="slnb" quality={quality} />
       </group>
-      <group position={[panelX, 0, 0]} scale={panelScale} rotation={[0.02, yaw, 0]}>
+      <group position={[panelX, 0, 0]} scale={panelScale} rotation={[0.04, yaw, 0]}>
         <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />
         <SurgeryPanelNodes mode="alnd" quality={quality} />
       </group>

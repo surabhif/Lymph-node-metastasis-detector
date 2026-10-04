@@ -97,20 +97,17 @@ export function fitThreeQuarterCamera(opts: {
 }
 
 /** Dual-panel surgery framing: both torsos side-by-side. */
-export function surgeryFocusBox(panelX = 1.35, panelScale = 1.05): THREE.Box3 {
+export function surgeryFocusBox(panelX = 1.32, panelScale = 1.08): THREE.Box3 {
   const s = panelScale
+  // Full torso height for vertical fill; trim only the far (+X) half of each panel
   const local = new THREE.Box3(
     new THREE.Vector3(torsoBounds.min.x * s, torsoBounds.min.y * s, torsoBounds.min.z * s),
-    new THREE.Vector3(torsoBounds.max.x * s, torsoBounds.max.y * s, torsoBounds.max.z * s),
+    new THREE.Vector3(torsoBounds.max.x * s * 0.35, torsoBounds.max.y * s, torsoBounds.max.z * s),
   )
-  // Use affected-side half of each torso for a tighter vertical frame
-  const trim = local.clone()
-  trim.min.x = local.min.x
-  trim.max.x = local.min.x + (local.max.x - local.min.x) * 0.72
-  const left = trim.clone()
+  const left = local.clone()
   left.min.x -= panelX
   left.max.x -= panelX
-  const right = trim.clone()
+  const right = local.clone()
   right.min.x += panelX
   right.max.x += panelX
   return left.union(right)
@@ -133,13 +130,14 @@ export function cameraTargetFor(
       : { position: [0.1, 0.28, 4.1], lookAt: [0, 0, 0] }
   }
   if (stepId === 'surgery') {
+    // Near-frontal shared camera; each panel applies its own three-quarter yaw
     return fitThreeQuarterCamera({
       box: surgeryFocusBox(),
       aspect,
       fovDeg: fov,
-      azimuthDeg: 24,
+      azimuthDeg: 12,
       elevationDeg: 8,
-      margin: mobile ? 1.12 : 1.05,
+      margin: mobile ? 1.1 : 1.02,
       preferHeight: true,
     })
   }
