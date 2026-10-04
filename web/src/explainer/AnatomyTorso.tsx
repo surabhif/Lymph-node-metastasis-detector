@@ -138,20 +138,20 @@ function makeSkinMaterial(baseOpacity: number) {
 /** Soft pale glowing lobule tissue — not brown blobs. */
 function makeLobuleMaterial(opacity: number) {
   return new THREE.MeshPhysicalMaterial({
-    color: COLORS.breastSoft,
-    roughness: 0.55,
+    color: '#f7efe8',
+    roughness: 0.45,
     metalness: 0.0,
     transparent: true,
     opacity,
     depthWrite: false,
     side: THREE.FrontSide,
-    emissive: new THREE.Color(COLORS.breastGlow),
-    emissiveIntensity: 0.28,
-    sheen: 0.6,
-    sheenColor: new THREE.Color('#fff0e8'),
-    sheenRoughness: 0.4,
-    transmission: 0.08,
-    thickness: 0.2,
+    emissive: new THREE.Color('#ffe8dc'),
+    emissiveIntensity: 0.42,
+    sheen: 0.7,
+    sheenColor: new THREE.Color('#fff6f0'),
+    sheenRoughness: 0.35,
+    transmission: 0.15,
+    thickness: 0.25,
   })
 }
 
@@ -222,10 +222,13 @@ function applyChestMaterials(root: THREE.Object3D, dimmed: boolean) {
     if (!(obj as THREE.Mesh).isMesh) return
     const mesh = obj as THREE.Mesh
     const name = (mesh.name || mesh.parent?.name || '').toLowerCase()
-    if (name.includes('pec') || name.includes('deltoid')) {
-      mesh.material = makeMuscleMaterial(dimmed ? 0.18 : 0.28)
+    // Keep only faint pec cues for axillary depth; hide everything else (looked like brown blobs).
+    if (name.includes('pec')) {
+      mesh.material = makeMuscleMaterial(dimmed ? 0.08 : 0.12)
+      mesh.visible = true
     } else {
-      mesh.material = makeBoneMaterial(dimmed ? 0.2 : 0.32)
+      mesh.visible = false
+      return
     }
     mesh.renderOrder = 2
     mesh.castShadow = false
