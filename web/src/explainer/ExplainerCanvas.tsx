@@ -7,12 +7,15 @@ import type { ExplainerStepId } from './steps'
 import { SceneForStep, type SceneQuality } from './scenes'
 import { cameraTargetFor, getTorsoBounds } from './cameraFit'
 
+export type SurgeryMode = 'slnb' | 'alnd' | 'both'
+
 type Props = {
   stepId: ExplainerStepId
   quality: SceneQuality
   reducedMotion: boolean
   activeNode: string | null
   onActiveNode: (id: string | null) => void
+  surgeryMode?: SurgeryMode
 }
 
 function CameraRig({
@@ -20,11 +23,13 @@ function CameraRig({
   reducedMotion,
   mobile,
   controlsRef,
+  surgeryMode,
 }: {
   stepId: ExplainerStepId
   reducedMotion: boolean
   mobile: boolean
   controlsRef: React.RefObject<OrbitControlsImpl | null>
+  surgeryMode: SurgeryMode
 }) {
   const { camera, size } = useThree()
   const target = useRef(new THREE.Vector3())
@@ -33,6 +38,7 @@ function CameraRig({
   const initialized = useRef(false)
   const aspect = Math.max(size.width / Math.max(size.height, 1), 0.35)
   const fov = mobile ? 40 : 38
+  const surgerySingle = surgeryMode !== 'both'
 
   useEffect(() => {
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -42,44 +48,34 @@ function CameraRig({
   }, [camera, fov])
 
   useEffect(() => {
-    const cfg = cameraTargetFor(stepId, mobile, aspect)
+    const cfg = cameraTargetFor(stepId, mobile, aspect, surgerySingle)
     desiredPos.current.set(...cfg.position)
     desiredLook.current.set(...cfg.lookAt)
-    if (!initialized.current || reducedMotion) {
-      camera.position.copy(desiredPos.current)
-      target.current.copy(desiredLook.current)
-      camera.lookAt(target.current)
-      if (controlsRef.current) {
-        controlsRef.current.target.copy(target.current)
-        controlsRef.current.update()
-      }
-      initialized.current = true
+    // Re-snap on surgery mode changes so toggle reframes immediately
+    camera.position.copy(desiredPos.current)
+    target.current.copy(desiredLook.current)
+    camera.lookAt(target.current)
+    if (controlsRef.current) {
+      controlsRef.current.target.copy(target.current)
+      controlsRef.current.update()
     }
-  }, [stepId, mobile, aspect, camera, controlsRef, reducedMotion])
+    initialized.current = true
+  }, [stepId, mobile, aspect, camera, controlsRef, reducedMotion, surgerySingle])
 
-  // Re-fit when torso bounds update after GLB load (first frame may have seeded bounds)
   useEffect(() => {
     const id = window.setInterval(() => {
       const b = getTorsoBounds()
       if (b.isEmpty()) return
-      const cfg = cameraTargetFor(stepId, mobile, aspect)
+      const cfg = cameraTargetFor(stepId, mobile, aspect, surgerySingle)
       desiredPos.current.set(...cfg.position)
       desiredLook.current.set(...cfg.lookAt)
-      if (!initialized.current) {
-        camera.position.copy(desiredPos.current)
-        if (controlsRef.current) {
-          controlsRef.current.target.copy(desiredLook.current)
-          controlsRef.current.update()
-        }
-        initialized.current = true
-      }
     }, 400)
     const stop = window.setTimeout(() => window.clearInterval(id), 2500)
     return () => {
       window.clearInterval(id)
       window.clearTimeout(stop)
     }
-  }, [stepId, mobile, aspect, camera, controlsRef])
+  }, [stepId, mobile, aspect, surgerySingle])
 
   useFrame((_, dt) => {
     if (reducedMotion) return
@@ -103,12 +99,19 @@ export default function ExplainerCanvas({
   reducedMotion,
   activeNode,
   onActiveNode,
+  surgeryMode = 'both',
 }: Props) {
   const mobile = quality === 'low'
   const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.2]
   const [mounted, setMounted] = useState(true)
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
-  const start = cameraTargetFor(stepId, mobile, mobile ? 390 / 360 : 800 / 576)
+  const surgerySingle = surgeryMode !== 'both'
+  const start = cameraTargetFor(
+    stepId,
+    mobile,
+    mobile ? 390 / 360 : 800 / 576,
+    surgerySingle,
+  )
 
   useEffect(() => {
     setMounted(true)
@@ -138,6 +141,7 @@ export default function ExplainerCanvas({
           reducedMotion={reducedMotion}
           mobile={mobile}
           controlsRef={controlsRef}
+          surgeryMode={surgeryMode}
         />
         <SceneForStep
           stepId={stepId}
@@ -145,6 +149,7 @@ export default function ExplainerCanvas({
           reducedMotion={reducedMotion}
           activeNode={activeNode}
           onActiveNode={onActiveNode}
+          surgeryMode={surgeryMode}
         />
         <ContactShadows position={[0, shadowY, 0]} opacity={0.22} scale={12} blur={2.8} far={5} />
         <Environment preset="apartment" environmentIntensity={0.28} />
@@ -153,7 +158,7 @@ export default function ExplainerCanvas({
           enablePan={false}
           enableZoom
           minDistance={1.6}
-          maxDistance={10}
+          maxDistance={12}
           maxPolarAngle={Math.PI * 0.78}
           minPolarAngle={0.15}
           enableDamping

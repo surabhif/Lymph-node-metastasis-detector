@@ -96,18 +96,19 @@ export function fitThreeQuarterCamera(opts: {
   return { position, lookAt: [lookAt.x, lookAt.y, lookAt.z] }
 }
 
-/** Dual-panel surgery framing: both torsos side-by-side. */
-export function surgeryFocusBox(panelX = 1.32, panelScale = 1.08): THREE.Box3 {
+/** Dual-panel surgery framing: both torsos side-by-side with a clear gap. */
+export function surgeryFocusBox(panelX = 1.2, panelScale = 0.58): THREE.Box3 {
   const s = panelScale
-  // Full torso height for vertical fill; trim only the far (+X) half of each panel
-  const local = new THREE.Box3(
-    new THREE.Vector3(torsoBounds.min.x * s, torsoBounds.min.y * s, torsoBounds.min.z * s),
-    new THREE.Vector3(torsoBounds.max.x * s * 0.35, torsoBounds.max.y * s, torsoBounds.max.z * s),
+  // Same anatomy focus as step 1, per panel (affected-side torso)
+  const local = anatomyFocusBox()
+  const sized = new THREE.Box3(
+    new THREE.Vector3(local.min.x * s, local.min.y * s, local.min.z * s),
+    new THREE.Vector3(local.max.x * s, local.max.y * s, local.max.z * s),
   )
-  const left = local.clone()
+  const left = sized.clone()
   left.min.x -= panelX
   left.max.x -= panelX
-  const right = local.clone()
+  const right = sized.clone()
   right.min.x += panelX
   right.max.x += panelX
   return left.union(right)
@@ -117,6 +118,8 @@ export function cameraTargetFor(
   stepId: ExplainerStepId,
   mobile = false,
   aspect = mobile ? 390 / 360 : 800 / 576,
+  /** Mobile surgery toggle: frame a single torso like step 1. */
+  surgerySingle = false,
 ): CameraTarget {
   const fov = mobile ? 40 : 38
   if (stepId === 'inside') {
@@ -130,15 +133,26 @@ export function cameraTargetFor(
       : { position: [0.1, 0.28, 4.1], lookAt: [0, 0, 0] }
   }
   if (stepId === 'surgery') {
-    // Near-frontal shared camera; each panel applies its own three-quarter yaw
+    if (mobile || surgerySingle) {
+      // Same framing as step 1 for a single torso panel
+      return fitThreeQuarterCamera({
+        box: anatomyFocusBox(),
+        aspect,
+        fovDeg: fov,
+        azimuthDeg: mobile ? 25 : 27,
+        elevationDeg: mobile ? 9 : 10,
+        margin: mobile ? 1.42 : 1.28,
+      })
+    }
+    // Desktop: pull back so BOTH torsos fit fully in frame with margin
     return fitThreeQuarterCamera({
       box: surgeryFocusBox(),
       aspect,
       fovDeg: fov,
-      azimuthDeg: 12,
-      elevationDeg: 8,
-      margin: mobile ? 1.1 : 1.02,
-      preferHeight: true,
+      azimuthDeg: 27,
+      elevationDeg: 10,
+      margin: 1.38,
+      preferHeight: false,
     })
   }
   return fitThreeQuarterCamera({

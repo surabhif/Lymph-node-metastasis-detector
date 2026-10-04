@@ -117,10 +117,10 @@ function SceneLegendBody({
     return (
       <>
         <div className="scene-legend-row">
-          <span className="scene-swatch sentinel" /> Left: SLNB (1–3 nodes)
+          <span className="scene-swatch sentinel" /> SLNB: 1–3 nodes
         </div>
         <div className="scene-legend-row">
-          <span className="scene-swatch node" /> Right: ALND (levels I–II)
+          <span className="scene-swatch node" /> ALND: levels I–II
         </div>
         <div className="scene-legend-row tnm-chip">
           Staging: T · <strong>N</strong> · M
@@ -144,6 +144,7 @@ export default function LymphExplainer() {
   const [webgl, setWebgl] = useState(true)
   const [forceStatic, setForceStatic] = useState(false)
   const [legendOpen, setLegendOpen] = useState(true)
+  const [surgeryPanel, setSurgeryPanel] = useState<'slnb' | 'alnd'>('slnb')
   const headingId = useId()
   const panelId = useId()
 
@@ -152,6 +153,7 @@ export default function LymphExplainer() {
   const step = EXPLAINER_STEPS[stepIndex]
   const quality = isMobile ? 'low' : 'high'
   const use3d = webgl && !forceStatic && !reducedMotion
+  const surgeryMode = step.id === 'surgery' ? (isMobile ? surgeryPanel : 'both') : 'both'
 
   useEffect(() => {
     setWebgl(detectWebGL())
@@ -159,6 +161,7 @@ export default function LymphExplainer() {
 
   useEffect(() => {
     setActiveNode(null)
+    if (EXPLAINER_STEPS[stepIndex]?.id === 'surgery') setSurgeryPanel('slnb')
   }, [stepIndex])
 
   useEffect(() => {
@@ -282,10 +285,43 @@ export default function LymphExplainer() {
                     reducedMotion={reducedMotion}
                     activeNode={activeNode}
                     onActiveNode={setActiveNode}
+                    surgeryMode={surgeryMode}
                   />
                 </Suspense>
               ) : (
                 <ExplainerFallback step={step} />
+              )}
+              {use3d && step.id === 'surgery' && (
+                <div className={`surgery-panel-overlay${isMobile ? ' mobile' : ''}`}>
+                  {!isMobile && <div className="surgery-divider" aria-hidden="true" />}
+                  {isMobile ? (
+                    <div className="surgery-toggle" role="tablist" aria-label="Surgery comparison">
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={surgeryPanel === 'slnb'}
+                        className={surgeryPanel === 'slnb' ? 'active' : ''}
+                        onClick={() => setSurgeryPanel('slnb')}
+                      >
+                        Sentinel node biopsy
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={surgeryPanel === 'alnd'}
+                        className={surgeryPanel === 'alnd' ? 'active' : ''}
+                        onClick={() => setSurgeryPanel('alnd')}
+                      >
+                        Axillary dissection
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="surgery-captions">
+                      <span>Sentinel node biopsy</span>
+                      <span>Axillary dissection</span>
+                    </div>
+                  )}
+                </div>
               )}
               <p className="sr-only">{step.alt}</p>
               <div className="explainer-viewport-hint muted tiny">

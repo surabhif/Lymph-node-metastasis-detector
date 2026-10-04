@@ -17,6 +17,8 @@ type SceneProps = {
   reducedMotion: boolean
   activeNode: string | null
   onActiveNode: (id: string | null) => void
+  /** Surgery step: which panel(s) to show. Desktop uses 'both'. */
+  surgeryMode?: 'slnb' | 'alnd' | 'both'
 }
 
 export function SoftLight() {
@@ -408,33 +410,41 @@ function SurgeryPanelNodes({
 }
 
 /**
- * Step 4 — SLNB vs ALND side-by-side BodyParts3D torsos.
- * Each panel is large and upright; shared camera uses surgeryFocusBox three-quarter fit.
+ * Step 4 — SLNB vs ALND BodyParts3D torsos.
+ * Desktop: two scaled panels side-by-side with a gap (camera pulls back to fit both).
+ * Mobile: one panel at a time (same framing as step 1), toggled via surgeryMode.
  */
-export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
+export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: SceneProps) {
   const group = useRef<Group>(null)
   useFrame(({ clock }) => {
     if (reducedMotion || !group.current) return
-    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.22) * 0.03
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.22) * 0.025
   })
 
-  // Fill each half of the canvas; tiny yaw so axilla reads under the shared three-quarter camera
-  // Each panel uses the same local three-quarter yaw; shared camera stays near-frontal
-  const panelScale = 1.08
-  const panelX = 1.32
-  const yaw = -0.48 // ~27.5° — gentle three-quarter toward affected side
+  const single = surgeryMode !== 'both'
+  // Match step-1 three-quarter feel via local yaw; scale down so both fit with margin
+  const panelScale = single ? 1 : 0.58
+  const panelX = single ? 0 : 1.2
+  const yaw = -0.45 // ~26° — same gentle three-quarter as step 1 camera
+
+  const showSlnb = surgeryMode === 'slnb' || surgeryMode === 'both'
+  const showAlnd = surgeryMode === 'alnd' || surgeryMode === 'both'
 
   return (
     <group ref={group}>
       <SoftLight />
-      <group position={[-panelX, 0, 0]} scale={panelScale} rotation={[0.04, yaw, 0]}>
-        <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />
-        <SurgeryPanelNodes mode="slnb" quality={quality} />
-      </group>
-      <group position={[panelX, 0, 0]} scale={panelScale} rotation={[0.04, yaw, 0]}>
-        <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />
-        <SurgeryPanelNodes mode="alnd" quality={quality} />
-      </group>
+      {showSlnb && (
+        <group position={[-panelX, 0, 0]} scale={panelScale} rotation={[0.04, yaw, 0]}>
+          <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />
+          <SurgeryPanelNodes mode="slnb" quality={quality} />
+        </group>
+      )}
+      {showAlnd && (
+        <group position={[panelX, 0, 0]} scale={panelScale} rotation={[0.04, yaw, 0]}>
+          <AnatomyTorso quality={quality} showInternals={false} showTumor={false} />
+          <SurgeryPanelNodes mode="alnd" quality={quality} />
+        </group>
+      )}
     </group>
   )
 }
