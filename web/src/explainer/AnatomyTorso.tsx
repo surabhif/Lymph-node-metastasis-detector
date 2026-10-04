@@ -292,7 +292,7 @@ const MAMMARY_CENTER_M: [number, number, number] = [-0.1059569, 0.41539925, 0.05
  * Seat target inside the glass right-breast mound (toward nipple / UOQ side).
  * More lateral (−X), higher, and more anterior than the raw HRA mammary center.
  */
-const MAMMARY_TARGET_M: [number, number, number] = [-0.188, 0.505, 0.088]
+const MAMMARY_TARGET_M: [number, number, number] = [-0.172, 0.492, 0.086]
 
 function HraMammary({ dimmed }: { dimmed: boolean }) {
   const { scene } = useGLTF(MAMMARY_URL, DRACO_PATH)
@@ -304,7 +304,7 @@ function HraMammary({ dimmed }: { dimmed: boolean }) {
     return c
   }, [scene, dimmed])
   return (
-    <group position={MAMMARY_TARGET_M} scale={1.28} rotation={[0.12, -0.08, 0.03]}>
+    <group position={MAMMARY_TARGET_M} scale={1.18} rotation={[0.1, -0.1, 0.02]}>
       <primitive object={object} />
     </group>
   )

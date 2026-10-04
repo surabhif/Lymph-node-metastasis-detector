@@ -114,8 +114,8 @@ export function fitThreeQuarterCamera(opts: {
 }
 
 /** Dual-panel surgery layout defaults — keep in sync with SurgeryScene. */
-export const SURGERY_PANEL_X = 1.95
-export const SURGERY_PANEL_SCALE = 0.58
+export const SURGERY_PANEL_X = 1.38
+export const SURGERY_PANEL_SCALE = 0.74
 
 /**
  * Step 3 cut-away node AABB (capsule + afferent/efferent stubs).
