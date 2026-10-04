@@ -83,16 +83,16 @@ const AXILLA_NODES = [
 ] as const
 
 const LEVEL1_SATELLITES: [number, number, number][] = [
-  // Tight cluster in the axilla hollow (chest wall ↔ arm), not on the outer arm/deltoid.
+  // Tight cluster in the axilla hollow with the sentinel — medial of the arm, behind glass skin.
   [
-    landmark('sentinel')[0] + 0.055,
-    landmark('sentinel')[1] + 0.028,
-    landmark('sentinel')[2] + 0.035,
+    landmark('sentinel')[0] + 0.05,
+    landmark('sentinel')[1] + 0.03,
+    landmark('sentinel')[2] + 0.03,
   ],
   [
-    landmark('sentinel')[0] + 0.035,
-    landmark('sentinel')[1] - 0.045,
-    landmark('sentinel')[2] + 0.028,
+    landmark('sentinel')[0] + 0.03,
+    landmark('sentinel')[1] - 0.04,
+    landmark('sentinel')[2] + 0.025,
   ],
 ]
 

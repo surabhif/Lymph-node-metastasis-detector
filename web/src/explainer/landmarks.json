@@ -1,15 +1,15 @@
 {
   "landmarks": {
-    "tumor": [-0.182, 0.490, 0.055],
-    "sentinel": [-0.188, 0.378, -0.032],
-    "level2": [-0.158, 0.428, -0.062],
-    "level3": [-0.092, 0.498, -0.040],
-    "vessel_mid1": [-0.178, 0.448, 0.028],
-    "vessel_mid2": [-0.185, 0.405, -0.005],
+    "tumor": [-0.228, 0.505, 0.042],
+    "sentinel": [-0.248, 0.402, -0.055],
+    "level2": [-0.205, 0.448, -0.078],
+    "level3": [-0.118, 0.512, -0.048],
+    "vessel_mid1": [-0.220, 0.470, 0.015],
+    "vessel_mid2": [-0.238, 0.425, -0.022],
     "im_1": [-0.03, 0.36, 0.048],
     "im_2": [-0.03, 0.4, 0.042],
     "im_3": [-0.03, 0.44, 0.038],
-    "breast": [-0.122, 0.418, 0.082]
+    "breast": [-0.135, 0.445, 0.078]
   },
   "hra_center_m": [-0.086, 0.438, 0.032],
   "units": "meters_y_up_visible_human_female",
@@ -17,5 +17,5 @@
     "min": [-0.34, 0.22, -0.18],
     "max": [0.28, 0.72, 0.1]
   },
-  "notes": "HRA female skin + right mammary share VH coords. Tumor in upper OUTER quadrant (lateral −X, upper Y, toward axilla). Sentinel/level I in axilla hollow between chest wall and arm; level II behind pec minor; level III infraclavicular. Mammary rendered at native alignment (no origin-pivot scale). BP3D pec cues omitted."
+  "notes": "Tumor in true UOQ of the glass breast (lateral of HRA mammary toward axilla). Sentinel in axilla hollow. Mammary recentered about its AABB then lifted/lateralized into the breast mound (never scaled about VH origin)."
 }

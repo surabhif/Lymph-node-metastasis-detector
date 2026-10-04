@@ -296,17 +296,30 @@ function HraSkin({ dimmed }: { dimmed: boolean }) {
 
 function HraMammary({ dimmed }: { dimmed: boolean }) {
   const { scene } = useGLTF(MAMMARY_URL, DRACO_PATH)
-  const cloned = useMemo(() => {
+  const { object, center } = useMemo(() => {
     const c = scene.clone(true)
     applyMammaryMaterials(c, dimmed)
-    return c
+    const box = new THREE.Box3().setFromObject(c)
+    const ctr = box.getCenter(new THREE.Vector3())
+    // Recenter about local AABB so any scale cannot pivot through VH origin
+    // (that was dropping lobules into the abdomen).
+    c.position.sub(ctr)
+    return { object: c, center: ctr }
   }, [scene, dimmed])
   /**
-   * Keep native VH alignment with the skin (shared coordinate space).
-   * Do NOT scale about the world origin — that pivots lobules down into the abdomen.
-   * A tiny anterior/lift nudge seats lobules inside the skin breast mound toward the nipple.
+   * Seat the mammary mass inside the glass right-breast mound, radiating
+   * toward the nipple: slightly lateral (−X), lifted, and more anterior.
    */
-  return <primitive object={cloned} position={[-0.016, 0.02, 0.018]} />
+  const placed: [number, number, number] = [
+    center.x - 0.028,
+    center.y + 0.048,
+    center.z + 0.028,
+  ]
+  return (
+    <group position={placed} scale={1.12}>
+      <primitive object={object} />
+    </group>
+  )
 }
 
 function GlbFemaleTorso({
@@ -350,8 +363,8 @@ function GlbFemaleTorso({
       {showInternals &&
         (['im_1', 'im_2', 'im_3'] as const).map((k) => (
           <mesh key={k} position={landmark(k)} renderOrder={8}>
-            <sphereGeometry args={[0.025, 10, 10]} />
-            <meshStandardMaterial color={COLORS.node} transparent opacity={0.22} depthWrite={false} />
+            <sphereGeometry args={[0.02, 10, 10]} />
+            <meshStandardMaterial color={COLORS.node} transparent opacity={0.12} depthWrite={false} />
           </mesh>
         ))}
     </group>

@@ -114,8 +114,8 @@ export function fitThreeQuarterCamera(opts: {
 }
 
 /** Dual-panel surgery layout defaults — keep in sync with SurgeryScene. */
-export const SURGERY_PANEL_X = 1.52
-export const SURGERY_PANEL_SCALE = 0.7
+export const SURGERY_PANEL_X = 1.72
+export const SURGERY_PANEL_SCALE = 0.62
 
 /**
  * Step 3 cut-away node AABB (capsule + afferent/efferent stubs).
@@ -138,16 +138,16 @@ export function insideNodeCameraTarget(
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
   // 1.19 ≈ 8% margin each side; extra slack clears labels + mobile chrome
-  const margin = mobile ? 1.48 : 1.32
+  const margin = mobile ? 1.58 : 1.36
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
   const dist = Math.max(
     (size.y * margin) / (2 * Math.tan(vFov / 2)),
     (size.x * margin) / (2 * Math.tan(hFov / 2)),
-    3.4,
+    3.6,
   )
   // Mobile: bias look-at up so the node sits above bottom UI chrome
-  const lookY = center.y + (mobile ? 0.18 : 0.04)
+  const lookY = center.y + (mobile ? 0.22 : 0.05)
   return {
     position: [center.x * 0.12, lookY + 0.06, center.z + dist],
     lookAt: [center.x * 0.08, lookY, center.z],
