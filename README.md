@@ -13,7 +13,8 @@ Lymph-node status matters for breast-cancer surgery planning. This project is an
 | Path | Purpose |
 |------|---------|
 | `notebooks/01_train_pcam.ipynb` | Guided Colab teaching notebook (train, evaluate, export ONNX) |
-| `web/` | React + Vite research site (landing, guided demo, Results, About) |
+| `web/` | React + Vite research site (3D educational landing, guided demo, Results, About) |
+| `web/src/explainer/` | Lazy-loaded Three.js / R3F lymph-node metastasis explainer (procedural geometry) |
 | `web/public/models/pcam_cam.onnx` | Quick Cursor-assisted baseline ONNX (**INT8**, ~11 MB) |
 | `web/public/results/metrics.json` | Data-driven Results page (ROC, calibration, CM, mistakes) |
 | `results/baseline_quick_run.json` | Raw baseline training metrics/config |
