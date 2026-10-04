@@ -22,7 +22,6 @@ export default function App() {
 
       <header className="site-header">
         <div className="brand-block">
-          <p className="brand-kicker">Surabhi · high-school research project</p>
           <NavLink to="/" className="brand-title">
             Lymph Node Metastasis Detector
           </NavLink>
