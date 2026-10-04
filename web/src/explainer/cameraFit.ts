@@ -114,8 +114,8 @@ export function fitThreeQuarterCamera(opts: {
 }
 
 /** Dual-panel surgery layout defaults — keep in sync with SurgeryScene. */
-export const SURGERY_PANEL_X = 1.08
-export const SURGERY_PANEL_SCALE = 0.86
+export const SURGERY_PANEL_X = 1.18
+export const SURGERY_PANEL_SCALE = 0.78
 
 /** Dual-panel surgery framing: both panels side-by-side with a clear center gap. */
 export function surgeryFocusBox(
@@ -123,14 +123,25 @@ export function surgeryFocusBox(
   panelScale = SURGERY_PANEL_SCALE,
 ): THREE.Box3 {
   const s = panelScale
-  const local = surgeryPanelFocusBox()
+  // Fit the visible focus (shoulders→breast), but pad to the full torso lateral
+  // extent so deltoids/arms don't overflow the panel edges.
+  const focus = surgeryPanelFocusBox()
+  const full = torsoBounds
   const sized = new THREE.Box3(
-    new THREE.Vector3(local.min.x * s, local.min.y * s, local.min.z * s),
-    new THREE.Vector3(local.max.x * s, local.max.y * s, local.max.z * s),
+    new THREE.Vector3(
+      Math.min(focus.min.x, full.min.x * 0.72) * s,
+      focus.min.y * s,
+      focus.min.z * s,
+    ),
+    new THREE.Vector3(
+      Math.max(focus.max.x, full.max.x * 0.15) * s,
+      focus.max.y * s,
+      Math.max(focus.max.z, full.max.z) * s,
+    ),
   )
-  // Pad for local three-quarter yaw (~0.42 rad) which widens screen footprint
-  const padX = (sized.max.x - sized.min.x) * 0.1
-  const padZ = (sized.max.z - sized.min.z) * 0.18
+  // Pad for local three-quarter yaw which widens screen footprint
+  const padX = (sized.max.x - sized.min.x) * 0.14
+  const padZ = (sized.max.z - sized.min.z) * 0.22
   sized.min.x -= padX
   sized.max.x += padX
   sized.min.z -= padZ
@@ -181,20 +192,20 @@ export function cameraTargetFor(
       box,
       aspect,
       fovDeg: fov,
-      azimuthDeg: 22,
-      elevationDeg: 9,
-      margin: 1.32,
+      azimuthDeg: 20,
+      elevationDeg: 8,
+      margin: 1.48,
       preferHeight: true,
     })
     const centerY = (box.min.y + box.max.y) * 0.5
-    cfg.lookAt = [0, centerY + 0.04, 0.04]
+    cfg.lookAt = [0, centerY + 0.02, 0.02]
     const dist = Math.hypot(
       cfg.position[0] - cfg.lookAt[0],
       cfg.position[1] - cfg.lookAt[1],
       cfg.position[2] - cfg.lookAt[2],
     )
-    const az = THREE.MathUtils.degToRad(22)
-    const el = THREE.MathUtils.degToRad(9)
+    const az = THREE.MathUtils.degToRad(20)
+    const el = THREE.MathUtils.degToRad(8)
     const cosEl = Math.cos(el)
     cfg.position = [
       cfg.lookAt[0] - Math.sin(az) * cosEl * dist,

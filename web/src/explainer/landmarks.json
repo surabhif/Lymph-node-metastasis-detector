@@ -1,15 +1,15 @@
 {
   "landmarks": {
-    "tumor": [-0.142, -0.018, 0.115],
+    "tumor": [-0.168, -0.02, 0.108],
     "sentinel": [-0.192, -0.032, -0.012],
     "level2": [-0.12, 0.018, -0.022],
     "level3": [-0.052, 0.042, 0.002],
-    "vessel_mid1": [-0.158, -0.024, 0.068],
-    "vessel_mid2": [-0.178, -0.03, 0.02],
+    "vessel_mid1": [-0.175, -0.024, 0.06],
+    "vessel_mid2": [-0.185, -0.03, 0.018],
     "im_1": [-0.018, -0.08, 0.075],
     "im_2": [-0.018, -0.045, 0.07],
     "im_3": [-0.018, -0.01, 0.065],
-    "breast": [-0.078, -0.048, 0.116]
+    "breast": [-0.092, -0.05, 0.112]
   },
   "center_m": [0.0, 1.2552878216075134, 0.11436509369336666],
   "units": "meters_y_up",
@@ -17,5 +17,5 @@
     "min": [-0.2623, -0.1996, -0.1597],
     "max": [0.2616, 0.167, 0.1112]
   },
-  "notes": "BodyParts3D v4.0; patient-right=-X. Breast mound on nipple line (lateral of midline). Tumor in UOQ between nipple and axilla (anterior to pec). Sentinel in axillary hollow."
+  "notes": "BodyParts3D v4.0; patient-right=-X. Breast on nipple line (midclavicular). Tumor in UOQ between nipple and axilla with short path to sentinel."
 }

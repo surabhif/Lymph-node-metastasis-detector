@@ -84,14 +84,14 @@ const AXILLA_NODES = [
 
 const LEVEL1_SATELLITES: [number, number, number][] = [
   [
-    landmark('sentinel')[0] + 0.05,
-    landmark('sentinel')[1] + 0.07,
-    landmark('sentinel')[2] - 0.015,
+    landmark('sentinel')[0] + 0.08,
+    landmark('sentinel')[1] + 0.09,
+    landmark('sentinel')[2] - 0.02,
   ],
   [
-    landmark('sentinel')[0] + 0.015,
-    landmark('sentinel')[1] + 0.12,
-    landmark('sentinel')[2] + 0.03,
+    landmark('sentinel')[0] + 0.03,
+    landmark('sentinel')[1] + 0.15,
+    landmark('sentinel')[2] + 0.04,
   ],
 ]
 
@@ -432,7 +432,7 @@ export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: S
   // Match step-1 three-quarter feel via local yaw; dual layout synced with cameraFit
   const panelScale = single ? 1 : SURGERY_PANEL_SCALE
   const panelX = single ? 0 : SURGERY_PANEL_X
-  const yaw = -0.42 // ~24° — gentle three-quarter, slightly flatter for dual read
+  const yaw = -0.38 // ~22° — gentle three-quarter, flatter for dual-panel read
 
   const showSlnb = surgeryMode === 'slnb' || surgeryMode === 'both'
   const showAlnd = surgeryMode === 'alnd' || surgeryMode === 'both'
