@@ -114,8 +114,45 @@ export function fitThreeQuarterCamera(opts: {
 }
 
 /** Dual-panel surgery layout defaults — keep in sync with SurgeryScene. */
-export const SURGERY_PANEL_X = 1.12
-export const SURGERY_PANEL_SCALE = 0.82
+export const SURGERY_PANEL_X = 1.38
+export const SURGERY_PANEL_SCALE = 0.74
+
+/**
+ * Step 3 cut-away node AABB (capsule + afferent/efferent stubs).
+ * Fitted with ≥8% margin on the limiting axis.
+ */
+export function insideNodeFocusBox(): THREE.Box3 {
+  return new THREE.Box3(
+    new THREE.Vector3(-1.35, -1.05, -0.35),
+    new THREE.Vector3(1.4, 0.95, 0.55),
+  )
+}
+
+/** Frontal camera for the lymph-node cut-away — ≥8% margin each side. */
+export function insideNodeCameraTarget(
+  aspect: number,
+  fovDeg: number,
+  mobile = false,
+): CameraTarget {
+  const box = insideNodeFocusBox()
+  const center = box.getCenter(new THREE.Vector3())
+  const size = box.getSize(new THREE.Vector3())
+  // 1.19 ≈ 8% margin each side; extra slack clears labels + mobile chrome
+  const margin = mobile ? 1.68 : 1.42
+  const vFov = THREE.MathUtils.degToRad(fovDeg)
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
+  const dist = Math.max(
+    (size.y * margin) / (2 * Math.tan(vFov / 2)),
+    (size.x * margin) / (2 * Math.tan(hFov / 2)),
+    3.8,
+  )
+  // Mobile: bias look-at up so the node sits above bottom UI chrome
+  const lookY = center.y + (mobile ? 0.28 : 0.08)
+  return {
+    position: [center.x * 0.12, lookY + 0.06, center.z + dist],
+    lookAt: [center.x * 0.08, lookY, center.z],
+  }
+}
 
 /**
  * Step-5 mosaic layout — keep in sync with PatchesScene.
@@ -211,9 +248,7 @@ export function cameraTargetFor(
 ): CameraTarget {
   const fov = mobile ? 40 : 38
   if (stepId === 'inside') {
-    return mobile
-      ? { position: [0.1, 0.22, 3.55], lookAt: [0, -0.05, 0] }
-      : { position: [0.15, 0.25, 3.8], lookAt: [0, -0.05, 0] }
+    return insideNodeCameraTarget(aspect, fov, mobile)
   }
   if (stepId === 'patches') {
     // Straight-on fit of the full 3×3 with ≥8% margin (no three-quarter bias).

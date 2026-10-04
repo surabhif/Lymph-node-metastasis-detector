@@ -7,85 +7,221 @@ import { boundsFromMeshMeters, setTorsoBounds } from './cameraFit'
 
 export type SceneQuality = 'high' | 'low'
 
-/** Uniform scale applied to the BodyParts3D-derived GLB (meters → scene units). */
+/** Scene units per HRA/VH metre after recentering on the breast. */
 export const TORSO_SCALE = 5
+
+/** Visible Human Female origin shift so the right breast sits near scene origin. */
+export const HRA_CENTER = (landmarksData as unknown as { hra_center_m: [number, number, number] }).hra_center_m
 
 export type LandmarkKey = keyof typeof landmarksData.landmarks
 
 export function landmark(key: LandmarkKey): [number, number, number] {
   const p = landmarksData.landmarks[key]
-  return [p[0] * TORSO_SCALE, p[1] * TORSO_SCALE, p[2] * TORSO_SCALE]
+  return [
+    (p[0] - HRA_CENTER[0]) * TORSO_SCALE,
+    (p[1] - HRA_CENTER[1]) * TORSO_SCALE,
+    (p[2] - HRA_CENTER[2]) * TORSO_SCALE,
+  ]
 }
 
+export const SKIN_URL = `${import.meta.env.BASE_URL}models/explainer/skin_torso.glb`
+export const MAMMARY_URL = `${import.meta.env.BASE_URL}models/explainer/mammary_r.glb`
+export const LYMPH_NODE_URL = `${import.meta.env.BASE_URL}models/explainer/lymph_node.glb`
 export const TORSO_URL = `${import.meta.env.BASE_URL}models/explainer/upper_torso.glb`
+export const DRACO_PATH = `${import.meta.env.BASE_URL}draco/`
 
-// Seed camera fit from authored mesh bounds (overwritten at runtime when GLB loads).
 const boundsMeta = landmarksData as unknown as {
   bounds_m?: { min: number[]; max: number[] }
 }
 if (boundsMeta.bounds_m) {
   const { min, max } = boundsMeta.bounds_m
+  const c = HRA_CENTER
   boundsFromMeshMeters(
-    [min[0], min[1], min[2]],
-    [max[0], max[1], max[2]],
+    [min[0] - c[0], min[1] - c[1], min[2] - c[2]],
+    [max[0] - c[0], max[1] - c[1], max[2] - c[2]],
   )
 }
+
+/** World-Y (scene units) where the neck crop soft-fades. */
+const NECK_FADE_START = 0.95
+const NECK_FADE_END = 1.42
 
 type TorsoProps = {
   quality: SceneQuality
   showTumor?: boolean
   showInternals?: boolean
   showBreast?: boolean
-  /** Dim non-essential geometry when used in small comparative panels. */
   dimmed?: boolean
 }
 
-/** Teardrop breast mound sitting ON the pec (flat back, bulk anterior, tail to axilla). */
-function BreastMound({ opacity = 0.28 }: { opacity?: number }) {
-  const geom = useMemo(() => {
-    const g = new THREE.SphereGeometry(1, 32, 24)
-    const pos = g.attributes.position as THREE.BufferAttribute
-    const v = new THREE.Vector3()
-    for (let i = 0; i < pos.count; i++) {
-      v.fromBufferAttribute(pos, i)
-      const ax = Math.max(0, -v.x)
-      // Flatten against chest wall; keep bulk anterior (+Z)
-      if (v.z < 0) {
-        v.z *= 0.08 // collapse into pec contact
-      } else {
-        v.z *= 0.55 + 0.1 * (1 - ax)
-      }
-      v.y *= 0.7
-      v.x *= 1.05 + 0.9 * ax // axillary tail of Spence
-      pos.setXYZ(i, v.x, v.y, v.z)
-    }
-    pos.needsUpdate = true
-    g.computeVertexNormals()
-    return g
-  }, [])
+function toScenePos(p: [number, number, number]): [number, number, number] {
+  return [
+    (p[0] - HRA_CENTER[0]) * TORSO_SCALE,
+    (p[1] - HRA_CENTER[1]) * TORSO_SCALE,
+    (p[2] - HRA_CENTER[2]) * TORSO_SCALE,
+  ]
+}
 
-  const breast = landmarksData.landmarks.breast as [number, number, number]
+/**
+ * Glassy translucent skin: low center opacity, cool fresnel rim, soft neck alpha fade.
+ * Drawn last (high renderOrder) so internals read as inside the shell.
+ */
+function makeSkinMaterial(baseOpacity: number) {
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(COLORS.skinTranslucent).multiplyScalar(1.2),
+    roughness: 0.15,
+    metalness: 0.0,
+    transmission: 0.78,
+    thickness: 0.85,
+    ior: 1.33,
+    transparent: true,
+    opacity: baseOpacity,
+    depthWrite: false,
+    side: THREE.FrontSide,
+    sheen: 0.7,
+    sheenRoughness: 0.3,
+    sheenColor: new THREE.Color(COLORS.skinRim),
+    clearcoat: 0.6,
+    clearcoatRoughness: 0.15,
+    envMapIntensity: 1.25,
+  })
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uNeckStart = { value: NECK_FADE_START }
+    shader.uniforms.uNeckEnd = { value: NECK_FADE_END }
+    shader.uniforms.uBaseOpacity = { value: baseOpacity }
+
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+        varying vec3 vGlassWorldPos;
+        varying vec3 vGlassViewN;
+        varying vec3 vGlassViewP;`,
+      )
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+        vGlassWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        vGlassViewN = normalize(mat3(modelViewMatrix) * normal);
+        vGlassViewP = -mvPosition.xyz;`,
+      )
+
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+        varying vec3 vGlassWorldPos;
+        varying vec3 vGlassViewN;
+        varying vec3 vGlassViewP;
+        uniform float uNeckStart;
+        uniform float uNeckEnd;
+        uniform float uBaseOpacity;`,
+      )
+      .replace(
+        '#include <opaque_fragment>',
+        `#include <opaque_fragment>
+        float ndv = saturate(dot(normalize(vGlassViewN), normalize(vGlassViewP)));
+        float fres = pow(1.0 - ndv, 2.4);
+        gl_FragColor.rgb += vec3(0.55, 0.95, 0.92) * fres * 1.35;
+        float faceAlpha = mix(uBaseOpacity * 0.18, min(0.82, uBaseOpacity + fres * 0.7), fres);
+        float neckFade = 1.0 - smoothstep(uNeckStart, uNeckEnd, vGlassWorldPos.y);
+        if (neckFade <= 0.01) discard;
+        gl_FragColor.a = faceAlpha * neckFade;
+        `,
+      )
+  }
+  mat.customProgramCacheKey = () => `hra-glass-skin-v5-${baseOpacity.toFixed(2)}`
+  return mat
+}
+
+/** Soft pale glowing lobule tissue — not brown blobs. */
+function makeLobuleMaterial(opacity: number) {
+  return new THREE.MeshPhysicalMaterial({
+    color: '#f7efe8',
+    roughness: 0.45,
+    metalness: 0.0,
+    transparent: true,
+    opacity,
+    depthWrite: false,
+    side: THREE.FrontSide,
+    emissive: new THREE.Color('#ffe8dc'),
+    emissiveIntensity: 0.42,
+    sheen: 0.7,
+    sheenColor: new THREE.Color('#fff6f0'),
+    sheenRoughness: 0.35,
+    transmission: 0.15,
+    thickness: 0.25,
+  })
+}
+
+function applySkinMaterials(root: THREE.Object3D, dimmed: boolean) {
+  root.traverse((obj) => {
+    if (!(obj as THREE.Mesh).isMesh) return
+    const mesh = obj as THREE.Mesh
+    mesh.material = makeSkinMaterial(dimmed ? 0.12 : 0.16)
+    mesh.renderOrder = 20
+    mesh.castShadow = false
+    mesh.receiveShadow = false
+  })
+}
+
+/**
+ * Keep lobules / ducts only — drop fat shell so the skin breast is the outer contour.
+ */
+function applyMammaryMaterials(root: THREE.Object3D, dimmed: boolean) {
+  root.traverse((obj) => {
+    if (!(obj as THREE.Mesh).isMesh) return
+    const mesh = obj as THREE.Mesh
+    const name = (mesh.name || mesh.parent?.name || '').toLowerCase()
+    // Fat was reading as a second breast shell floating in front — hide it.
+    if (name.includes('fat')) {
+      mesh.visible = false
+      return
+    }
+    mesh.visible = true
+    const isDuct = /sinus|duct|lactiferous/.test(name)
+    const mat = makeLobuleMaterial(dimmed ? 0.3 : isDuct ? 0.42 : 0.52)
+    if (isDuct) {
+      mat.emissiveIntensity = 0.38
+      mat.opacity = dimmed ? 0.28 : 0.42
+    }
+    mesh.material = mat
+    mesh.renderOrder = 4
+    mesh.castShadow = false
+    mesh.receiveShadow = false
+  })
+}
+
+function TumorMarker() {
   return (
-    <mesh geometry={geom} position={breast} scale={[0.058, 0.046, 0.05]} renderOrder={6}>
-      <meshStandardMaterial
-        color="#c9b4a0"
-        transparent
-        opacity={opacity}
-        roughness={0.88}
-        metalness={0.01}
-        depthWrite={false}
-        depthTest
-        side={THREE.FrontSide}
-      />
-    </mesh>
+    <group position={landmark('tumor')}>
+      <mesh renderOrder={12}>
+        <sphereGeometry args={[0.048, 20, 20]} />
+        <meshStandardMaterial
+          color={COLORS.tumor}
+          emissive={COLORS.tumorGlow}
+          emissiveIntensity={1.4}
+          toneMapped={false}
+          roughness={0.35}
+        />
+      </mesh>
+      <mesh renderOrder={11} scale={1.55}>
+        <sphereGeometry args={[0.048, 16, 16]} />
+        <meshBasicMaterial
+          color={COLORS.tumorGlow}
+          transparent
+          opacity={0.22}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
   )
 }
 
-/** Procedural fallback if GLB fails to load (keeps explainer usable offline / on GL errors). */
 export function ProceduralTorsoFallback({
   quality,
   showTumor = true,
-  showInternals = true,
   showBreast = true,
 }: TorsoProps) {
   const segs = quality === 'high' ? 40 : 20
@@ -102,221 +238,116 @@ export function ProceduralTorsoFallback({
 
   return (
     <group>
-      <mesh geometry={lathe}>
-        <meshStandardMaterial color={COLORS.skinDeep} transparent opacity={0.7} roughness={0.9} />
-      </mesh>
-      <mesh position={[0.7, 0.45, 0]} rotation={[0.2, 0.1, -1.1]}>
-        <capsuleGeometry args={[0.14, 0.5, 4, segs]} />
-        <meshStandardMaterial color={COLORS.skin} transparent opacity={0.8} />
-      </mesh>
-      <mesh position={[-0.7, 0.45, 0]} rotation={[0.2, -0.1, 1.1]}>
-        <capsuleGeometry args={[0.14, 0.45, 4, segs]} />
-        <meshStandardMaterial color={COLORS.skin} transparent opacity={0.75} />
+      <mesh geometry={lathe} renderOrder={20}>
+        <meshPhysicalMaterial
+          color={COLORS.skinTranslucent}
+          transparent
+          opacity={0.22}
+          roughness={0.3}
+          transmission={0.4}
+          depthWrite={false}
+        />
       </mesh>
       {showBreast && (
-        <mesh position={landmark('breast')} scale={[1.5, 0.9, 0.55]}>
-          <sphereGeometry args={[0.2, segs, segs]} />
-          <meshStandardMaterial color="#c4a790" transparent opacity={0.28} depthWrite={false} />
+        <mesh position={landmark('breast')} scale={[1.2, 0.85, 0.7]} renderOrder={4}>
+          <sphereGeometry args={[0.16, segs, segs]} />
+          <meshStandardMaterial
+            color={COLORS.breastSoft}
+            emissive={COLORS.breastGlow}
+            emissiveIntensity={0.25}
+            transparent
+            opacity={0.45}
+            depthWrite={false}
+          />
         </mesh>
       )}
       {showTumor && (
         <mesh position={landmark('tumor')} renderOrder={10}>
-          <sphereGeometry args={[0.07, 16, 16]} />
+          <sphereGeometry args={[0.055, 16, 16]} />
           <meshStandardMaterial
             color={COLORS.tumor}
-            emissive={COLORS.tumor}
-            emissiveIntensity={0.55}
-            depthTest={false}
+            emissive={COLORS.tumorGlow}
+            emissiveIntensity={1.2}
+            toneMapped={false}
           />
         </mesh>
       )}
-      {showInternals &&
-        (['im_1', 'im_2', 'im_3'] as const).map((k) => (
-          <mesh key={k} position={landmark(k)}>
-            <sphereGeometry args={[0.03, 10, 10]} />
-            <meshStandardMaterial color={COLORS.node} transparent opacity={0.35} />
-          </mesh>
-        ))}
     </group>
   )
 }
 
-/** Soft fade near crop planes so neck / waist / arm cuts don't look torn. */
-function attachCropFade(mat: THREE.MeshStandardMaterial, yFade = 0.14, xFade = 0.28) {
-  mat.onBeforeCompile = (shader) => {
-    shader.uniforms.uYFade = { value: yFade }
-    shader.uniforms.uXFade = { value: xFade }
-    shader.vertexShader = shader.vertexShader
-      .replace(
-        '#include <common>',
-        `#include <common>\nvarying vec3 vCropPos;`,
-      )
-      .replace(
-        '#include <begin_vertex>',
-        `#include <begin_vertex>\nvCropPos = position;`,
-      )
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>\nvarying vec3 vCropPos;\nuniform float uYFade;\nuniform float uXFade;`,
-      )
-      .replace(
-        '#include <dithering_fragment>',
-        `
-        // Soften superior/inferior crop and distal arm cuts (mesh-local meters)
-        float yEdge = min(0.195 - abs(vCropPos.y), uYFade);
-        float xEdge = uXFade - abs(vCropPos.x);
-        float fadeY = smoothstep(0.0, uYFade, max(yEdge, 0.0));
-        float fadeX = smoothstep(0.0, 0.055, max(xEdge, 0.0));
-        float fade = clamp(fadeY * fadeX, 0.0, 1.0);
-        gl_FragColor.a *= fade;
-        if (gl_FragColor.a < 0.03) discard;
-        #include <dithering_fragment>
-        `,
-      )
-  }
-  mat.customProgramCacheKey = () => `cropfade-v3-${yFade}-${xFade}`
+function HraSkin({ dimmed }: { dimmed: boolean }) {
+  const { scene } = useGLTF(SKIN_URL, DRACO_PATH)
+  const cloned = useMemo(() => {
+    const c = scene.clone(true)
+    applySkinMaterials(c, dimmed)
+    return c
+  }, [scene, dimmed])
+  return <primitive object={cloned} />
 }
 
-function applyMaterials(root: THREE.Object3D, dimmed = false) {
-  const skinOp = dimmed ? 0.22 : 0.28
-  // Muscle translucent so axillary nodes behind the lateral edge still read;
-  // low enough that the anterior tumor is not buried in pec color.
-  const muscleOp = dimmed ? 0.38 : 0.45
-  root.traverse((obj) => {
-    if (!(obj as THREE.Mesh).isMesh) return
-    const mesh = obj as THREE.Mesh
-    const name = (mesh.name || mesh.parent?.name || '').toLowerCase()
-    if (name.includes('skin')) {
-      const mat = new THREE.MeshStandardMaterial({
-        color: COLORS.skinTranslucent,
-        roughness: 0.7,
-        metalness: 0.02,
-        transparent: true,
-        opacity: skinOp,
-        depthWrite: false,
-        side: THREE.FrontSide,
-        polygonOffset: true,
-        polygonOffsetFactor: 2,
-        polygonOffsetUnits: 2,
-      })
-      attachCropFade(mat, 0.13, 0.29)
-      mesh.material = mat
-      mesh.renderOrder = 0
-    } else if (name.includes('pec') || name.includes('deltoid')) {
-      const mat = new THREE.MeshStandardMaterial({
-        color: '#a85252',
-        roughness: 0.78,
-        metalness: 0.04,
-        transparent: true,
-        opacity: muscleOp,
-        depthWrite: false,
-        side: THREE.FrontSide,
-        polygonOffset: true,
-        polygonOffsetFactor: 1,
-        polygonOffsetUnits: 1,
-      })
-      attachCropFade(mat, 0.12, 0.28)
-      mesh.material = mat
-      mesh.renderOrder = 1
-    } else {
-      const mat = new THREE.MeshStandardMaterial({
-        color: '#e2d8c8',
-        roughness: 0.72,
-        metalness: 0.05,
-        transparent: true,
-        opacity: dimmed ? 0.65 : 0.82,
-        depthWrite: true,
-        side: THREE.FrontSide,
-        polygonOffset: true,
-        polygonOffsetFactor: -1,
-        polygonOffsetUnits: -1,
-      })
-      attachCropFade(mat, 0.12, 0.28)
-      mesh.material = mat
-      mesh.renderOrder = 1
-    }
-    mesh.castShadow = false
-    mesh.receiveShadow = false
-  })
+/** Mammary AABB center from mammary_r.glb POSITION accessor (VH meters). */
+const MAMMARY_CENTER_M: [number, number, number] = [-0.1059569, 0.41539925, 0.05461578]
+/**
+ * Seat target inside the glass right-breast mound (toward nipple / UOQ side).
+ * More lateral (−X), higher, and more anterior than the raw HRA mammary center.
+ */
+const MAMMARY_TARGET_M: [number, number, number] = [-0.172, 0.492, 0.086]
+
+function HraMammary({ dimmed }: { dimmed: boolean }) {
+  const { scene } = useGLTF(MAMMARY_URL, DRACO_PATH)
+  const object = useMemo(() => {
+    const c = scene.clone(true)
+    applyMammaryMaterials(c, dimmed)
+    // Origin = AABB center so scale/rotation never pivot through VH world origin
+    c.position.set(-MAMMARY_CENTER_M[0], -MAMMARY_CENTER_M[1], -MAMMARY_CENTER_M[2])
+    return c
+  }, [scene, dimmed])
+  return (
+    <group position={MAMMARY_TARGET_M} scale={1.18} rotation={[0.1, -0.1, 0.02]}>
+      <primitive object={object} />
+    </group>
+  )
 }
 
-function GlbTorso({
+function GlbFemaleTorso({
   showTumor = true,
-  showInternals = true,
   showBreast = true,
   dimmed = false,
 }: Omit<TorsoProps, 'quality'>) {
-  const { scene } = useGLTF(TORSO_URL, true)
-  const cloned = useMemo(() => {
-    const c = scene.clone(true)
-    applyMaterials(c, dimmed)
-    return c
-  }, [scene, dimmed])
-
   useEffect(() => {
-    // Measure loaded mesh in scene units for camera fit
-    const box = new THREE.Box3().setFromObject(cloned)
-    // setFromObject includes scale only after parent scale — measure in meters then scale
-    const local = new THREE.Box3()
-    cloned.traverse((obj) => {
-      if ((obj as THREE.Mesh).isMesh) {
-        const mesh = obj as THREE.Mesh
-        mesh.geometry.computeBoundingBox()
-        const b = mesh.geometry.boundingBox
-        if (b) local.union(b)
-      }
-    })
-    if (!local.isEmpty()) {
-      setTorsoBounds(
-        new THREE.Box3(
-          local.min.clone().multiplyScalar(TORSO_SCALE),
-          local.max.clone().multiplyScalar(TORSO_SCALE),
+    const c = HRA_CENTER
+    const b = boundsMeta.bounds_m
+    if (!b) return
+    setTorsoBounds(
+      new THREE.Box3(
+        new THREE.Vector3(
+          (b.min[0] - c[0]) * TORSO_SCALE,
+          (b.min[1] - c[1]) * TORSO_SCALE,
+          (b.min[2] - c[2]) * TORSO_SCALE,
         ),
-      )
-    } else if (!box.isEmpty()) {
-      setTorsoBounds(box)
-    }
-  }, [cloned])
+        new THREE.Vector3(
+          (b.max[0] - c[0]) * TORSO_SCALE,
+          (b.max[1] - c[1]) * TORSO_SCALE,
+          (b.max[2] - c[2]) * TORSO_SCALE,
+        ),
+      ),
+    )
+  }, [])
 
   return (
-    <group scale={TORSO_SCALE}>
-      <primitive object={cloned} />
-      {showBreast && <BreastMound opacity={dimmed ? 0.22 : 0.32} />}
-      {showTumor && (
-        <group position={landmarksData.landmarks.tumor as [number, number, number]}>
-          {/* Dark rim so the solid tumor reads against translucent red pec */}
-          <mesh renderOrder={13}>
-            <sphereGeometry args={[0.02, 16, 16]} />
-            <meshBasicMaterial color="#3a0c08" depthTest={false} depthWrite={false} toneMapped={false} />
-          </mesh>
-          <mesh renderOrder={14}>
-            <sphereGeometry args={[0.015, 18, 18]} />
-            <meshBasicMaterial
-              color={COLORS.tumor}
-              depthTest={false}
-              depthWrite={false}
-              toneMapped={false}
-            />
-          </mesh>
-        </group>
-      )}
-      {showInternals &&
-        (['im_1', 'im_2', 'im_3'] as const).map((k) => (
-          <mesh
-            key={k}
-            position={landmarksData.landmarks[k] as [number, number, number]}
-            renderOrder={8}
-          >
-            <sphereGeometry args={[0.007, 10, 10]} />
-            <meshStandardMaterial
-              color={COLORS.node}
-              transparent
-              opacity={0.3}
-              depthWrite={false}
-            />
-          </mesh>
-        ))}
+    <group>
+      <group
+        position={[-HRA_CENTER[0] * TORSO_SCALE, -HRA_CENTER[1] * TORSO_SCALE, -HRA_CENTER[2] * TORSO_SCALE]}
+        scale={TORSO_SCALE}
+      >
+        {/* Internals first, glass skin last so it softly occludes */}
+        {showBreast && <HraMammary dimmed={dimmed} />}
+        <HraSkin dimmed={dimmed} />
+      </group>
+      {/* BP3D pec/chest cues dropped — male fragments could not be aligned cleanly under HRA skin. */}
+      {showTumor && <TumorMarker />}
+      {/* Internal mammary chain omitted — read as stray mid-chest dots against glass skin. */}
     </group>
   )
 }
@@ -338,15 +369,11 @@ class AnatomyErrorBoundary extends Component<
   }
 }
 
-/**
- * BodyParts3D-derived upper torso (lazy GLB). Falls back to procedural geometry on error.
- * Suspense for the GLB bubbles to ExplainerCanvas so the existing “Loading 3D scene…” state shows.
- */
 export function AnatomyTorso(props: TorsoProps) {
   const fallback = <ProceduralTorsoFallback {...props} />
   return (
     <AnatomyErrorBoundary fallback={fallback}>
-      <GlbTorso
+      <GlbFemaleTorso
         showTumor={props.showTumor}
         showInternals={props.showInternals}
         showBreast={props.showBreast}
@@ -356,5 +383,11 @@ export function AnatomyTorso(props: TorsoProps) {
   )
 }
 
-// Warm the Draco decoder + GLB once the explainer chunk loads.
-useGLTF.preload(TORSO_URL, true)
+useGLTF.preload(SKIN_URL, DRACO_PATH)
+useGLTF.preload(MAMMARY_URL, DRACO_PATH)
+
+export { toScenePos }
+
+export function preloadLymphNode() {
+  useGLTF.preload(LYMPH_NODE_URL, DRACO_PATH)
+}
