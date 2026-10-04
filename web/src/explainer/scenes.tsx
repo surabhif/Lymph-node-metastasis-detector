@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Html, Line } from '@react-three/drei'
+import { Line } from '@react-three/drei'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Group, Mesh } from 'three'
 import * as THREE from 'three'
@@ -26,7 +26,6 @@ const PALETTE = {
   slide: '#e8dfd0',
   patch: '#b8c9c0',
   patchHot: '#0b6b54',
-  accent: '#084c3c',
 }
 
 function SoftLight() {
@@ -44,9 +43,9 @@ export function LymphaticScene({ quality, activeNode, onActiveNode }: SceneProps
   const segs = quality === 'high' ? 24 : 12
   const nodes = useMemo(
     () => [
-      { id: 'sentinel', label: 'Sentinel axillary node', pos: [1.15, 0.55, 0.55] as const },
-      { id: 'level2', label: 'Axillary node (further)', pos: [1.35, 0.95, 0.2] as const },
-      { id: 'level3', label: 'Axillary node (further)', pos: [1.05, 1.25, -0.05] as const },
+      { id: 'sentinel', pos: [1.15, 0.55, 0.55] as const },
+      { id: 'level2', pos: [1.35, 0.95, 0.2] as const },
+      { id: 'level3', pos: [1.05, 1.25, -0.05] as const },
     ],
     [],
   )
@@ -66,57 +65,43 @@ export function LymphaticScene({ quality, activeNode, onActiveNode }: SceneProps
   return (
     <group>
       <SoftLight />
-      {/* torso slab */}
       <mesh position={[0, 0.1, 0]} rotation={[0.12, 0.35, 0]}>
         <capsuleGeometry args={[0.85, 1.6, 6, segs]} />
         <meshStandardMaterial color={PALETTE.skin} roughness={0.85} metalness={0.02} />
       </mesh>
-      {/* breast mound */}
       <mesh position={[0.25, 0.05, 0.7]}>
         <sphereGeometry args={[0.42, segs, segs]} />
         <meshStandardMaterial color="#b9a48c" roughness={0.8} />
       </mesh>
-      {/* tumor seed */}
       <mesh position={[0.35, 0.05, 0.95]}>
         <sphereGeometry args={[0.08, 12, 12]} />
         <meshStandardMaterial color={PALETTE.tumor} emissive={PALETTE.tumor} emissiveIntensity={0.15} />
       </mesh>
-      <Line
-        points={vesselPoints}
-        color={PALETTE.vessel}
-        lineWidth={2}
-        transparent
-        opacity={0.9}
-      />
+      <Line points={vesselPoints} color={PALETTE.vessel} lineWidth={2} transparent opacity={0.9} />
       {nodes.map((n) => {
         const hot = activeNode === n.id
         return (
-          <group key={n.id} position={n.pos}>
-            <mesh
-              onPointerOver={(e: ThreeEvent<PointerEvent>) => {
-                e.stopPropagation()
-                onActiveNode(n.id)
-              }}
-              onPointerOut={() => onActiveNode(null)}
-              onClick={(e: ThreeEvent<MouseEvent>) => {
-                e.stopPropagation()
-                onActiveNode(hot ? null : n.id)
-              }}
-              scale={hot ? 1.25 : 1}
-            >
-              <sphereGeometry args={[0.12, segs, segs]} />
-              <meshStandardMaterial
-                color={hot ? PALETTE.nodeHot : PALETTE.node}
-                emissive={hot ? PALETTE.nodeHot : '#000'}
-                emissiveIntensity={hot ? 0.2 : 0}
-              />
-            </mesh>
-            {hot && (
-              <Html distanceFactor={6} style={{ pointerEvents: 'none' }}>
-                <div className="r3f-label">{n.label}</div>
-              </Html>
-            )}
-          </group>
+          <mesh
+            key={n.id}
+            position={n.pos}
+            scale={hot ? 1.25 : 1}
+            onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+              e.stopPropagation()
+              onActiveNode(n.id)
+            }}
+            onPointerOut={() => onActiveNode(null)}
+            onClick={(e: ThreeEvent<MouseEvent>) => {
+              e.stopPropagation()
+              onActiveNode(hot ? null : n.id)
+            }}
+          >
+            <sphereGeometry args={[0.12, segs, segs]} />
+            <meshStandardMaterial
+              color={hot ? PALETTE.nodeHot : PALETTE.node}
+              emissive={hot ? PALETTE.nodeHot : '#000'}
+              emissiveIntensity={hot ? 0.2 : 0}
+            />
+          </mesh>
         )
       })}
     </group>
@@ -126,16 +111,18 @@ export function LymphaticScene({ quality, activeNode, onActiveNode }: SceneProps
 /** Step 2 — cells travel toward sentinel then further */
 export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   const segs = quality === 'high' ? 16 : 10
-  const path = useMemo(() => {
-    return new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0.2, 0, 0.7),
-      new THREE.Vector3(0.55, 0.15, 0.75),
-      new THREE.Vector3(0.95, 0.35, 0.55),
-      new THREE.Vector3(1.2, 0.5, 0.4),
-      new THREE.Vector3(1.35, 0.85, 0.15),
-      new THREE.Vector3(1.2, 1.15, -0.05),
-    ])
-  }, [])
+  const path = useMemo(
+    () =>
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0.2, 0, 0.7),
+        new THREE.Vector3(0.55, 0.15, 0.75),
+        new THREE.Vector3(0.95, 0.35, 0.55),
+        new THREE.Vector3(1.2, 0.5, 0.4),
+        new THREE.Vector3(1.35, 0.85, 0.15),
+        new THREE.Vector3(1.2, 1.15, -0.05),
+      ]),
+    [],
+  )
   const pts = useMemo(() => path.getPoints(quality === 'high' ? 40 : 20), [path, quality])
   const cellCount = quality === 'high' ? 7 : 4
   const cells = useRef<(Mesh | null)[]>([])
@@ -146,8 +133,7 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
     cells.current.forEach((mesh, i) => {
       if (!mesh) return
       const u = (t * 0.12 + i / cellCount) % 1
-      const p = path.getPointAt(u)
-      mesh.position.copy(p)
+      mesh.position.copy(path.getPointAt(u))
       mesh.scale.setScalar(0.7 + 0.3 * Math.sin(t * 2 + i))
     })
   })
@@ -164,22 +150,14 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
         <meshStandardMaterial color={PALETTE.tumor} emissive={PALETTE.tumor} emissiveIntensity={0.25} />
       </mesh>
       <Line points={pts} color={PALETTE.vessel} lineWidth={2.5} />
-      {/* sentinel */}
       <mesh position={[1.2, 0.5, 0.4]}>
         <sphereGeometry args={[0.16, segs, segs]} />
         <meshStandardMaterial color={PALETTE.node} />
       </mesh>
-      <Html position={[1.2, 0.75, 0.4]} distanceFactor={7} style={{ pointerEvents: 'none' }}>
-        <div className="r3f-label">Sentinel node</div>
-      </Html>
-      {/* further */}
       <mesh position={[1.2, 1.15, -0.05]}>
         <sphereGeometry args={[0.13, segs, segs]} />
         <meshStandardMaterial color={PALETTE.nodeHot} />
       </mesh>
-      <Html position={[1.2, 1.38, -0.05]} distanceFactor={7} style={{ pointerEvents: 'none' }}>
-        <div className="r3f-label">Further node</div>
-      </Html>
       {Array.from({ length: cellCount }).map((_, i) => {
         const u = reducedMotion ? (i + 0.5) / cellCount : 0
         const p = path.getPointAt(u)
@@ -211,9 +189,9 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
   })
 
   const depositList = [
-    { label: 'ITC (≤0.2 mm)', pos: [-0.38, 0.22, 0.42] as const, r: 0.055, color: '#e8a598' },
-    { label: 'Micro (≤2 mm)', pos: [0.22, -0.05, 0.48] as const, r: 0.13, color: '#d47868' },
-    { label: 'Macro (>2 mm)', pos: [-0.05, 0.35, -0.15] as const, r: 0.28, color: PALETTE.tumor },
+    { label: 'itc', pos: [-0.38, 0.22, 0.42] as const, r: 0.055, color: '#e8a598' },
+    { label: 'micro', pos: [0.22, -0.05, 0.48] as const, r: 0.13, color: '#d47868' },
+    { label: 'macro', pos: [-0.05, 0.35, -0.15] as const, r: 0.28, color: PALETTE.tumor },
   ]
 
   return (
@@ -232,27 +210,18 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
         <meshStandardMaterial color="#cfe0d8" transparent opacity={0.5} side={THREE.DoubleSide} />
       </mesh>
       {depositList.map((d) => (
-        <group key={d.label} position={d.pos}>
-          <mesh>
-            <sphereGeometry args={[d.r, 14, 14]} />
-            <meshStandardMaterial color={d.color} emissive={d.color} emissiveIntensity={0.12} />
-          </mesh>
-          <Html distanceFactor={5} style={{ pointerEvents: 'none' }}>
-            <div className="r3f-label">{d.label}</div>
-          </Html>
-        </group>
+        <mesh key={d.label} position={d.pos}>
+          <sphereGeometry args={[d.r, 14, 14]} />
+          <meshStandardMaterial color={d.color} emissive={d.color} emissiveIntensity={0.12} />
+        </mesh>
       ))}
-      <Html position={[0, -1.15, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="r3f-label muted">Cut-away lymph node (schematic sizes)</div>
-      </Html>
     </group>
   )
 }
 
-/** Step 4 — SLNB vs ALND + TNM N */
+/** Step 4 — SLNB vs ALND */
 export function SurgeryScene({ quality }: SceneProps) {
   const segs = quality === 'high' ? 16 : 10
-
   const nodesLeft = [
     [0.2, 0.4, 0.2],
     [0.35, 0.7, 0],
@@ -268,7 +237,6 @@ export function SurgeryScene({ quality }: SceneProps) {
   return (
     <group>
       <SoftLight />
-      {/* SLNB panel */}
       <group position={[-1.35, 0, 0]}>
         <mesh position={[0, 0, -0.4]}>
           <boxGeometry args={[1.4, 2.1, 0.08]} />
@@ -288,12 +256,8 @@ export function SurgeryScene({ quality }: SceneProps) {
             />
           </mesh>
         ))}
-        <Html position={[0, 1.2, 0]} center style={{ pointerEvents: 'none' }}>
-          <div className="r3f-label">Sentinel biopsy</div>
-        </Html>
       </group>
 
-      {/* ALND panel */}
       <group position={[1.35, 0, 0]}>
         <mesh position={[0, 0, -0.4]}>
           <boxGeometry args={[1.4, 2.1, 0.08]} />
@@ -309,19 +273,7 @@ export function SurgeryScene({ quality }: SceneProps) {
             <meshStandardMaterial color={PALETTE.node} />
           </mesh>
         ))}
-        <Html position={[0, 1.2, 0]} center style={{ pointerEvents: 'none' }}>
-          <div className="r3f-label">Axillary dissection</div>
-        </Html>
       </group>
-
-      {/* TNM badge */}
-      <Html position={[0, -1.35, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="tnm-badge" aria-hidden="true">
-          <span>T</span>
-          <span className="tnm-n">N</span>
-          <span>M</span>
-        </div>
-      </Html>
     </group>
   )
 }
@@ -369,12 +321,6 @@ export function PatchesScene({ quality, reducedMotion }: SceneProps) {
           />
         </mesh>
       ))}
-      <Html position={[0, -1.15, 0]} center style={{ pointerEvents: 'none' }}>
-        <div className="r3f-label">Whole-slide → 96×96 PCam-style patches</div>
-      </Html>
-      <Html position={[tiles.find((t) => t.hot)!.x, tiles.find((t) => t.hot)!.y + 0.28, 0.2]} center style={{ pointerEvents: 'none' }}>
-        <div className="r3f-label">One patch → detector + heatmap</div>
-      </Html>
     </group>
   )
 }

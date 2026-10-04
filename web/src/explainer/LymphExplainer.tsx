@@ -180,6 +180,27 @@ export default function LymphExplainer() {
             ) : (
               <ExplainerFallback step={step} />
             )}
+            {use3d && (
+              <div className="scene-overlay-labels" aria-hidden="true">
+                {step.id === 'lymphatic' && (
+                  <span className="scene-chip">
+                    {activeNode === 'sentinel'
+                      ? 'Focused: sentinel axillary node'
+                      : activeNode
+                        ? 'Focused: further axillary node'
+                        : 'Hover or tap a green node'}
+                  </span>
+                )}
+                {step.id === 'spread' && <span className="scene-chip">Sentinel first → further nodes</span>}
+                {step.id === 'inside' && <span className="scene-chip">ITC · micro · macro deposits</span>}
+                {step.id === 'surgery' && (
+                  <span className="scene-chip tnm-chip">
+                    T · <strong>N</strong> · M
+                  </span>
+                )}
+                {step.id === 'patches' && <span className="scene-chip">Slide → 96×96 patches → detector</span>}
+              </div>
+            )}
             <p className="sr-only">{step.alt}</p>
             <div className="explainer-viewport-hint muted tiny">
               {use3d

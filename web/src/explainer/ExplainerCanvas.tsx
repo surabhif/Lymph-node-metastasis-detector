@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { ContactShadows, OrbitControls } from '@react-three/drei'
 import type { ExplainerStepId } from './steps'
@@ -38,6 +38,14 @@ export default function ExplainerCanvas({
 }: Props) {
   const position = useMemo(() => cameraFor(stepId), [stepId])
   const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.25]
+  const [mounted, setMounted] = useState(true)
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  if (!mounted) return null
 
   return (
     <Canvas
