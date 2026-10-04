@@ -9,9 +9,9 @@ export const COLORS = {
   breastSoft: '#f0e4dc',
   breastGlow: '#ffe8dc',
   // Soft translucent lymphoid pink-purple (follicles / healthy tissue read)
-  follicle: '#d4a8c8',
-  follicleGlow: '#e8c0d8',
-  lymphoid: '#dcc0d4',
+  follicle: '#e4b0d0',
+  follicleGlow: '#f2c8e4',
+  lymphoid: '#e0b8d4',
   // Lymph — brighter for dark cinematic panel
   vessel: '#3dcfb0',
   vesselGlow: '#6dffd4',
@@ -26,10 +26,10 @@ export const COLORS = {
   itc: '#ffc4b8',
   micro: '#ff8f7a',
   macro: '#e8453a',
-  // Node interior bands
-  cortex: '#c8a8c0',
-  paracortex: '#b898b0',
-  medulla: '#a888a0',
+  // Node interior bands — soft pink-lilac so tissue reads as lymphoid, not grey
+  cortex: '#d4a8c4',
+  paracortex: '#c498b8',
+  medulla: '#b088a8',
   nodeCapsule: '#4ad4c0',
   slide: '#e6ddcf',
   patch: '#a9bfb5',

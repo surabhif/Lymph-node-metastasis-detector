@@ -83,16 +83,16 @@ const AXILLA_NODES = [
 ] as const
 
 const LEVEL1_SATELLITES: [number, number, number][] = [
-  // Cluster in the axilla hollow near the sentinel — medial/anterior of the arm, not on the deltoid.
+  // Tight cluster in the axilla hollow (chest wall ↔ arm), not on the outer arm/deltoid.
   [
-    landmark('sentinel')[0] + 0.07,
-    landmark('sentinel')[1] + 0.035,
-    landmark('sentinel')[2] + 0.055,
+    landmark('sentinel')[0] + 0.055,
+    landmark('sentinel')[1] + 0.028,
+    landmark('sentinel')[2] + 0.035,
   ],
   [
-    landmark('sentinel')[0] + 0.045,
-    landmark('sentinel')[1] - 0.055,
-    landmark('sentinel')[2] + 0.04,
+    landmark('sentinel')[0] + 0.035,
+    landmark('sentinel')[1] - 0.045,
+    landmark('sentinel')[2] + 0.028,
   ],
 ]
 
@@ -451,28 +451,29 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         <ringGeometry args={[0.62, 0.95, segs]} />
         <meshStandardMaterial
           color={COLORS.cortex}
+          emissive={COLORS.follicleGlow}
+          emissiveIntensity={0.22}
           transparent
-          opacity={0.55}
-          roughness={0.85}
+          opacity={0.62}
+          roughness={0.8}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Follicles — soft translucent lymphoid pink-purple */}
+      {/* Follicles — soft translucent lymphoid pink-purple (not grey) */}
       {follicles.map((f, i) => (
         <mesh key={i} position={[f[0], f[1], f[2]]} renderOrder={4}>
           <sphereGeometry args={[f[3], 14, 14]} />
-          <meshPhysicalMaterial
+          <meshStandardMaterial
             color={COLORS.follicle}
             emissive={COLORS.follicleGlow}
-            emissiveIntensity={0.35}
-            roughness={0.45}
+            emissiveIntensity={0.65}
+            roughness={0.55}
             transparent
-            opacity={0.72}
-            transmission={0.28}
-            thickness={0.2}
+            opacity={0.88}
             depthWrite={false}
+            toneMapped={false}
           />
         </mesh>
       ))}
@@ -532,7 +533,7 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       </mesh>
 
       {/* Labels — clear of top-left legend; Afferent/Cortex hide on narrow screens */}
-      <Html position={[0.15, 0.92, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[0.2, 0.78, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Cortex / follicles</span>
       </Html>
       <Html position={[0.42, 0.12, 0.4]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
@@ -541,10 +542,10 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       <Html position={[-0.28, -0.08, 0.45]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno soft">Medulla</span>
       </Html>
-      <Html position={[-1.15, -0.72, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[-1.05, -0.78, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Afferent</span>
       </Html>
-      <Html position={[1.45, -0.55, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[1.35, -0.62, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Efferent / hilum</span>
       </Html>
     </group>

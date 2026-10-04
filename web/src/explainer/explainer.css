@@ -288,9 +288,9 @@
 .scene-swatch.micro { background: #ff8f7a; }
 .scene-swatch.macro { background: #e8453a; }
 .scene-swatch.lymphoid {
-  background: #dcc0d4;
-  border: 1px solid #b888b0;
-  box-shadow: 0 0 6px rgba(212, 168, 200, 0.35);
+  background: #e0b8d4;
+  border: 1px solid #c488b0;
+  box-shadow: 0 0 6px rgba(228, 176, 208, 0.4);
 }
 .scene-swatch.patch { background: #2ae0b8; }
 

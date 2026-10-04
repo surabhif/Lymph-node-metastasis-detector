@@ -306,7 +306,7 @@ function HraMammary({ dimmed }: { dimmed: boolean }) {
    * Do NOT scale about the world origin — that pivots lobules down into the abdomen.
    * A tiny anterior/lift nudge seats lobules inside the skin breast mound toward the nipple.
    */
-  return <primitive object={cloned} position={[0.002, 0.01, 0.01]} />
+  return <primitive object={cloned} position={[-0.016, 0.02, 0.018]} />
 }
 
 function GlbFemaleTorso({
