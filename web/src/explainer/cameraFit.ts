@@ -114,8 +114,8 @@ export function fitThreeQuarterCamera(opts: {
 }
 
 /** Dual-panel surgery layout defaults — keep in sync with SurgeryScene. */
-export const SURGERY_PANEL_X = 1.18
-export const SURGERY_PANEL_SCALE = 0.78
+export const SURGERY_PANEL_X = 1.12
+export const SURGERY_PANEL_SCALE = 0.82
 
 /** Dual-panel surgery framing: both panels side-by-side with a clear center gap. */
 export function surgeryFocusBox(
@@ -194,7 +194,7 @@ export function cameraTargetFor(
       fovDeg: fov,
       azimuthDeg: 20,
       elevationDeg: 8,
-      margin: 1.48,
+      margin: 1.4,
       preferHeight: true,
     })
     const centerY = (box.min.y + box.max.y) * 0.5

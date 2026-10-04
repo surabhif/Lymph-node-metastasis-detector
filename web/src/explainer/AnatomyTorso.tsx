@@ -287,11 +287,11 @@ function GlbTorso({
         <group position={landmarksData.landmarks.tumor as [number, number, number]}>
           {/* Dark rim so the solid tumor reads against translucent red pec */}
           <mesh renderOrder={13}>
-            <sphereGeometry args={[0.022, 16, 16]} />
+            <sphereGeometry args={[0.028, 16, 16]} />
             <meshBasicMaterial color="#4a100c" depthTest={false} depthWrite={false} toneMapped={false} />
           </mesh>
           <mesh renderOrder={14}>
-            <sphereGeometry args={[0.017, 18, 18]} />
+            <sphereGeometry args={[0.022, 18, 18]} />
             <meshBasicMaterial
               color={COLORS.tumor}
               depthTest={false}
