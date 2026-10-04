@@ -1,11 +1,11 @@
-import { useMemo, useRef } from 'react'
-import type { ReactNode } from 'react'
+import { useMemo, useRef, useEffect, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { ThreeEvent } from '@react-three/fiber'
 import type { Group, Mesh } from 'three'
 import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
 import { COLORS } from './colors'
+import { AnatomyTorso, landmark } from './AnatomyTorso'
 
 export type SceneQuality = 'high' | 'low'
 
@@ -19,10 +19,10 @@ type SceneProps = {
 export function SoftLight() {
   return (
     <>
-      <ambientLight intensity={0.52} />
+      <ambientLight intensity={0.55} />
       <hemisphereLight args={['#f7f2e8', '#9aabb0', 0.55]} />
-      <directionalLight position={[4.2, 6.5, 3.2]} intensity={1.1} color="#fff4e6" />
-      <directionalLight position={[-3.5, 2.2, -2.5]} intensity={0.35} color="#b7c9c0" />
+      <directionalLight position={[4.2, 6.5, 3.2]} intensity={1.15} color="#fff4e6" />
+      <directionalLight position={[-3.5, 2.2, -2.5]} intensity={0.38} color="#b7c9c0" />
       <pointLight position={[0.9, 1.1, 1.9]} intensity={0.32} color="#ffe8d6" />
     </>
   )
@@ -38,6 +38,10 @@ function IdleSpin({
   children: ReactNode
 }) {
   const ref = useRef<Group>(null)
+  useEffect(() => {
+    // Start with the patient-right axilla facing the default camera
+    if (ref.current) ref.current.rotation.y = -0.55
+  }, [])
   useFrame((_, dt) => {
     if (reducedMotion || !ref.current) return
     ref.current.rotation.y += dt * speed
@@ -45,43 +49,26 @@ function IdleSpin({
   return <group ref={ref}>{children}</group>
 }
 
-function useTorsoLathe(segs: number, inflate = 0) {
-  return useMemo(() => {
-    // Upper-torso profile (x = radius, y = height): neck → deltoid shelf → chest → waist.
-    const pts = [
-      new THREE.Vector2(0.12 + inflate, 1.4),
-      new THREE.Vector2(0.16 + inflate, 1.26),
-      new THREE.Vector2(0.34 + inflate * 1.1, 1.12),
-      new THREE.Vector2(0.52 + inflate * 1.25, 1.0), // shoulder shelf
-      new THREE.Vector2(0.58 + inflate * 1.15, 0.82),
-      new THREE.Vector2(0.55 + inflate, 0.58),
-      new THREE.Vector2(0.52 + inflate, 0.32),
-      new THREE.Vector2(0.49 + inflate * 0.85, 0.05),
-      new THREE.Vector2(0.47 + inflate * 0.7, -0.28),
-      new THREE.Vector2(0.45 + inflate * 0.55, -0.58),
-      new THREE.Vector2(0.43 + inflate * 0.45, -0.82),
-    ]
-    return new THREE.LatheGeometry(pts, segs)
-  }, [segs, inflate])
-}
-
-/** Lymph drainage: tumor in breast → under skin into axilla → levels I–III toward clavicle. */
+/**
+ * Axillary drainage path anchored to BodyParts3D landmarks (patient-right = −X):
+ * tumor (breast UOQ) → under skin → Level I (lateral to pec minor) →
+ * Level II (behind pec minor) → Level III (medial, infraclavicular).
+ */
 function axillaryPath() {
   return new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0.3, 0.2, 0.5), // tumor in breast
-    new THREE.Vector3(0.38, 0.24, 0.38),
-    new THREE.Vector3(0.46, 0.28, 0.22), // under skin toward axilla
-    new THREE.Vector3(0.5, 0.32, 0.04), // enter axillary fold
-    new THREE.Vector3(0.5, 0.38, -0.06), // Level I / sentinel (inside axilla)
-    new THREE.Vector3(0.44, 0.56, -0.12), // Level II
-    new THREE.Vector3(0.32, 0.74, -0.16), // Level III toward clavicle
+    new THREE.Vector3(...landmark('tumor')),
+    new THREE.Vector3(...landmark('vessel_mid1')),
+    new THREE.Vector3(...landmark('vessel_mid2')),
+    new THREE.Vector3(...landmark('sentinel')),
+    new THREE.Vector3(...landmark('level2')),
+    new THREE.Vector3(...landmark('level3')),
   ])
 }
 
 const AXILLA_NODES = [
-  { id: 'sentinel', label: 'Level I · sentinel', pos: [0.5, 0.38, -0.06] as const, r: 0.072 },
-  { id: 'level2', label: 'Level II', pos: [0.44, 0.56, -0.12] as const, r: 0.06 },
-  { id: 'level3', label: 'Level III', pos: [0.32, 0.74, -0.16] as const, r: 0.054 },
+  { id: 'sentinel', pos: landmark('sentinel'), r: 0.095 },
+  { id: 'level2', pos: landmark('level2'), r: 0.078 },
+  { id: 'level3', pos: landmark('level3'), r: 0.07 },
 ] as const
 
 function LymphTube({
@@ -114,141 +101,6 @@ function LymphTube({
   )
 }
 
-/**
- * Stylized upper torso: sculpted chest/shoulders/arm with translucent skin
- * so tumor, vessels, and axillary nodes read as internal anatomy.
- */
-function TorsoFigure({
-  quality,
-  showTumor = true,
-  showInternals = true,
-}: {
-  quality: SceneQuality
-  showTumor?: boolean
-  showInternals?: boolean
-}) {
-  const segs = quality === 'high' ? 48 : 24
-  const flesh = useTorsoLathe(segs, 0)
-  const skin = useTorsoLathe(segs, 0.035)
-
-  return (
-    <group>
-      {/* deeper soft tissue — translucent so internals read through */}
-      <mesh geometry={flesh}>
-        <meshStandardMaterial
-          color={COLORS.skinDeep}
-          roughness={0.9}
-          metalness={0.02}
-          transparent
-          opacity={0.68}
-          depthWrite
-        />
-      </mesh>
-      {/* outer skin shell */}
-      <mesh geometry={skin}>
-        <meshStandardMaterial
-          color={COLORS.skinTranslucent}
-          roughness={0.48}
-          metalness={0.02}
-          transparent
-          opacity={0.28}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* deltoid / clavicle pads — sculpted shoulder silhouette */}
-      <mesh position={[-0.48, 1.0, 0.02]} rotation={[0.12, 0.05, 0.55]} scale={[1.05, 0.5, 0.7]}>
-        <sphereGeometry args={[0.3, segs, segs]} />
-        <meshStandardMaterial color={COLORS.skin} roughness={0.72} transparent opacity={0.8} />
-      </mesh>
-      <mesh position={[0.48, 1.0, 0.06]} rotation={[0.12, -0.05, -0.55]} scale={[1.1, 0.52, 0.75]}>
-        <sphereGeometry args={[0.32, segs, segs]} />
-        <meshStandardMaterial color={COLORS.skin} roughness={0.72} transparent opacity={0.8} />
-      </mesh>
-
-      {/* pec / chest plane hint (right) */}
-      <mesh position={[0.2, 0.45, 0.3]} rotation={[-0.4, 0.28, 0.06]} scale={[1.15, 0.9, 0.42]}>
-        <sphereGeometry args={[0.36, segs, Math.max(12, segs / 2)]} />
-        <meshStandardMaterial color={COLORS.skin} roughness={0.7} transparent opacity={0.5} />
-      </mesh>
-
-      {/* neck */}
-      <mesh position={[0, 1.32, -0.02]}>
-        <cylinderGeometry args={[0.13, 0.17, 0.32, segs]} />
-        <meshStandardMaterial color={COLORS.skin} roughness={0.78} transparent opacity={0.9} />
-      </mesh>
-
-      {/* right arm — abducted slightly to open a clear axillary pocket */}
-      <mesh position={[0.7, 0.48, 0.02]} rotation={[0.25, 0.18, -1.15]}>
-        <capsuleGeometry args={[0.15, 0.55, 6, segs]} />
-        <meshStandardMaterial color={COLORS.skin} roughness={0.76} transparent opacity={0.82} />
-      </mesh>
-      <mesh position={[0.95, 0.08, 0.08]} rotation={[0.28, 0.08, -0.42]}>
-        <capsuleGeometry args={[0.13, 0.36, 6, Math.max(12, segs / 2)]} />
-        <meshStandardMaterial color={COLORS.skinDeep} roughness={0.8} transparent opacity={0.8} />
-      </mesh>
-
-      {/* soft axillary hollow fill (keeps nodes visually “inside” the fold) */}
-      <mesh position={[0.48, 0.48, -0.08]} scale={[0.55, 0.7, 0.45]}>
-        <sphereGeometry args={[0.28, Math.max(12, segs / 2), Math.max(12, segs / 2)]} />
-        <meshStandardMaterial
-          color={COLORS.skinDeep}
-          roughness={0.85}
-          transparent
-          opacity={0.35}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* left arm balance */}
-      <mesh position={[-0.68, 0.5, 0]} rotation={[0.12, -0.1, 1.1]}>
-        <capsuleGeometry args={[0.14, 0.4, 6, Math.max(12, segs / 2)]} />
-        <meshStandardMaterial color={COLORS.skin} roughness={0.8} transparent opacity={0.74} />
-      </mesh>
-
-      {/* right breast — tumor sits inside this volume */}
-      <mesh position={[0.28, 0.18, 0.48]}>
-        <sphereGeometry args={[0.255, segs, segs]} />
-        <meshStandardMaterial color="#c4a790" roughness={0.68} transparent opacity={0.78} />
-      </mesh>
-      <mesh position={[0.28, 0.18, 0.48]} scale={1.12}>
-        <sphereGeometry args={[0.255, segs, segs]} />
-        <meshStandardMaterial
-          color={COLORS.skinTranslucent}
-          roughness={0.45}
-          transparent
-          opacity={0.28}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {showTumor && (
-        <mesh position={[0.3, 0.2, 0.5]}>
-          <sphereGeometry args={[0.072, 18, 18]} />
-          <meshStandardMaterial
-            color={COLORS.tumor}
-            emissive={COLORS.tumor}
-            emissiveIntensity={0.45}
-            roughness={0.3}
-          />
-        </mesh>
-      )}
-
-      {showInternals && (
-        <>
-          {/* faint internal mammary chain (parasternal) */}
-          {[0.1, 0.3, 0.5].map((y, i) => (
-            <mesh key={i} position={[0.04, y, 0.34]}>
-              <sphereGeometry args={[0.03, 10, 10]} />
-              <meshStandardMaterial color={COLORS.node} transparent opacity={0.4} roughness={0.5} />
-            </mesh>
-          ))}
-        </>
-      )}
-    </group>
-  )
-}
-
 function AxillaryChain({
   quality,
   activeNode,
@@ -263,20 +115,10 @@ function AxillaryChain({
   const segs = quality === 'high' ? 28 : 14
   const path = useMemo(() => axillaryPath(), [])
   const tubular = quality === 'high' ? 64 : 28
-  const branch = useMemo(
-    () =>
-      new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0.22, 0.14, 0.44),
-        new THREE.Vector3(0.38, 0.26, 0.2),
-        new THREE.Vector3(0.48, 0.36, -0.02),
-      ]),
-    [],
-  )
 
   return (
     <group>
       <LymphTube curve={path} radius={0.028} tubular={tubular} color={COLORS.vessel} />
-      <LymphTube curve={branch} radius={0.016} tubular={Math.max(16, tubular / 2)} color={COLORS.vessel} opacity={0.55} />
       {AXILLA_NODES.map((n) => {
         const hot = interactive && activeNode === n.id
         const isSentinel = n.id === 'sentinel'
@@ -320,9 +162,9 @@ function AxillaryChain({
 /** Step 1 */
 export function LymphaticScene({ quality, reducedMotion, activeNode, onActiveNode }: SceneProps) {
   return (
-    <IdleSpin reducedMotion={reducedMotion} speed={0.07}>
+    <IdleSpin reducedMotion={reducedMotion} speed={0.04}>
       <SoftLight />
-      <TorsoFigure quality={quality} />
+      <AnatomyTorso quality={quality} />
       <AxillaryChain
         quality={quality}
         activeNode={activeNode}
@@ -353,7 +195,7 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   return (
     <group>
       <SoftLight />
-      <TorsoFigure quality={quality} />
+      <AnatomyTorso quality={quality} />
       <AxillaryChain
         quality={quality}
         activeNode={null}
@@ -390,11 +232,9 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
 
   useFrame(({ clock }) => {
     if (reducedMotion || !group.current) return
-    // Gentle sway keeps the open face toward the camera
     group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.45) * 0.28
   })
 
-  // Deposits sit in the open bowl, fully in front of the rear shell
   const deposits = [
     { id: 'itc', pos: [-0.48, 0.38, 0.35] as const, r: 0.065, color: COLORS.itc },
     { id: 'micro', pos: [0.42, -0.02, 0.32] as const, r: 0.17, color: COLORS.micro },
@@ -408,7 +248,6 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
       <directionalLight position={[3.2, 4.5, 5]} intensity={1.15} color="#fff8f0" />
       <directionalLight position={[-2.2, 1.2, 2]} intensity={0.3} color="#f0f2ef" />
 
-      {/* Rear lymphoid bowl — open face toward +Z / camera */}
       <mesh rotation={[0, Math.PI / 2, 0]}>
         <sphereGeometry args={[1.02, segs, segs, 0, Math.PI, 0, Math.PI]} />
         <meshStandardMaterial
@@ -418,12 +257,10 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
           side={THREE.DoubleSide}
         />
       </mesh>
-      {/* thin capsule rim */}
       <mesh rotation={[0, Math.PI / 2, 0]}>
         <torusGeometry args={[1.02, 0.035, 10, Math.max(24, segs)]} />
         <meshStandardMaterial color={COLORS.nodeCapsule} roughness={0.4} metalness={0.05} />
       </mesh>
-      {/* cut-face disk (slightly behind deposits) */}
       <mesh position={[0, 0, -0.02]}>
         <circleGeometry args={[1.0, segs]} />
         <meshStandardMaterial color="#f4f7f4" roughness={0.95} side={THREE.DoubleSide} />
@@ -443,7 +280,6 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
         </mesh>
       ))}
 
-      {/* visible scale cue — ITC / micro / macro relative sizes */}
       <group position={[0, -1.3, 0.25]}>
         <mesh>
           <boxGeometry args={[1.5, 0.022, 0.022]} />
@@ -469,7 +305,11 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
   )
 }
 
-/** Step 4 */
+/**
+ * Step 4 — schematic SLNB vs ALND panels.
+ * Node positions follow the same Level I→III direction (lateral axilla → infraclavicular)
+ * as the BodyParts3D-anchored chain in steps 1–2.
+ */
 export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
   const segs = quality === 'high' ? 20 : 12
   const group = useRef<Group>(null)
@@ -478,16 +318,17 @@ export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
     group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.35) * 0.08
   })
 
+  // Relative Level I → III layout (mirrors anatomical direction used in the GLB scene)
   const left = [
-    [0.18, 0.32, 0.15],
-    [0.28, 0.55, 0.0],
+    [-0.15, 0.05, 0.12], // Level I / sentinel
+    [-0.02, 0.28, 0.0], // Level II hint
   ] as const
   const right = [
-    [0.15, 0.22, 0.18],
-    [0.28, 0.38, 0.06],
-    [0.35, 0.58, -0.04],
-    [0.22, 0.78, -0.1],
-    [0.42, 0.7, 0.08],
+    [-0.18, -0.05, 0.14], // Level I
+    [-0.08, 0.15, 0.06], // Level II
+    [0.05, 0.38, -0.04], // Level III
+    [-0.22, 0.22, 0.1],
+    [0.12, 0.28, 0.08],
   ] as const
 
   return (
@@ -498,9 +339,14 @@ export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
           <boxGeometry args={[1.5, 2.2, 0.08]} />
           <meshStandardMaterial color={COLORS.board} roughness={0.9} />
         </mesh>
-        <mesh position={[0, -0.1, 0]}>
-          <sphereGeometry args={[0.32, segs, segs]} />
-          <meshStandardMaterial color={COLORS.skinDeep} />
+        {/* mini chest silhouette */}
+        <mesh position={[0, -0.15, 0.05]} scale={[0.9, 1.1, 0.55]}>
+          <sphereGeometry args={[0.42, segs, segs]} />
+          <meshStandardMaterial color={COLORS.skinDeep} transparent opacity={0.85} />
+        </mesh>
+        <mesh position={[-0.35, 0.15, 0.05]} rotation={[0.1, 0.2, -0.9]}>
+          <capsuleGeometry args={[0.1, 0.35, 4, segs]} />
+          <meshStandardMaterial color={COLORS.skin} transparent opacity={0.8} />
         </mesh>
         {left.map((p, i) => (
           <mesh key={i} position={p}>
@@ -518,14 +364,22 @@ export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
           <boxGeometry args={[1.5, 2.2, 0.08]} />
           <meshStandardMaterial color={COLORS.board} roughness={0.9} />
         </mesh>
-        <mesh position={[0, -0.1, 0]}>
-          <sphereGeometry args={[0.32, segs, segs]} />
-          <meshStandardMaterial color={COLORS.skinDeep} />
+        <mesh position={[0, -0.15, 0.05]} scale={[0.9, 1.1, 0.55]}>
+          <sphereGeometry args={[0.42, segs, segs]} />
+          <meshStandardMaterial color={COLORS.skinDeep} transparent opacity={0.85} />
+        </mesh>
+        <mesh position={[-0.35, 0.15, 0.05]} rotation={[0.1, 0.2, -0.9]}>
+          <capsuleGeometry args={[0.1, 0.35, 4, segs]} />
+          <meshStandardMaterial color={COLORS.skin} transparent opacity={0.8} />
         </mesh>
         {right.map((p, i) => (
           <mesh key={i} position={p}>
             <sphereGeometry args={[0.085, segs, segs]} />
-            <meshStandardMaterial color={COLORS.sentinel} />
+            <meshStandardMaterial
+              color={i < 3 ? COLORS.sentinel : COLORS.node}
+              emissive={i < 3 ? COLORS.sentinel : '#000'}
+              emissiveIntensity={i < 3 ? 0.12 : 0}
+            />
           </mesh>
         ))}
       </group>
@@ -607,12 +461,13 @@ export type CameraTarget = {
 }
 
 export function cameraTargetFor(stepId: ExplainerStepId, mobile = false): CameraTarget {
+  // Patient-right axilla sits at roughly landmark('axilla') ≈ (−0.75, −0.15, 0)
   if (mobile) {
     switch (stepId) {
       case 'lymphatic':
-        return { position: [2.2, 0.85, 3.2], lookAt: [0.18, 0.38, 0.02] }
+        return { position: [-2.2, 0.95, 2.2], lookAt: [-0.55, 0.15, 0.0] }
       case 'spread':
-        return { position: [2.15, 0.82, 3.15], lookAt: [0.18, 0.38, 0.04] }
+        return { position: [-2.15, 0.9, 2.15], lookAt: [-0.55, 0.15, 0.0] }
       case 'inside':
         return { position: [0.1, 0.22, 3.55], lookAt: [0, -0.05, 0] }
       case 'surgery':
@@ -620,14 +475,14 @@ export function cameraTargetFor(stepId: ExplainerStepId, mobile = false): Camera
       case 'patches':
         return { position: [0.06, 0.2, 3.75], lookAt: [0, 0, 0] }
       default:
-        return { position: [2.1, 0.85, 3.15], lookAt: [0.15, 0.35, 0] }
+        return { position: [-1.5, 0.5, 2.7], lookAt: [-0.5, 0, 0] }
     }
   }
   switch (stepId) {
     case 'lymphatic':
-      return { position: [2.85, 1.05, 3.55], lookAt: [0.15, 0.4, 0] }
+      return { position: [-2.35, 0.95, 2.9], lookAt: [-0.5, 0.12, 0.02] }
     case 'spread':
-      return { position: [2.75, 1.0, 3.5], lookAt: [0.15, 0.4, 0.02] }
+      return { position: [-2.25, 0.9, 2.85], lookAt: [-0.5, 0.12, 0.02] }
     case 'inside':
       return { position: [0.15, 0.25, 3.8], lookAt: [0, -0.05, 0] }
     case 'surgery':
@@ -635,6 +490,6 @@ export function cameraTargetFor(stepId: ExplainerStepId, mobile = false): Camera
     case 'patches':
       return { position: [0.1, 0.28, 4.1], lookAt: [0, 0, 0] }
     default:
-      return { position: [2.7, 1.0, 3.45], lookAt: [0.15, 0.35, 0] }
+      return { position: [-2.0, 0.6, 3.1], lookAt: [-0.4, 0, 0] }
   }
 }

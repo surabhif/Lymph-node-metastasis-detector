@@ -110,16 +110,16 @@ export default function ExplainerCanvas({
           activeNode={activeNode}
           onActiveNode={onActiveNode}
         />
-        <ContactShadows position={[0, -1.35, 0]} opacity={0.3} scale={10} blur={2.6} far={4} />
-        <Environment preset="apartment" environmentIntensity={0.32} />
+        <ContactShadows position={[0, -1.15, 0]} opacity={0.28} scale={10} blur={2.6} far={4} />
+        <Environment preset="apartment" environmentIntensity={0.28} />
         <OrbitControls
           ref={controlsRef}
           enablePan={false}
           enableZoom
-          minDistance={2.2}
-          maxDistance={7.5}
+          minDistance={1.8}
+          maxDistance={8}
           maxPolarAngle={Math.PI * 0.78}
-          minPolarAngle={0.25}
+          minPolarAngle={0.2}
           enableDamping
           dampingFactor={0.08}
           makeDefault

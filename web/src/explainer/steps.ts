@@ -111,4 +111,10 @@ export const EXPLAINER_SOURCES: { name: string; href: string; note: string }[] =
     href: 'https://github.com/basveeling/pcam',
     note: 'Public 96×96 lymph-node patches derived from Camelyon16 (CC0).',
   },
+  {
+    name: 'BodyParts3D / Anatomography — Database Center for Life Science',
+    href: 'https://dbarchive.biosciencedbc.jp/en/bodyparts3d/desc.html',
+    note:
+      'Upper-torso GLB in the explainer (skin, pectoralis major/minor, deltoid, clavicles, sternum, proximal humeri). License: CC BY 4.0 International. Attribution: “BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International”. Cropped/decimated/Draco-compressed for the web; educational lymph overlays added in-app.',
+  },
 ]

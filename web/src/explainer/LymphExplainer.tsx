@@ -380,8 +380,9 @@ export default function LymphExplainer() {
           ))}
         </ul>
         <p className="tiny muted">
-          3D scenes use procedural / low-poly geometry generated in-browser (no third-party 3D
-          models).
+          The upper-torso mesh is derived from BodyParts3D (CC BY 4.0); see Sources and{' '}
+          <code>THIRD_PARTY_NOTICES.md</code>. Lymph vessels/nodes are educational overlays.
+          If the mesh fails to load, a procedural fallback is used. Step 3 remains schematic.
         </p>
       </details>
     </section>
