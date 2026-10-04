@@ -545,21 +545,66 @@ export function PatchesScene({ quality, reducedMotion }: SceneProps) {
           <meshBasicMaterial map={mosaicTex} toneMapped={false} transparent />
         </mesh>
 
-        {/* Soft tumor-label tint over tumor tiles (not the hot one — it has its own frame) */}
+        {/* Tumor-label cue: border frame (keeps H&E readable) */}
         {tumorTiles.map((t) => {
           const x = -half + tileSize * (t.col + 0.5)
           const y = half - tileSize * (t.row + 0.5)
+          const inner = tileSize - gap
+          const stroke = 0.045
           return (
-            <mesh key={`tint-${t.row}-${t.col}`} position={[x, y, 0.02]} userData={{ fadable: true }}>
-              <planeGeometry args={[tileSize - gap, tileSize - gap]} />
-              <meshBasicMaterial
-                color={COLORS.tumor}
-                transparent
-                opacity={0.16}
-                depthWrite={false}
-                toneMapped={false}
-              />
-            </mesh>
+            <group key={`tint-${t.row}-${t.col}`} position={[x, y, 0.025]} userData={{ fadable: true }}>
+              <mesh position={[0, inner / 2 - stroke / 2, 0]} userData={{ fadable: true }}>
+                <planeGeometry args={[inner, stroke]} />
+                <meshBasicMaterial
+                  color={COLORS.tumor}
+                  transparent
+                  opacity={0.7}
+                  depthWrite={false}
+                  toneMapped={false}
+                />
+              </mesh>
+              <mesh position={[0, -inner / 2 + stroke / 2, 0]} userData={{ fadable: true }}>
+                <planeGeometry args={[inner, stroke]} />
+                <meshBasicMaterial
+                  color={COLORS.tumor}
+                  transparent
+                  opacity={0.7}
+                  depthWrite={false}
+                  toneMapped={false}
+                />
+              </mesh>
+              <mesh position={[-inner / 2 + stroke / 2, 0, 0]} userData={{ fadable: true }}>
+                <planeGeometry args={[stroke, inner - stroke * 2]} />
+                <meshBasicMaterial
+                  color={COLORS.tumor}
+                  transparent
+                  opacity={0.7}
+                  depthWrite={false}
+                  toneMapped={false}
+                />
+              </mesh>
+              <mesh position={[inner / 2 - stroke / 2, 0, 0]} userData={{ fadable: true }}>
+                <planeGeometry args={[stroke, inner - stroke * 2]} />
+                <meshBasicMaterial
+                  color={COLORS.tumor}
+                  transparent
+                  opacity={0.7}
+                  depthWrite={false}
+                  toneMapped={false}
+                />
+              </mesh>
+              {/* light wash only in a corner badge so tissue stays readable */}
+              <mesh position={[inner * 0.32, inner * 0.32, 0.001]} userData={{ fadable: true }}>
+                <planeGeometry args={[inner * 0.28, inner * 0.28]} />
+                <meshBasicMaterial
+                  color={COLORS.tumor}
+                  transparent
+                  opacity={0.45}
+                  depthWrite={false}
+                  toneMapped={false}
+                />
+              </mesh>
+            </group>
           )
         })}
 

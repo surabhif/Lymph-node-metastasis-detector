@@ -25,11 +25,14 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
               t.isTumor ? (
                 <rect
                   key={`t-${t.row}-${t.col}`}
-                  x={t.col}
-                  y={t.row}
-                  width="1"
-                  height="1"
-                  fill={t.hot ? 'rgba(159,45,34,0.15)' : 'rgba(159,45,34,0.28)'}
+                  x={t.col + 0.04}
+                  y={t.row + 0.04}
+                  width="0.92"
+                  height="0.92"
+                  fill="none"
+                  stroke="#9f2d22"
+                  strokeWidth={t.hot ? 0 : 0.04}
+                  opacity={t.hot ? 0 : 0.85}
                 />
               ) : null,
             )}

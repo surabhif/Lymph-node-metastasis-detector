@@ -133,7 +133,7 @@ function SceneLegendBody({
     <>
       <div className="scene-legend-row muted">Real PCam H&amp;E mosaic (WSI stand-in)</div>
       <div className="scene-legend-row">
-        <span className="scene-swatch tumor soft-tint" /> Tumor-labeled tile tint
+        <span className="scene-swatch tumor soft-tint" /> Tumor-labeled tile (frame)
       </div>
       <div className="scene-legend-row">
         <span className="scene-swatch tumor" /> Highlighted 96×96 tumor patch
