@@ -171,8 +171,8 @@ export function cameraTargetFor(
   }
   if (stepId === 'patches') {
     return mobile
-      ? { position: [0.06, 0.2, 3.75], lookAt: [0, 0, 0] }
-      : { position: [0.1, 0.28, 4.1], lookAt: [0, 0, 0] }
+      ? { position: [0, 0.05, 4.4], lookAt: [0, -0.05, 0] }
+      : { position: [0, 0.08, 4.8], lookAt: [0, -0.02, 0] }
   }
   if (stepId === 'surgery') {
     if (mobile || surgerySingle) {

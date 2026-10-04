@@ -239,6 +239,85 @@
 .scene-swatch.lymphoid { background: #edf2ee; border: 1px solid #b7c9bf; }
 .scene-swatch.patch { background: #0b6b54; }
 
+.patch-float-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  padding: 0.35rem 0.55rem;
+  background: rgba(255, 252, 246, 0.94);
+  border: 1px solid rgba(159, 45, 34, 0.45);
+  border-radius: 0.4rem;
+  box-shadow: 0 4px 14px rgba(26, 36, 33, 0.12);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  color: #1a2421;
+  line-height: 1.2;
+}
+
+.patch-float-label strong {
+  font-size: 0.78rem;
+  color: #9f2d22;
+}
+
+.patch-float-label span {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.patch-float-label em {
+  font-size: 0.65rem;
+  font-style: normal;
+  color: #5a6762;
+}
+
+.patch-float-label.fallback {
+  margin: 0.55rem auto 0;
+  width: fit-content;
+}
+
+.patch-mosaic-caption {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #3a4540;
+  background: rgba(255, 252, 246, 0.9);
+  border-radius: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+}
+
+.patch-rule-note {
+  margin: 0 0 0.75rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.explainer-fallback-patches {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.explainer-fallback-mosaic {
+  width: min(100%, 288px);
+  height: auto;
+  border-radius: 0.35rem;
+  display: block;
+}
+
+.explainer-fallback-grid {
+  position: absolute;
+  top: 0.75rem;
+  left: 50%;
+  width: min(100%, 288px);
+  height: auto;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .explainer-viewport-hint .text-button {
   pointer-events: auto;
 }

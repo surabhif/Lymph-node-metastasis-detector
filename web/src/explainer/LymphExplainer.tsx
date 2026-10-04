@@ -11,6 +11,7 @@ import {
 import { Link } from 'react-router-dom'
 import { EXPLAINER_SOURCES, EXPLAINER_STEPS } from './steps'
 import ExplainerFallback from './ExplainerFallback'
+import patchesMeta from './patchesMeta.json'
 import './explainer.css'
 
 const ExplainerCanvas = lazy(() => import('./ExplainerCanvas'))
@@ -130,10 +131,14 @@ function SceneLegendBody({
   }
   return (
     <>
-      <div className="scene-legend-row">Whole-slide tiled grid</div>
+      <div className="scene-legend-row muted">Real PCam H&amp;E mosaic (WSI stand-in)</div>
       <div className="scene-legend-row">
-        <span className="scene-swatch patch" /> One 96×96 patch → detector
+        <span className="scene-swatch tumor" /> Tumor-labeled tile tint
       </div>
+      <div className="scene-legend-row">
+        <span className="scene-swatch patch" /> Highlighted 96×96 tumor patch
+      </div>
+      <div className="scene-legend-row muted">Label if center 32×32 has tumor</div>
     </>
   )
 }
@@ -375,11 +380,16 @@ export default function LymphExplainer() {
             )}
             {step.id === 'patches' && (
               <div className="explainer-cta-block">
-                <Link className="btn" to="/demo">
-                  Try the detector
+                <p className="patch-rule-note">
+                  PCam labeling rule: a patch is labeled <strong>tumor</strong> if the{' '}
+                  <strong>center 32×32</strong> region contains tumor tissue.
+                </p>
+                <Link className="btn" to={`/demo?sample=${patchesMeta.hotTile.galleryId}`}>
+                  Open this tumor patch in the detector
                 </Link>
                 <p className="muted tiny">
-                  Run the ONNX model on real PCam test patches and inspect the heatmap.
+                  Preloads the same highlighted 96×96 test patch (index 2883, CC0) and runs the
+                  ONNX model in your browser.
                 </p>
               </div>
             )}
@@ -423,6 +433,8 @@ export default function LymphExplainer() {
           The upper-torso mesh is derived from BodyParts3D (CC BY 4.0); see Sources and{' '}
           <code>THIRD_PARTY_NOTICES.md</code>. Lymph vessels/nodes are educational overlays.
           If the mesh fails to load, a procedural fallback is used. Step 3 remains schematic.
+          Step 5 uses a mosaic of real PCam (CC0) test patches as an honest WSI stand-in — not
+          contiguous tissue.
         </p>
       </details>
     </section>
