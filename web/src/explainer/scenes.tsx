@@ -66,29 +66,38 @@ function TorsoFigure({ quality, showTumor = true }: { quality: SceneQuality; sho
   const segs = quality === 'high' ? 32 : 16
   return (
     <group>
-      {/* shoulders / upper torso */}
-      <mesh position={[0, 0.15, 0]} rotation={[0.08, 0.4, 0]} castShadow>
-        <capsuleGeometry args={[0.72, 1.35, 8, segs]} />
+      {/* chest block — flatter, more torso-like */}
+      <mesh position={[0, 0.05, 0]} rotation={[0.05, 0.55, 0]}>
+        <capsuleGeometry args={[0.55, 1.15, 8, segs]} />
         <meshStandardMaterial color={PALETTE.skin} roughness={0.78} metalness={0.04} />
       </mesh>
-      {/* neck hint */}
-      <mesh position={[-0.05, 1.15, -0.05]}>
-        <cylinderGeometry args={[0.22, 0.26, 0.35, segs]} />
+      {/* shoulders */}
+      <mesh position={[-0.55, 0.85, -0.05]} rotation={[0, 0, 0.35]}>
+        <capsuleGeometry args={[0.18, 0.55, 6, segs]} />
         <meshStandardMaterial color={PALETTE.skinDeep} roughness={0.8} />
       </mesh>
-      {/* breast mound */}
-      <mesh position={[0.32, 0.05, 0.62]}>
-        <sphereGeometry args={[0.38, segs, segs]} />
-        <meshStandardMaterial color={PALETTE.skinDeep} roughness={0.72} />
+      <mesh position={[0.55, 0.85, 0.05]} rotation={[0, 0, -0.55]}>
+        <capsuleGeometry args={[0.18, 0.7, 6, segs]} />
+        <meshStandardMaterial color={PALETTE.skinDeep} roughness={0.8} />
+      </mesh>
+      {/* neck */}
+      <mesh position={[0, 1.2, -0.08]}>
+        <cylinderGeometry args={[0.16, 0.2, 0.28, segs]} />
+        <meshStandardMaterial color={PALETTE.skin} roughness={0.8} />
+      </mesh>
+      {/* breast mound — forward facing */}
+      <mesh position={[0.28, 0.12, 0.52]}>
+        <sphereGeometry args={[0.34, segs, segs]} />
+        <meshStandardMaterial color="#c2a993" roughness={0.7} />
       </mesh>
       {showTumor && (
-        <mesh position={[0.42, 0.08, 0.88]}>
-          <sphereGeometry args={[0.09, 16, 16]} />
+        <mesh position={[0.4, 0.18, 0.78]}>
+          <sphereGeometry args={[0.1, 18, 18]} />
           <meshStandardMaterial
             color={PALETTE.tumor}
             emissive={PALETTE.tumor}
-            emissiveIntensity={0.28}
-            roughness={0.45}
+            emissiveIntensity={0.45}
+            roughness={0.35}
           />
         </mesh>
       )}
@@ -98,12 +107,12 @@ function TorsoFigure({ quality, showTumor = true }: { quality: SceneQuality; sho
 
 function vesselCurve() {
   return new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0.42, 0.08, 0.88),
-    new THREE.Vector3(0.7, 0.22, 0.78),
-    new THREE.Vector3(1.05, 0.42, 0.55),
-    new THREE.Vector3(1.28, 0.58, 0.28),
-    new THREE.Vector3(1.42, 0.9, 0.05),
-    new THREE.Vector3(1.28, 1.2, -0.12),
+    new THREE.Vector3(0.4, 0.18, 0.78),
+    new THREE.Vector3(0.72, 0.35, 0.62),
+    new THREE.Vector3(1.05, 0.55, 0.35),
+    new THREE.Vector3(1.25, 0.72, 0.12),
+    new THREE.Vector3(1.35, 1.0, -0.05),
+    new THREE.Vector3(1.18, 1.28, -0.18),
   ])
 }
 
@@ -114,9 +123,9 @@ export function LymphaticScene({ quality, reducedMotion, activeNode, onActiveNod
   const vesselPoints = useMemo(() => path.getPoints(quality === 'high' ? 64 : 28), [path, quality])
   const nodes = useMemo(
     () => [
-      { id: 'sentinel', pos: [1.28, 0.58, 0.28] as const, r: 0.13 },
-      { id: 'level2', pos: [1.42, 0.9, 0.05] as const, r: 0.1 },
-      { id: 'level3', pos: [1.28, 1.2, -0.12] as const, r: 0.095 },
+      { id: 'sentinel', pos: [1.25, 0.72, 0.12] as const, r: 0.13 },
+      { id: 'level2', pos: [1.35, 1.0, -0.05] as const, r: 0.1 },
+      { id: 'level3', pos: [1.18, 1.28, -0.18] as const, r: 0.095 },
     ],
     [],
   )
@@ -195,11 +204,11 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
       <SoftLight />
       <TorsoFigure quality={quality} />
       <Line points={pts} color={PALETTE.vessel} lineWidth={3.5} />
-      <mesh position={[1.28, 0.58, 0.28]}>
+      <mesh position={[1.25, 0.72, 0.12]}>
         <sphereGeometry args={[0.15, segs, segs]} />
         <meshStandardMaterial color={PALETTE.node} emissive={PALETTE.node} emissiveIntensity={0.18} />
       </mesh>
-      <mesh position={[1.28, 1.2, -0.12]}>
+      <mesh position={[1.18, 1.28, -0.18]}>
         <sphereGeometry args={[0.11, segs, segs]} />
         <meshStandardMaterial color={PALETTE.nodeSoft} />
       </mesh>
@@ -233,9 +242,9 @@ export function InsideNodeScene({ quality, reducedMotion }: SceneProps) {
   })
 
   const deposits = [
-    { id: 'itc', pos: [-0.42, 0.28, 0.35] as const, r: 0.06, color: '#e8a598' },
-    { id: 'micro', pos: [0.28, -0.12, 0.42] as const, r: 0.14, color: '#d47868' },
-    { id: 'macro', pos: [-0.08, 0.22, -0.28] as const, r: 0.3, color: PALETTE.tumor },
+    { id: 'itc', pos: [-0.55, 0.35, 0.45] as const, r: 0.07, color: '#e8a598' },
+    { id: 'micro', pos: [0.4, -0.15, 0.5] as const, r: 0.16, color: '#d47868' },
+    { id: 'macro', pos: [-0.1, 0.15, -0.35] as const, r: 0.34, color: PALETTE.tumor },
   ]
 
   return (
@@ -410,16 +419,16 @@ export type CameraTarget = {
 export function cameraTargetFor(stepId: ExplainerStepId): CameraTarget {
   switch (stepId) {
     case 'lymphatic':
-      return { position: [2.9, 1.15, 3.4], lookAt: [0.55, 0.45, 0.2] }
+      return { position: [3.8, 1.55, 4.5], lookAt: [0.35, 0.45, 0.1] }
     case 'spread':
-      return { position: [2.7, 1.05, 3.35], lookAt: [0.55, 0.45, 0.25] }
+      return { position: [3.65, 1.45, 4.4], lookAt: [0.35, 0.45, 0.15] }
     case 'inside':
-      return { position: [0.15, 0.35, 3.55], lookAt: [0, 0.05, 0] }
+      return { position: [0.25, 0.5, 4.2], lookAt: [0, 0.05, 0] }
     case 'surgery':
-      return { position: [0, 0.55, 4.8], lookAt: [0, 0.15, 0] }
+      return { position: [0, 0.65, 5.5], lookAt: [0, 0.15, 0] }
     case 'patches':
-      return { position: [0.1, 0.35, 3.9], lookAt: [0, 0, 0] }
+      return { position: [0.2, 0.45, 4.5], lookAt: [0, 0, 0] }
     default:
-      return { position: [2.5, 1.2, 3.4], lookAt: [0.4, 0.4, 0] }
+      return { position: [3.4, 1.4, 4.2], lookAt: [0.35, 0.45, 0] }
   }
 }

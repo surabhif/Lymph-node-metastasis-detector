@@ -118,7 +118,7 @@
 .explainer-viewport {
   position: relative;
   min-height: 560px;
-  height: clamp(520px, 62vh, 640px);
+  height: clamp(540px, 64vh, 660px);
   padding: 0;
   overflow: hidden;
   width: 100%;
