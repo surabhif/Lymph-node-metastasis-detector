@@ -65,30 +65,35 @@ function toScenePos(p: [number, number, number]): [number, number, number] {
 /**
  * Glassy translucent skin: low center opacity, cool fresnel rim, soft neck alpha fade.
  * Drawn last (high renderOrder) so internals read as inside the shell.
+ * Keep attenuation cool and flatten fold valleys — physical absorption + dense
+ * clavicle/pec tessellation otherwise read as dark-red BP3D leftovers under SwiftShader.
  */
 function makeSkinMaterial(baseOpacity: number) {
   const mat = new THREE.MeshPhysicalMaterial({
-    color: new THREE.Color(COLORS.skinTranslucent).multiplyScalar(1.2),
-    roughness: 0.15,
+    color: new THREE.Color(COLORS.skinTranslucent).multiplyScalar(1.15),
+    roughness: 0.34,
     metalness: 0.0,
-    transmission: 0.78,
-    thickness: 0.85,
-    ior: 1.33,
+    // Low transmission/thickness so mesh folds do not darken into muddy blotches
+    transmission: 0.22,
+    thickness: 0.12,
+    ior: 1.25,
     transparent: true,
-    opacity: baseOpacity,
+    opacity: Math.min(0.3, baseOpacity + 0.12),
     depthWrite: false,
     side: THREE.FrontSide,
-    sheen: 0.7,
-    sheenRoughness: 0.3,
+    sheen: 0.4,
+    sheenRoughness: 0.5,
     sheenColor: new THREE.Color(COLORS.skinRim),
-    clearcoat: 0.6,
-    clearcoatRoughness: 0.15,
-    envMapIntensity: 1.25,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.3,
+    envMapIntensity: 0.75,
+    attenuationColor: new THREE.Color('#9ec8c4'),
+    attenuationDistance: 0.55,
   })
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uNeckStart = { value: NECK_FADE_START }
     shader.uniforms.uNeckEnd = { value: NECK_FADE_END }
-    shader.uniforms.uBaseOpacity = { value: baseOpacity }
+    shader.uniforms.uBaseOpacity = { value: Math.min(0.3, baseOpacity + 0.12) }
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -102,7 +107,9 @@ function makeSkinMaterial(baseOpacity: number) {
         '#include <project_vertex>',
         `#include <project_vertex>
         vGlassWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
-        vGlassViewN = normalize(mat3(modelViewMatrix) * normal);
+        // Soften high-frequency fold normals so clavicle/pec creases do not self-shadow
+        vec3 softN = normalize(mix(normal, normalize(transformed), 0.22));
+        vGlassViewN = normalize(mat3(modelViewMatrix) * softN);
         vGlassViewP = -mvPosition.xyz;`,
       )
 
@@ -121,16 +128,26 @@ function makeSkinMaterial(baseOpacity: number) {
         '#include <opaque_fragment>',
         `#include <opaque_fragment>
         float ndv = saturate(dot(normalize(vGlassViewN), normalize(vGlassViewP)));
-        float fres = pow(1.0 - ndv, 2.4);
-        gl_FragColor.rgb += vec3(0.55, 0.95, 0.92) * fres * 1.35;
-        float faceAlpha = mix(uBaseOpacity * 0.18, min(0.82, uBaseOpacity + fres * 0.7), fres);
+        float fres = pow(1.0 - ndv, 2.7);
+        gl_FragColor.rgb += vec3(0.38, 0.86, 0.84) * fres * 0.95;
+        // Strip residual warm/brown channel from fold absorption
+        float warm = max(0.0, gl_FragColor.r - max(gl_FragColor.g, gl_FragColor.b) * 1.02);
+        gl_FragColor.r -= warm;
+        gl_FragColor.g = max(gl_FragColor.g, gl_FragColor.r * 0.98);
+        gl_FragColor.b = max(gl_FragColor.b, gl_FragColor.r * 1.02);
+        // Lift dark fold valleys toward a cool glass fill (kills pec/clavicle smudges)
+        float lum = dot(gl_FragColor.rgb, vec3(0.3, 0.55, 0.15));
+        float valley = 1.0 - smoothstep(0.02, 0.14, lum);
+        vec3 coolFill = vec3(0.06, 0.13, 0.145);
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, max(gl_FragColor.rgb, coolFill), valley * 0.85);
+        float faceAlpha = mix(uBaseOpacity * 0.4, min(0.7, uBaseOpacity + fres * 0.5), fres);
         float neckFade = 1.0 - smoothstep(uNeckStart, uNeckEnd, vGlassWorldPos.y);
         if (neckFade <= 0.01) discard;
         gl_FragColor.a = faceAlpha * neckFade;
         `,
       )
   }
-  mat.customProgramCacheKey = () => `hra-glass-skin-v5-${baseOpacity.toFixed(2)}`
+  mat.customProgramCacheKey = () => `hra-glass-skin-v8-flatfold-${baseOpacity.toFixed(2)}`
   return mat
 }
 
@@ -290,9 +307,10 @@ function HraSkin({ dimmed }: { dimmed: boolean }) {
 const MAMMARY_CENTER_M: [number, number, number] = [-0.1059569, 0.41539925, 0.05461578]
 /**
  * Seat target inside the glass right-breast mound (toward nipple / UOQ side).
- * More lateral (−X), higher, and more anterior than the raw HRA mammary center.
+ * Keep Y low enough that lobes never poke into the clavicle/pec fold — that
+ * read as dark smudges through the glass skin on SwiftShader.
  */
-const MAMMARY_TARGET_M: [number, number, number] = [-0.172, 0.492, 0.086]
+const MAMMARY_TARGET_M: [number, number, number] = [-0.168, 0.458, 0.084]
 
 function HraMammary({ dimmed }: { dimmed: boolean }) {
   const { scene } = useGLTF(MAMMARY_URL, DRACO_PATH)
@@ -304,7 +322,7 @@ function HraMammary({ dimmed }: { dimmed: boolean }) {
     return c
   }, [scene, dimmed])
   return (
-    <group position={MAMMARY_TARGET_M} scale={1.18} rotation={[0.1, -0.1, 0.02]}>
+    <group position={MAMMARY_TARGET_M} scale={1.1} rotation={[0.06, -0.08, 0.02]}>
       <primitive object={object} />
     </group>
   )
@@ -345,9 +363,9 @@ function GlbFemaleTorso({
         {showBreast && <HraMammary dimmed={dimmed} />}
         <HraSkin dimmed={dimmed} />
       </group>
-      {/* BP3D pec/chest cues dropped — male fragments could not be aligned cleanly under HRA skin. */}
+      {/* BP3D pec/chest cues intentionally omitted — misaligned fragments read as
+          dark-red mid-chest smudges under glass. File kept only for CC BY credit. */}
       {showTumor && <TumorMarker />}
-      {/* Internal mammary chain omitted — read as stray mid-chest dots against glass skin. */}
     </group>
   )
 }

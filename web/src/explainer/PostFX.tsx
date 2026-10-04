@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useState } from 'react'
-import { EffectComposer, Bloom, Vignette, N8AO } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import { PerformanceMonitor } from '@react-three/drei'
 import type { SceneQuality } from './AnatomyTorso'
 
@@ -25,8 +25,10 @@ function detectLowEndGpu(): boolean {
 
 /**
  * Light post-processing with an auto quality tier.
- * - high desktop: bloom + soft AO + vignette
- * - low / mobile / declined: bloom only, then off
+ * - high desktop: bloom + vignette (+ optional subtle DOF later)
+ * - low / mobile / declined: half-strength bloom, then off
+ * Avoid N8AO on the glass torso — AO fills clavicle/pec folds with
+ * dark-red/brown smudges that read as leftover BP3D geometry.
  * Respects prefers-reduced-motion by skipping entirely when reducedMotion.
  */
 export function PostFX({
@@ -65,19 +67,15 @@ export function PostFX({
         bounds={(fps) => (fps < 28 ? [0, 28] : [45, 90])}
       />
       <Suspense fallback={null}>
-        <EffectComposer multisampling={tier === 'full' ? 4 : 0} enableNormalPass={tier === 'full'}>
+        <EffectComposer multisampling={tier === 'full' ? 4 : 0} enableNormalPass={false}>
           <Bloom
-            luminanceThreshold={0.45}
-            luminanceSmoothing={0.4}
-            intensity={tier === 'full' ? 1.15 : 0.75}
+            luminanceThreshold={0.5}
+            luminanceSmoothing={0.45}
+            intensity={tier === 'full' ? 0.95 : 0.55}
             mipmapBlur
+            levels={tier === 'full' ? 5 : 3}
           />
-          {tier === 'full' ? (
-            <N8AO aoRadius={0.4} intensity={0.7} distanceFalloff={0.55} quality="performance" />
-          ) : (
-            <></>
-          )}
-          {tier === 'full' ? <Vignette offset={0.22} darkness={0.65} /> : <Vignette offset={0.25} darkness={0.45} />}
+          {tier === 'full' ? <Vignette offset={0.28} darkness={0.5} /> : <Vignette offset={0.3} darkness={0.35} />}
         </EffectComposer>
       </Suspense>
     </>

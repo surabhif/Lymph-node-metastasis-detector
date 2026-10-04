@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, OrbitControls } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
@@ -137,9 +137,7 @@ export default function ExplainerCanvas({
 
   if (!mounted) return null
 
-  const shadowY = getTorsoBounds().min.y - 0.08
   const isPatches = stepId === 'patches'
-  const isInside = stepId === 'inside'
 
   return (
     <Canvas
@@ -171,9 +169,8 @@ export default function ExplainerCanvas({
           surgeryMode={surgeryMode}
           depositMode={depositMode}
         />
-        {!isPatches && !isInside && (
-          <ContactShadows position={[0, shadowY, 0]} opacity={0.28} scale={12} blur={2.6} far={5} />
-        )}
+        {/* ContactShadows omitted — under translucent glass they read as dark
+            pec/clavicle smudges on SwiftShader rather than a ground contact cue. */}
         {!isPatches && (
           <PostFX quality={quality} reducedMotion={reducedMotion} enabled />
         )}
