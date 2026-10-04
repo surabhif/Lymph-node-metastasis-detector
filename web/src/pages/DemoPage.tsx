@@ -300,7 +300,7 @@ export default function DemoPage() {
             <span className="muted">{Math.round(opacity * 100)}%</span>
           </label>
 
-          <details className="explainer">
+          <details className="heatmap-explainer">
             <summary>How to read this heatmap</summary>
             <p>
               For a single 96×96 patch, warmer colors mark regions that contributed more to the

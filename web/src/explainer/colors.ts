@@ -1,0 +1,22 @@
+/** Shared clinical colors — keep scene materials and CSS legend swatches in lockstep. */
+export const COLORS = {
+  skin: '#cbb6a0',
+  skinDeep: '#b89a82',
+  skinTranslucent: '#d4c0ab',
+  vessel: '#2f8f78',
+  sentinel: '#0b6b54',
+  node: '#5a9a88',
+  nodeHot: '#0e8a6c',
+  tumor: '#9f2d22',
+  tumorCell: '#c45c4a',
+  itc: '#e8a598',
+  micro: '#d47868',
+  macro: '#9f2d22',
+  lymphoid: '#edf2ee',
+  nodeCapsule: '#0b6b54',
+  slide: '#e6ddcf',
+  patch: '#a9bfb5',
+  patchHot: '#0b6b54',
+  board: '#f4efe6',
+  scale: '#5a6762',
+} as const
