@@ -222,7 +222,7 @@ function TumorMarker() {
 export function ProceduralTorsoFallback({
   quality,
   showTumor = true,
-  showInternals = true,
+  showInternals: _showInternals = true,
   showBreast = true,
 }: TorsoProps) {
   const segs = quality === 'high' ? 40 : 20
@@ -313,7 +313,7 @@ function HraMammary({ dimmed }: { dimmed: boolean }) {
 
 function GlbFemaleTorso({
   showTumor = true,
-  showInternals = true,
+  showInternals: _showInternals = true,
   showBreast = true,
   dimmed = false,
 }: Omit<TorsoProps, 'quality'>) {
