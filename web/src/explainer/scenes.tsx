@@ -555,7 +555,7 @@ export function PatchesScene({ quality, reducedMotion }: SceneProps) {
               <meshBasicMaterial
                 color={COLORS.tumor}
                 transparent
-                opacity={0.28}
+                opacity={0.16}
                 depthWrite={false}
                 toneMapped={false}
               />
@@ -639,15 +639,6 @@ export function PatchesScene({ quality, reducedMotion }: SceneProps) {
           </div>
         </Html>
       </group>
-
-      <Html
-        center
-        position={[0, -half - 0.28, 0]}
-        style={{ pointerEvents: 'none', width: 'min(92vw, 34rem)' }}
-        zIndexRange={[10, 0]}
-      >
-        <p className="patch-mosaic-caption">{patchesMeta.label}</p>
-      </Html>
     </group>
   )
 }

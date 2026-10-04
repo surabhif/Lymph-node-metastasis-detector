@@ -133,10 +133,10 @@ function SceneLegendBody({
     <>
       <div className="scene-legend-row muted">Real PCam H&amp;E mosaic (WSI stand-in)</div>
       <div className="scene-legend-row">
-        <span className="scene-swatch tumor" /> Tumor-labeled tile tint
+        <span className="scene-swatch tumor soft-tint" /> Tumor-labeled tile tint
       </div>
       <div className="scene-legend-row">
-        <span className="scene-swatch patch" /> Highlighted 96×96 tumor patch
+        <span className="scene-swatch tumor" /> Highlighted 96×96 tumor patch
       </div>
       <div className="scene-legend-row muted">Label if center 32×32 has tumor</div>
     </>
@@ -327,6 +327,9 @@ export default function LymphExplainer() {
                     </div>
                   )}
                 </div>
+              )}
+              {step.id === 'patches' && (
+                <p className="patch-mosaic-caption viewport">{patchesMeta.label}</p>
               )}
               <p className="sr-only">{step.alt}</p>
               <div className="explainer-viewport-hint muted tiny">
