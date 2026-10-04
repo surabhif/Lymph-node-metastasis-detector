@@ -32,7 +32,7 @@ function CameraRig({
   const desiredLook = useRef(new THREE.Vector3())
   const initialized = useRef(false)
   const aspect = Math.max(size.width / Math.max(size.height, 1), 0.35)
-  const fov = mobile ? 42 : 40
+  const fov = mobile ? 40 : 38
 
   useEffect(() => {
     if (camera instanceof THREE.PerspectiveCamera) {
@@ -108,7 +108,7 @@ export default function ExplainerCanvas({
   const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.2]
   const [mounted, setMounted] = useState(true)
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
-  const start = cameraTargetFor(stepId, mobile, mobile ? 390 / 420 : 800 / 576)
+  const start = cameraTargetFor(stepId, mobile, mobile ? 390 / 360 : 800 / 576)
 
   useEffect(() => {
     setMounted(true)
@@ -117,14 +117,13 @@ export default function ExplainerCanvas({
 
   if (!mounted) return null
 
-  // Contact shadow under the expanded crop
   const shadowY = getTorsoBounds().min.y - 0.08
 
   return (
     <Canvas
       className="explainer-canvas"
       dpr={dpr}
-      camera={{ position: start.position, fov: mobile ? 42 : 40, near: 0.1, far: 60 }}
+      camera={{ position: start.position, fov: mobile ? 40 : 38, near: 0.1, far: 60 }}
       gl={{ antialias: true, powerPreference: 'default', alpha: true }}
       onCreated={({ gl }) => {
         gl.setClearColor(0x000000, 0)

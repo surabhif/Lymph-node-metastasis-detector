@@ -179,9 +179,10 @@ function attachCropFade(mat: THREE.MeshStandardMaterial, yFade = 0.14, xFade = 0
 }
 
 function applyMaterials(root: THREE.Object3D, dimmed = false) {
-  const skinOp = dimmed ? 0.22 : 0.3
-  // Muscle translucent enough that axillary nodes behind the lateral edge still read
-  const muscleOp = dimmed ? 0.48 : 0.55
+  const skinOp = dimmed ? 0.22 : 0.28
+  // Muscle translucent so axillary nodes behind the lateral edge still read;
+  // low enough that the anterior tumor is not buried in pec color.
+  const muscleOp = dimmed ? 0.38 : 0.45
   root.traverse((obj) => {
     if (!(obj as THREE.Mesh).isMesh) return
     const mesh = obj as THREE.Mesh
@@ -281,17 +282,17 @@ function GlbTorso({
   return (
     <group scale={TORSO_SCALE}>
       <primitive object={cloned} />
-      {showBreast && <BreastMound opacity={dimmed ? 0.2 : 0.28} />}
+      {showBreast && <BreastMound opacity={dimmed ? 0.22 : 0.32} />}
       {showTumor && (
         <group position={landmarksData.landmarks.tumor as [number, number, number]}>
-          {/* Solid red tumor anterior to pec — always readable */}
+          {/* Solid red tumor clearly anterior to pec */}
           <mesh renderOrder={14}>
-            <sphereGeometry args={[0.014, 18, 18]} />
+            <sphereGeometry args={[0.018, 18, 18]} />
             <meshStandardMaterial
               color={COLORS.tumor}
               emissive={COLORS.tumor}
-              emissiveIntensity={0.7}
-              roughness={0.28}
+              emissiveIntensity={0.85}
+              roughness={0.25}
               toneMapped={false}
               depthTest={false}
               depthWrite={false}

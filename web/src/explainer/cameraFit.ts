@@ -26,14 +26,18 @@ export function getTorsoBounds() {
   return torsoBounds.clone()
 }
 
-/** Focus region: affected-side (patient-right / −X) chest, shoulder, axilla, upper arm. */
+/**
+ * Focus region: affected-side chest + shoulder + axilla + upper arm,
+ * but biased toward mid-chest so the frame is not empty on the left.
+ */
 export function anatomyFocusBox(): THREE.Box3 {
   const b = torsoBounds
   const min = b.min
   const max = b.max
+  // From just past midline toward the affected arm; keep full crop height
   return new THREE.Box3(
-    new THREE.Vector3(min.x, min.y + (max.y - min.y) * 0.08, min.z + (max.z - min.z) * 0.18),
-    new THREE.Vector3(max.x * 0.12, max.y - (max.y - min.y) * 0.04, max.z),
+    new THREE.Vector3(min.x * 0.88, min.y + (max.y - min.y) * 0.05, min.z + (max.z - min.z) * 0.25),
+    new THREE.Vector3(max.x * 0.35, max.y - (max.y - min.y) * 0.02, max.z),
   )
 }
 
@@ -48,30 +52,38 @@ export function fitThreeQuarterCamera(opts: {
   azimuthDeg?: number
   elevationDeg?: number
   margin?: number
+  /** When true, don't let horizontal fit pull the camera so far that subjects look tiny. */
+  preferHeight?: boolean
 }): CameraTarget {
   const {
     box,
     aspect,
     fovDeg,
-    azimuthDeg = 30,
-    elevationDeg = 11,
-    margin = 1.32,
+    azimuthDeg = 28,
+    elevationDeg = 10,
+    margin = 1.35,
+    preferHeight = false,
   } = opts
 
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
+  // Keep look-at near the center of the focus box (mild axilla bias only)
   const lookAt = new THREE.Vector3(
-    center.x - size.x * 0.05,
-    center.y + size.y * 0.03,
-    center.z + size.z * 0.04,
+    center.x - size.x * 0.02,
+    center.y + size.y * 0.02,
+    center.z + size.z * 0.06,
   )
 
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
   const distV = (size.y * margin) / (2 * Math.tan(vFov / 2))
   const distH = (size.x * margin) / (2 * Math.tan(hFov / 2))
-  const distD = (size.z * margin * 1.4) / (2 * Math.tan(vFov / 2))
-  const dist = Math.max(distV, distH, distD, 2.4)
+  const distD = (size.z * margin * 1.15) / (2 * Math.tan(vFov / 2))
+  let dist = Math.max(distV, distH, distD, 2.5)
+  if (preferHeight) {
+    // Prefer vertical fill for dual panels
+    dist = distV * 1.0
+  }
 
   const az = THREE.MathUtils.degToRad(azimuthDeg)
   const el = THREE.MathUtils.degToRad(elevationDeg)
@@ -85,16 +97,20 @@ export function fitThreeQuarterCamera(opts: {
 }
 
 /** Dual-panel surgery framing: both torsos side-by-side. */
-export function surgeryFocusBox(panelX = 1.55, panelScale = 0.95): THREE.Box3 {
+export function surgeryFocusBox(panelX = 1.35, panelScale = 1.05): THREE.Box3 {
   const s = panelScale
   const local = new THREE.Box3(
     new THREE.Vector3(torsoBounds.min.x * s, torsoBounds.min.y * s, torsoBounds.min.z * s),
     new THREE.Vector3(torsoBounds.max.x * s, torsoBounds.max.y * s, torsoBounds.max.z * s),
   )
-  const left = local.clone()
+  // Use affected-side half of each torso for a tighter vertical frame
+  const trim = local.clone()
+  trim.min.x = local.min.x
+  trim.max.x = local.min.x + (local.max.x - local.min.x) * 0.72
+  const left = trim.clone()
   left.min.x -= panelX
   left.max.x -= panelX
-  const right = local.clone()
+  const right = trim.clone()
   right.min.x += panelX
   right.max.x += panelX
   return left.union(right)
@@ -103,9 +119,9 @@ export function surgeryFocusBox(panelX = 1.55, panelScale = 0.95): THREE.Box3 {
 export function cameraTargetFor(
   stepId: ExplainerStepId,
   mobile = false,
-  aspect = mobile ? 390 / 420 : 800 / 576,
+  aspect = mobile ? 390 / 360 : 800 / 576,
 ): CameraTarget {
-  const fov = mobile ? 42 : 40
+  const fov = mobile ? 40 : 38
   if (stepId === 'inside') {
     return mobile
       ? { position: [0.1, 0.22, 3.55], lookAt: [0, -0.05, 0] }
@@ -121,18 +137,19 @@ export function cameraTargetFor(
       box: surgeryFocusBox(),
       aspect,
       fovDeg: fov,
-      azimuthDeg: 28,
-      elevationDeg: 10,
-      margin: mobile ? 1.26 : 1.18,
+      azimuthDeg: 24,
+      elevationDeg: 8,
+      margin: mobile ? 1.12 : 1.05,
+      preferHeight: true,
     })
   }
   return fitThreeQuarterCamera({
     box: anatomyFocusBox(),
     aspect,
     fovDeg: fov,
-    azimuthDeg: mobile ? 28 : 30,
-    elevationDeg: mobile ? 10 : 11,
-    margin: mobile ? 1.4 : 1.32,
+    azimuthDeg: mobile ? 25 : 27,
+    elevationDeg: mobile ? 9 : 10,
+    margin: mobile ? 1.42 : 1.28,
   })
 }
 

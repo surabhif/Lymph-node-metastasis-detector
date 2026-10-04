@@ -418,10 +418,10 @@ export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
     group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.22) * 0.03
   })
 
-  // Fill each half of the canvas; slight Y yaw so axilla reads in the shared three-quarter camera
-  const panelScale = 0.95
-  const panelX = 1.55
-  const yaw = -0.2
+  // Fill each half of the canvas; tiny yaw so axilla reads under the shared three-quarter camera
+  const panelScale = 1.05
+  const panelX = 1.35
+  const yaw = -0.12
 
   return (
     <group ref={group}>
