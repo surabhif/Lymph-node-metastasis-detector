@@ -167,18 +167,6 @@ function makeMuscleMaterial(opacity: number) {
   })
 }
 
-function makeBoneMaterial(opacity: number) {
-  return new THREE.MeshStandardMaterial({
-    color: '#c8d0cc',
-    roughness: 0.65,
-    metalness: 0.05,
-    transparent: true,
-    opacity,
-    depthWrite: false,
-    side: THREE.FrontSide,
-  })
-}
-
 function applySkinMaterials(root: THREE.Object3D, dimmed: boolean) {
   root.traverse((obj) => {
     if (!(obj as THREE.Mesh).isMesh) return
