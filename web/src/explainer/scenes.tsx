@@ -30,23 +30,27 @@ export function SoftLight() {
 
 function IdleSpin({
   reducedMotion,
-  speed = 0.1,
+  speed: _speed = 0.1,
   children,
   /** Radians; negative Y turns patient-right axilla toward a three-quarter front camera. */
-  startY = -0.42,
+  startY = -0.35,
 }: {
   reducedMotion: boolean
   speed?: number
   children: ReactNode
   startY?: number
 }) {
+  void _speed
   const ref = useRef<Group>(null)
   useEffect(() => {
-    if (ref.current) ref.current.rotation.y = startY
+    if (ref.current) {
+      ref.current.rotation.y = startY
+      ref.current.rotation.x = 0.06
+    }
   }, [startY])
-  useFrame((_, dt) => {
+  useFrame(() => {
     if (reducedMotion || !ref.current) return
-    ref.current.rotation.y += dt * speed
+    ref.current.rotation.y = startY + Math.sin(performance.now() * 0.00028) * 0.08
   })
   return <group ref={ref}>{children}</group>
 }
@@ -148,6 +152,7 @@ function AxillaryChain({
   interactive,
   highlightLevels,
   dimUnhighlighted = false,
+  showPath = true,
 }: {
   quality: SceneQuality
   activeNode: string | null
@@ -156,11 +161,11 @@ function AxillaryChain({
   /** If set, only these levels are brightly colored (1=sentinel/L1, 2, 3). */
   highlightLevels?: number[]
   dimUnhighlighted?: boolean
+  showPath?: boolean
 }) {
   const segs = quality === 'high' ? 28 : 14
   const path = useMemo(() => axillaryPath(), [])
   const tubular = quality === 'high' ? 64 : 28
-  const showPath = !highlightLevels || highlightLevels.length > 0
 
   return (
     <group>
@@ -221,7 +226,7 @@ function AxillaryChain({
 /** Step 1 */
 export function LymphaticScene({ quality, reducedMotion, activeNode, onActiveNode }: SceneProps) {
   return (
-    <IdleSpin reducedMotion={reducedMotion} speed={0.035} startY={-0.38}>
+    <IdleSpin reducedMotion={reducedMotion} speed={0.02} startY={-0.35}>
       <SoftLight />
       <AnatomyTorso quality={quality} />
       <AxillaryChain
@@ -254,14 +259,22 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   return (
     <group>
       <SoftLight />
-      {/* Fixed three-quarter pose so the vessel path stays readable */}
-      <group rotation={[0.06, -0.4, 0]}>
+      {/* Fixed three-quarter pose so the vessel path and axilla stay readable */}
+      <group rotation={[0.08, -0.35, 0]}>
         <AnatomyTorso quality={quality} />
         <AxillaryChain
           quality={quality}
           activeNode={null}
           onActiveNode={() => undefined}
           interactive={false}
+          showPath={false}
+        />
+        {/* Emphasized travel path above translucent mesh */}
+        <LymphTube
+          curve={path}
+          radius={0.036}
+          tubular={quality === 'high' ? 72 : 32}
+          color={COLORS.vessel}
         />
         {Array.from({ length: cellCount }).map((_, i) => {
           const u = reducedMotion ? (i + 0.5) / cellCount : 0
@@ -274,11 +287,11 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
               position={path.getPointAt(u)}
               renderOrder={14}
             >
-              <sphereGeometry args={[0.045, 12, 12]} />
+              <sphereGeometry args={[0.055, 12, 12]} />
               <OverlayMaterial
                 color={COLORS.tumorCell}
                 emissive={COLORS.tumor}
-                emissiveIntensity={0.55}
+                emissiveIntensity={0.75}
               />
             </mesh>
           )
@@ -429,20 +442,20 @@ export function SurgeryScene({ quality, reducedMotion }: SceneProps) {
     group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.28) * 0.06
   })
 
-  const panelScale = 0.72
-  const yaw = -0.4
+  const panelScale = 0.7
+  const yaw = -0.35
 
   return (
     <group ref={group}>
       <SoftLight />
       {/* SLNB */}
-      <group position={[-1.55, 0.05, 0]} scale={panelScale} rotation={[0.05, yaw, 0]}>
-        <AnatomyTorso quality={quality} showInternals={false} dimmed />
+      <group position={[-1.6, 0.05, 0]} scale={panelScale} rotation={[0.1, yaw, 0]}>
+        <AnatomyTorso quality={quality} showInternals={false} showTumor={false} dimmed />
         <SurgeryPanelNodes mode="slnb" quality={quality} />
       </group>
       {/* ALND */}
-      <group position={[1.55, 0.05, 0]} scale={panelScale} rotation={[0.05, yaw, 0]}>
-        <AnatomyTorso quality={quality} showInternals={false} dimmed />
+      <group position={[1.6, 0.05, 0]} scale={panelScale} rotation={[0.1, yaw, 0]}>
+        <AnatomyTorso quality={quality} showInternals={false} showTumor={false} dimmed />
         <SurgeryPanelNodes mode="alnd" quality={quality} />
       </group>
     </group>
@@ -523,35 +536,36 @@ export type CameraTarget = {
 }
 
 export function cameraTargetFor(stepId: ExplainerStepId, mobile = false): CameraTarget {
-  // Three-quarter front from the affected (patient-right / −X) side so the axilla reads clearly
+  // Three-quarter front from the affected (−X) side; look into the axillary hollow
+  // Sentinel scene ≈ (−1.02, −0.19, −0.09)
   if (mobile) {
     switch (stepId) {
       case 'lymphatic':
-        return { position: [-2.05, 0.55, 2.55], lookAt: [-0.7, -0.05, 0.0] }
+        return { position: [-2.55, 0.22, 1.95], lookAt: [-1.0, -0.16, -0.08] }
       case 'spread':
-        return { position: [-2.0, 0.5, 2.5], lookAt: [-0.7, -0.05, 0.0] }
+        return { position: [-2.5, 0.2, 1.9], lookAt: [-1.0, -0.16, -0.08] }
       case 'inside':
         return { position: [0.1, 0.22, 3.55], lookAt: [0, -0.05, 0] }
       case 'surgery':
-        return { position: [0, 0.25, 5.4], lookAt: [0, 0.0, 0] }
+        return { position: [0, 0.15, 5.2], lookAt: [0, -0.05, 0] }
       case 'patches':
         return { position: [0.06, 0.2, 3.75], lookAt: [0, 0, 0] }
       default:
-        return { position: [-1.5, 0.5, 2.7], lookAt: [-0.5, 0, 0] }
+        return { position: [-2.0, 0.35, 2.5], lookAt: [-0.8, -0.1, 0] }
     }
   }
   switch (stepId) {
     case 'lymphatic':
-      return { position: [-2.15, 0.55, 3.05], lookAt: [-0.65, -0.02, 0.0] }
+      return { position: [-2.7, 0.25, 2.15], lookAt: [-1.0, -0.15, -0.08] }
     case 'spread':
-      return { position: [-2.1, 0.5, 3.0], lookAt: [-0.65, -0.02, 0.0] }
+      return { position: [-2.65, 0.22, 2.1], lookAt: [-1.0, -0.15, -0.08] }
     case 'inside':
       return { position: [0.15, 0.25, 3.8], lookAt: [0, -0.05, 0] }
     case 'surgery':
-      return { position: [0, 0.35, 5.6], lookAt: [0, 0.02, 0] }
+      return { position: [0, 0.2, 5.4], lookAt: [0, -0.05, 0] }
     case 'patches':
       return { position: [0.1, 0.28, 4.1], lookAt: [0, 0, 0] }
     default:
-      return { position: [-2.0, 0.6, 3.1], lookAt: [-0.4, 0, 0] }
+      return { position: [-2.4, 0.3, 2.4], lookAt: [-0.9, -0.12, -0.05] }
   }
 }

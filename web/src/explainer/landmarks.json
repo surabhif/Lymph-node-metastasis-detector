@@ -1,17 +1,17 @@
 {
   "landmarks": {
-    "tumor": [-0.0851, -0.0262, 0.0796],
-    "sentinel": [-0.178, -0.028, 0.005],
-    "level2": [-0.108, 0.028, -0.015],
-    "level3": [-0.042, 0.048, 0.015],
-    "vessel_mid1": [-0.125, -0.03, 0.055],
-    "vessel_mid2": [-0.155, -0.032, 0.025],
+    "tumor": [-0.0973, -0.018, 0.098],
+    "sentinel": [-0.205, -0.038, -0.018],
+    "level2": [-0.125, 0.022, -0.028],
+    "level3": [-0.055, 0.048, -0.002],
+    "vessel_mid1": [-0.138, -0.026, 0.048],
+    "vessel_mid2": [-0.178, -0.035, 0.008],
     "im_1": [-0.018, -0.08, 0.075],
     "im_2": [-0.018, -0.045, 0.07],
     "im_3": [-0.018, -0.01, 0.065],
-    "breast": [-0.078, -0.045, 0.085]
+    "breast": [-0.085, -0.04, 0.082]
   },
   "center_m": [0.0, 1.256763303054946, 0.11381430250594116],
   "units": "meters_y_up",
-  "notes": "Derived from BodyParts3D v4.0 mesh stats; patient-right=-X. Level I/sentinel in axillary hollow (lateral to pec major, inferior to humeral head); Level II behind pec minor; Level III infraclavicular; tumor in UOQ."
+  "notes": "BodyParts3D v4.0; patient-right=-X. Sentinel/L1 deep in axillary hollow between pec major lateral border and proximal arm; L2 posterior to pec minor; L3 infraclavicular; tumor UOQ."
 }

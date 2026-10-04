@@ -27,22 +27,19 @@ type TorsoProps = {
   dimmed?: boolean
 }
 
-/** Teardrop breast mound: flattened against pec, tapering toward the axilla (tail of Spence). */
-function BreastMound({ opacity = 0.28 }: { opacity?: number }) {
+/** Teardrop breast mound: flattened on pec, tapering toward axilla (tail of Spence). */
+function BreastMound({ opacity = 0.18 }: { opacity?: number }) {
   const geom = useMemo(() => {
-    // Unit sphere deformed into a flattened teardrop pointing toward −X (axilla)
-    const g = new THREE.SphereGeometry(1, 28, 20)
+    const g = new THREE.SphereGeometry(1, 32, 24)
     const pos = g.attributes.position as THREE.BufferAttribute
     const v = new THREE.Vector3()
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i)
-      // Flatten against chest (reduce Z), widen slightly in Y, stretch toward axilla (−X)
-      const ax = Math.max(0, -v.x) // 0..1 toward axilla
-      v.z *= 0.42 + 0.08 * (1 - ax) // flatter, especially toward axilla
-      v.y *= 0.78
-      v.x *= 1.15 + 0.55 * ax // axillary tail of Spence
-      // Soften the chest-wall back so it sits on the pec rather than floating
-      if (v.z < 0) v.z *= 0.35
+      const ax = Math.max(0, -v.x)
+      // Flatten hard against chest; collapse posterior hemisphere into pec
+      v.z = v.z < 0 ? v.z * 0.12 : v.z * (0.32 + 0.08 * (1 - ax))
+      v.y *= 0.68
+      v.x *= 1.1 + 1.0 * ax // axillary tail
       pos.setXYZ(i, v.x, v.y, v.z)
     }
     pos.needsUpdate = true
@@ -52,18 +49,13 @@ function BreastMound({ opacity = 0.28 }: { opacity?: number }) {
 
   const breast = landmarksData.landmarks.breast as [number, number, number]
   return (
-    <mesh
-      geometry={geom}
-      position={breast}
-      scale={[0.052, 0.048, 0.048]}
-      renderOrder={2}
-    >
+    <mesh geometry={geom} position={breast} scale={[0.062, 0.048, 0.042]} renderOrder={2}>
       <meshStandardMaterial
-        color="#c9b09a"
+        color="#c4b09a"
         transparent
         opacity={opacity}
-        roughness={0.82}
-        metalness={0.02}
+        roughness={0.9}
+        metalness={0.01}
         depthWrite={false}
         side={THREE.FrontSide}
       />
@@ -104,9 +96,9 @@ export function ProceduralTorsoFallback({
         <meshStandardMaterial color={COLORS.skin} transparent opacity={0.75} />
       </mesh>
       {showBreast && (
-        <mesh position={landmark('breast')} scale={[1.35, 0.95, 0.7]}>
+        <mesh position={landmark('breast')} scale={[1.5, 0.9, 0.55]}>
           <sphereGeometry args={[0.2, segs, segs]} />
-          <meshStandardMaterial color="#c4a790" transparent opacity={0.35} depthWrite={false} />
+          <meshStandardMaterial color="#c4a790" transparent opacity={0.28} depthWrite={false} />
         </mesh>
       )}
       {showTumor && (
@@ -131,31 +123,67 @@ export function ProceduralTorsoFallback({
   )
 }
 
+function attachCropFade(mat: THREE.MeshStandardMaterial, yFade = 0.11, xFade = 0.22) {
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uYFade = { value: yFade }
+    shader.uniforms.uXFade = { value: xFade }
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        `#include <common>\nvarying vec3 vCropPos;`,
+      )
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>\nvCropPos = position;`,
+      )
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>\nvarying vec3 vCropPos;\nuniform float uYFade;\nuniform float uXFade;`,
+      )
+      .replace(
+        '#include <dithering_fragment>',
+        `
+        float yEdge = 0.19 - abs(vCropPos.y);
+        float xEdge = uXFade - abs(vCropPos.x);
+        float fade = smoothstep(0.0, uYFade, yEdge) * smoothstep(0.0, 0.045, max(xEdge, 0.0));
+        fade = clamp(fade, 0.0, 1.0);
+        gl_FragColor.a *= fade;
+        if (gl_FragColor.a < 0.035) discard;
+        #include <dithering_fragment>
+        `,
+      )
+  }
+  mat.customProgramCacheKey = () => `cropfade-v2-${yFade}-${xFade}`
+}
+
 function applyMaterials(root: THREE.Object3D, dimmed = false) {
-  const skinOp = dimmed ? 0.28 : 0.34
-  const muscleOp = dimmed ? 0.7 : 0.8
+  const skinOp = dimmed ? 0.2 : 0.26
+  const muscleOp = dimmed ? 0.75 : 0.88
   root.traverse((obj) => {
     if (!(obj as THREE.Mesh).isMesh) return
     const mesh = obj as THREE.Mesh
     const name = (mesh.name || mesh.parent?.name || '').toLowerCase()
     if (name.includes('skin')) {
-      mesh.material = new THREE.MeshStandardMaterial({
+      const mat = new THREE.MeshStandardMaterial({
         color: COLORS.skinTranslucent,
-        roughness: 0.62,
+        roughness: 0.68,
         metalness: 0.02,
         transparent: true,
         opacity: skinOp,
         depthWrite: false,
         side: THREE.FrontSide,
         polygonOffset: true,
-        polygonOffsetFactor: 1,
-        polygonOffsetUnits: 1,
+        polygonOffsetFactor: 2,
+        polygonOffsetUnits: 2,
       })
+      attachCropFade(mat, 0.1, 0.24)
+      mesh.material = mat
       mesh.renderOrder = 0
     } else if (name.includes('pec') || name.includes('deltoid')) {
-      mesh.material = new THREE.MeshStandardMaterial({
-        color: '#b35a5a',
-        roughness: 0.74,
+      const mat = new THREE.MeshStandardMaterial({
+        color: '#a85252',
+        roughness: 0.76,
         metalness: 0.04,
         transparent: true,
         opacity: muscleOp,
@@ -165,20 +193,24 @@ function applyMaterials(root: THREE.Object3D, dimmed = false) {
         polygonOffsetFactor: -1,
         polygonOffsetUnits: -1,
       })
+      attachCropFade(mat, 0.08, 0.23)
+      mesh.material = mat
       mesh.renderOrder = 1
     } else {
-      mesh.material = new THREE.MeshStandardMaterial({
-        color: '#e6dfd2',
-        roughness: 0.7,
+      const mat = new THREE.MeshStandardMaterial({
+        color: '#e2d8c8',
+        roughness: 0.72,
         metalness: 0.05,
         transparent: true,
-        opacity: dimmed ? 0.75 : 0.88,
+        opacity: dimmed ? 0.7 : 0.85,
         depthWrite: true,
         side: THREE.FrontSide,
         polygonOffset: true,
         polygonOffsetFactor: -2,
         polygonOffsetUnits: -2,
       })
+      attachCropFade(mat, 0.08, 0.23)
+      mesh.material = mat
       mesh.renderOrder = 1
     }
     mesh.castShadow = false
@@ -202,19 +234,36 @@ function GlbTorso({
   return (
     <group scale={TORSO_SCALE}>
       <primitive object={cloned} />
-      {showBreast && <BreastMound opacity={dimmed ? 0.2 : 0.26} />}
+      {showBreast && <BreastMound opacity={dimmed ? 0.12 : 0.16} />}
       {showTumor && (
-        <mesh position={landmarksData.landmarks.tumor as [number, number, number]} renderOrder={12}>
-          <sphereGeometry args={[0.018, 18, 18]} />
-          <meshStandardMaterial
-            color={COLORS.tumor}
-            emissive={COLORS.tumor}
-            emissiveIntensity={0.65}
-            roughness={0.28}
-            toneMapped={false}
-            depthTest={false}
-          />
-        </mesh>
+        <group position={landmarksData.landmarks.tumor as [number, number, number]} renderOrder={12}>
+          {/* Soft halo so the tumor reads through translucent skin */}
+          <mesh renderOrder={12}>
+            <sphereGeometry args={[0.032, 18, 18]} />
+            <meshStandardMaterial
+              color={COLORS.tumor}
+              emissive={COLORS.tumor}
+              emissiveIntensity={0.45}
+              transparent
+              opacity={0.4}
+              depthTest={false}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+          <mesh renderOrder={13}>
+            <sphereGeometry args={[0.019, 18, 18]} />
+            <meshStandardMaterial
+              color={COLORS.tumor}
+              emissive={COLORS.tumor}
+              emissiveIntensity={1.0}
+              roughness={0.25}
+              toneMapped={false}
+              depthTest={false}
+              depthWrite={false}
+            />
+          </mesh>
+        </group>
       )}
       {showInternals &&
         (['im_1', 'im_2', 'im_3'] as const).map((k) => (
@@ -227,7 +276,7 @@ function GlbTorso({
             <meshStandardMaterial
               color={COLORS.node}
               transparent
-              opacity={0.35}
+              opacity={0.3}
               depthWrite={false}
             />
           </mesh>

@@ -49,9 +49,9 @@ OUT_GLB = ROOT / 'web/public/models/explainer/upper_torso.glb'
 OUT_LANDMARKS = ROOT / 'web/src/explainer/landmarks.json'
 
 # Slightly tighter superior/inferior crop to reduce ragged neck/waist silhouettes
-Z_MIN, Z_MAX, X_LIM = 1100.0, 1405.0, 265.0
+Z_MIN, Z_MAX, X_LIM = 1115.0, 1395.0, 255.0
 # Faces within this mm of a crop plane are dropped so open edges are less frayed
-EDGE_MARGIN = 6.0
+EDGE_MARGIN = 14.0
 
 SPECS = [
     # name, FMA, element preferred, face target, kind, humerus crop?
