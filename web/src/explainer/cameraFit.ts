@@ -117,6 +117,27 @@ export function fitThreeQuarterCamera(opts: {
 export const SURGERY_PANEL_X = 1.12
 export const SURGERY_PANEL_SCALE = 0.82
 
+/**
+ * Step-5 mosaic layout — keep in sync with PatchesScene.
+ * Gutter ≈ 1.2% of tile → roughly 1–2 px once the mosaic is camera-fitted.
+ */
+export const PATCHES_LAYOUT = {
+  tile: 1,
+  gutter: 0.012,
+  grid: 3,
+} as const
+
+/** Axis-aligned bounds of the full 3×3 mosaic (including gutters). */
+export function patchesFocusBox(): THREE.Box3 {
+  const { tile, gutter, grid } = PATCHES_LAYOUT
+  const span = grid * tile + (grid - 1) * gutter
+  const half = span / 2
+  return new THREE.Box3(
+    new THREE.Vector3(-half, -half, -0.05),
+    new THREE.Vector3(half, half, 0.45),
+  )
+}
+
 /** Dual-panel surgery framing: both panels side-by-side with a clear center gap. */
 export function surgeryFocusBox(
   panelX = SURGERY_PANEL_X,
@@ -170,9 +191,15 @@ export function cameraTargetFor(
       : { position: [0.15, 0.25, 3.8], lookAt: [0, -0.05, 0] }
   }
   if (stepId === 'patches') {
-    return mobile
-      ? { position: [0, 0.05, 4.4], lookAt: [0, -0.05, 0] }
-      : { position: [0, 0.08, 4.8], lookAt: [0, -0.02, 0] }
+    // Frontal fit of the full 3×3 with ≥8% margin on each side (margin 1.2 ≈ 83% fill)
+    return fitThreeQuarterCamera({
+      box: patchesFocusBox(),
+      aspect,
+      fovDeg: fov,
+      azimuthDeg: 0,
+      elevationDeg: 0,
+      margin: mobile ? 1.28 : 1.22,
+    })
   }
   if (stepId === 'surgery') {
     if (mobile || surgerySingle) {

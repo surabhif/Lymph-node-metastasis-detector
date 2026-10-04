@@ -328,9 +328,6 @@ export default function LymphExplainer() {
                   )}
                 </div>
               )}
-              {step.id === 'patches' && (
-                <p className="patch-mosaic-caption viewport">{patchesMeta.label}</p>
-              )}
               <p className="sr-only">{step.alt}</p>
               <div className="explainer-viewport-hint muted tiny">
                 {use3d
@@ -348,6 +345,9 @@ export default function LymphExplainer() {
                 )}
               </div>
             </div>
+            {step.id === 'patches' && (
+              <p className="patch-mosaic-caption under-canvas">{patchesMeta.label}</p>
+            )}
             {use3d && (
               <div className={`scene-legend-wrap${legendOpen ? ' open' : ''}`}>
                 <button
@@ -371,6 +371,9 @@ export default function LymphExplainer() {
             <p className="explainer-kicker">{step.kicker}</p>
             <h2 className="explainer-step-title">{step.title}</h2>
             <p>{step.body}</p>
+            {step.id === 'patches' && (
+              <p className="patch-mosaic-caption sidebar">{patchesMeta.label}</p>
+            )}
             {step.callouts && (
               <ul className="explainer-callouts">
                 {step.callouts.map((c) => (
@@ -388,7 +391,7 @@ export default function LymphExplainer() {
                   <strong>center 32×32</strong> region contains tumor tissue.
                 </p>
                 <Link className="btn" to={`/demo?sample=${patchesMeta.hotTile.galleryId}`}>
-                  Open this tumor patch in the detector
+                  Open this patch in the demo
                 </Link>
                 <p className="muted tiny">
                   Preloads the same highlighted 96×96 test patch (index 2883, CC0) and runs the

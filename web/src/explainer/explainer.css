@@ -290,16 +290,27 @@
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
 }
 
-.patch-mosaic-caption.viewport {
-  position: absolute;
-  left: 50%;
-  bottom: 2.55rem;
-  transform: translateX(-50%);
-  z-index: 2;
-  width: min(92%, 28rem);
+/* Outside the WebGL canvas — sits between the canvas and legend/hint overlays */
+.patch-mosaic-caption.under-canvas {
+  position: static;
+  flex: 0 0 auto;
   margin: 0;
-  pointer-events: none;
-  box-shadow: 0 2px 10px rgba(26, 36, 33, 0.08);
+  padding: 0.4rem 0.75rem 0.45rem;
+  width: 100%;
+  text-align: center;
+  background: rgba(255, 252, 246, 0.88);
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 1;
+}
+
+.patch-mosaic-caption.sidebar {
+  margin: 0.15rem 0 0.35rem;
+  text-align: left;
+  padding: 0.35rem 0.55rem;
+  background: rgba(11, 107, 84, 0.06);
+  border: 1px solid rgba(11, 107, 84, 0.18);
 }
 
 .patch-rule-note {
@@ -406,6 +417,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+}
+
+.explainer-cta-block .btn {
+  align-self: flex-start;
+  text-align: center;
 }
 
 .explainer-sources {

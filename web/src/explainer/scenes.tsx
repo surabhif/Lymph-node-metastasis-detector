@@ -11,6 +11,7 @@ import {
   cameraTargetFor,
   SURGERY_PANEL_SCALE,
   SURGERY_PANEL_X,
+  PATCHES_LAYOUT,
   type CameraTarget,
 } from './cameraFit'
 import patchesMeta from './patchesMeta.json'
@@ -460,194 +461,214 @@ export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: S
 
 /**
  * Step 5 — real H&E PCam mosaic standing in for a whole-slide image.
- * Grid aligns to 96×96 tiles; a known tumor patch lifts/zooms with its ground truth.
+ * 3×3 cells with equal gutters; a known tumor patch lifts/zooms with ground truth.
  */
-export function PatchesScene({ quality, reducedMotion }: SceneProps) {
-  const grid = patchesMeta.grid
-  const tileSize = quality === 'high' ? 1.05 : 0.95
-  const mosaicSize = tileSize * grid
-  const half = mosaicSize / 2
+export function PatchesScene({ reducedMotion }: SceneProps) {
+  const grid = PATCHES_LAYOUT.grid
+  const TILE = PATCHES_LAYOUT.tile
+  const GUTTER = PATCHES_LAYOUT.gutter
+  const pitch = TILE + GUTTER
+  const mosaicSpan = grid * TILE + (grid - 1) * GUTTER
+  const half = mosaicSpan / 2
+  /** Zoom so the full 96×96 (+ frame) fills ~55% of the fitted mosaic view. */
+  const ZOOM_SCALE = 1.58
 
   const mosaicUrl = `${import.meta.env.BASE_URL}${patchesMeta.mosaicSrc}`
   const hotUrl = `${import.meta.env.BASE_URL}${patchesMeta.hotTile.src}`
-  const [mosaicTex, hotTex] = useTexture([mosaicUrl, hotUrl]) as [
-    THREE.Texture,
-    THREE.Texture,
-  ]
+  const [mosaicTex, hotTex] = useTexture([mosaicUrl, hotUrl]) as [THREE.Texture, THREE.Texture]
+  const labelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    for (const t of [mosaicTex, hotTex]) {
-      t.colorSpace = THREE.SRGBColorSpace
-      t.anisotropy = 8
-      t.needsUpdate = true
-    }
+    mosaicTex.colorSpace = THREE.SRGBColorSpace
+    mosaicTex.minFilter = THREE.NearestFilter
+    mosaicTex.magFilter = THREE.NearestFilter
+    mosaicTex.generateMipmaps = false
+    mosaicTex.needsUpdate = true
+
+    hotTex.colorSpace = THREE.SRGBColorSpace
+    hotTex.minFilter = THREE.NearestFilter
+    hotTex.magFilter = THREE.NearestFilter
+    hotTex.generateMipmaps = false
+    hotTex.needsUpdate = true
   }, [mosaicTex, hotTex])
+
+  const cellCenter = (row: number, col: number) => {
+    const x = -half + TILE / 2 + col * pitch
+    const y = half - TILE / 2 - row * pitch
+    return [x, y] as const
+  }
 
   const hotRow = patchesMeta.hotTile.row
   const hotCol = patchesMeta.hotTile.col
-  const hotLocalX = -half + tileSize * (hotCol + 0.5)
-  const hotLocalY = half - tileSize * (hotRow + 0.5)
+  const [hotLocalX, hotLocalY] = cellCenter(hotRow, hotCol)
 
   const mosaicGroup = useRef<Group>(null)
-  const hotGroup = useRef<Group>(null)
-  const zoomed = useRef(0) // 0 = mosaic, 1 = zoomed patch
+  const hotRoot = useRef<Group>(null)
+  const hotVisual = useRef<Group>(null)
+  const labelAnchor = useRef<Group>(null)
+
+  const tileGeoms = useMemo(() => {
+    return patchesMeta.tiles.map((t) => {
+      const geom = new THREE.PlaneGeometry(TILE, TILE)
+      // PlaneGeometry verts: 0 TL, 1 TR, 2 BL, 3 BR — UVs must match image orientation
+      const u0 = t.col / grid
+      const u1 = (t.col + 1) / grid
+      const vBottom = 1 - (t.row + 1) / grid
+      const vTop = 1 - t.row / grid
+      const uv = geom.attributes.uv as THREE.BufferAttribute
+      uv.setXY(0, u0, vTop)
+      uv.setXY(1, u1, vTop)
+      uv.setXY(2, u0, vBottom)
+      uv.setXY(3, u1, vBottom)
+      uv.needsUpdate = true
+      return geom
+    })
+  }, [grid])
 
   useFrame(({ clock }) => {
-    if (!hotGroup.current || !mosaicGroup.current) return
-    if (reducedMotion) {
-      zoomed.current = 0
-      hotGroup.current.position.set(hotLocalX, hotLocalY, 0.12)
-      hotGroup.current.scale.setScalar(1.06)
-      mosaicGroup.current.position.z = 0
+    if (!hotRoot.current || !hotVisual.current || !mosaicGroup.current || !labelAnchor.current) {
       return
     }
-    // Cycle: hold mosaic → lift/zoom → hold patch → ease back
-    const cycle = 7.5
+
+    const placeLabel = (scale: number) => {
+      // Sit just below the scaled tile so the label never covers neighbors
+      labelAnchor.current!.position.set(0, -(TILE * scale * 0.5 + 0.16), 0.04)
+    }
+
+    if (reducedMotion) {
+      // Static zoomed state: full patch + frame + label, clear of the mosaic
+      hotRoot.current.position.set(0, 0.02, 0.28)
+      hotVisual.current.scale.setScalar(ZOOM_SCALE)
+      placeLabel(ZOOM_SCALE)
+      if (labelRef.current) labelRef.current.style.opacity = '1'
+      mosaicGroup.current.traverse((obj) => {
+        const mesh = obj as Mesh
+        if (!mesh.isMesh || !mesh.userData.fadable) return
+        const mat = mesh.material as THREE.MeshBasicMaterial
+        if (mat && 'opacity' in mat) {
+          mat.transparent = true
+          mat.opacity = 0.3
+        }
+      })
+      return
+    }
+
+    const cycle = 8
     const t = clock.getElapsedTime() % cycle
     let z = 0
-    if (t < 2.2) z = 0
-    else if (t < 3.4) z = (t - 2.2) / 1.2
-    else if (t < 5.6) z = 1
-    else z = 1 - (t - 5.6) / 1.9
+    if (t < 2.4) z = 0
+    else if (t < 3.6) z = (t - 2.4) / 1.2
+    else if (t < 6.0) z = 1
+    else z = 1 - (t - 6.0) / 2.0
     z = THREE.MathUtils.smoothstep(z, 0, 1)
-    zoomed.current = z
 
+    // At rest: exactly on the cell center. Zoomed: canvas center with margin.
     const x = THREE.MathUtils.lerp(hotLocalX, 0, z)
-    const y = THREE.MathUtils.lerp(hotLocalY, 0.05, z)
-    const elev = THREE.MathUtils.lerp(0.08, 0.72, z)
-    const s = THREE.MathUtils.lerp(1.04, 2.75, z)
-    hotGroup.current.position.set(x, y, elev)
-    hotGroup.current.scale.setScalar(s)
-    mosaicGroup.current.position.z = THREE.MathUtils.lerp(0, -0.15, z)
-    // Fade mosaic slightly when zoomed so the patch reads clearly
+    const y = THREE.MathUtils.lerp(hotLocalY, 0.02, z)
+    const elev = THREE.MathUtils.lerp(0.02, 0.3, z)
+    const s = THREE.MathUtils.lerp(1, ZOOM_SCALE, z)
+    hotRoot.current.position.set(x, y, elev)
+    hotVisual.current.scale.setScalar(s)
+    placeLabel(s)
+
     mosaicGroup.current.traverse((obj) => {
       const mesh = obj as Mesh
-      if (!mesh.isMesh) return
+      if (!mesh.isMesh || !mesh.userData.fadable) return
       const mat = mesh.material as THREE.MeshBasicMaterial
-      if (mat && 'opacity' in mat && mesh.userData.fadable) {
-        mat.opacity = THREE.MathUtils.lerp(1, 0.35, z)
+      if (mat && 'opacity' in mat) {
+        mat.transparent = true
+        mat.opacity = THREE.MathUtils.lerp(1, 0.28, z)
       }
     })
+
+    // Label only after the tile has lifted clear of neighboring cells
+    const lo = z < 0.45 ? 0 : THREE.MathUtils.smoothstep((z - 0.45) / 0.25, 0, 1)
+    if (labelRef.current) labelRef.current.style.opacity = String(lo)
   })
 
-  const tumorTiles = patchesMeta.tiles.filter((t) => t.isTumor && !t.hot)
-  const gap = 0.018
+  const frameStroke = 0.022
+
+  const makeFrame = (size: number, color: string, z: number) => {
+    const s = frameStroke
+    return (
+      <group position={[0, 0, z]}>
+        <mesh position={[0, size / 2 - s / 2, 0]}>
+          <planeGeometry args={[size, s]} />
+          <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} />
+        </mesh>
+        <mesh position={[0, -size / 2 + s / 2, 0]}>
+          <planeGeometry args={[size, s]} />
+          <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} />
+        </mesh>
+        <mesh position={[-size / 2 + s / 2, 0, 0]}>
+          <planeGeometry args={[s, size - s * 2]} />
+          <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} />
+        </mesh>
+        <mesh position={[size / 2 - s / 2, 0, 0]}>
+          <planeGeometry args={[s, size - s * 2]} />
+          <meshBasicMaterial color={color} toneMapped={false} depthWrite={false} />
+        </mesh>
+      </group>
+    )
+  }
 
   return (
     <group>
-      <ambientLight intensity={0.95} />
-      <directionalLight position={[2, 3, 4]} intensity={0.55} color="#fff8f0" />
+      <ambientLight intensity={1} />
+      <directionalLight position={[1.5, 2, 4]} intensity={0.35} color="#fff8f0" />
 
       <group ref={mosaicGroup}>
-        {/* Real H&E mosaic */}
-        <mesh position={[0, 0, 0]} userData={{ fadable: true }}>
-          <planeGeometry args={[mosaicSize, mosaicSize]} />
-          <meshBasicMaterial map={mosaicTex} toneMapped={false} transparent />
-        </mesh>
-
-        {/* Tumor-label cue: thin border only (keeps H&E fully readable) */}
-        {tumorTiles.map((t) => {
-          const x = -half + tileSize * (t.col + 0.5)
-          const y = half - tileSize * (t.row + 0.5)
-          const inner = tileSize - gap
-          const stroke = 0.035
+        {patchesMeta.tiles.map((t, i) => {
+          if (t.hot) return null
+          const [x, y] = cellCenter(t.row, t.col)
           return (
-            <group key={`tint-${t.row}-${t.col}`} position={[x, y, 0.025]}>
-              <mesh position={[0, inner / 2 - stroke / 2, 0]} userData={{ fadable: true }}>
-                <planeGeometry args={[inner, stroke]} />
-                <meshBasicMaterial color={COLORS.tumor} toneMapped={false} />
+            <group key={`cell-${t.row}-${t.col}`} position={[x, y, 0]}>
+              <mesh geometry={tileGeoms[i]} userData={{ fadable: true }}>
+                <meshBasicMaterial map={mosaicTex} toneMapped={false} transparent opacity={1} />
               </mesh>
-              <mesh position={[0, -inner / 2 + stroke / 2, 0]} userData={{ fadable: true }}>
-                <planeGeometry args={[inner, stroke]} />
-                <meshBasicMaterial color={COLORS.tumor} toneMapped={false} />
-              </mesh>
-              <mesh position={[-inner / 2 + stroke / 2, 0, 0]} userData={{ fadable: true }}>
-                <planeGeometry args={[stroke, inner - stroke * 2]} />
-                <meshBasicMaterial color={COLORS.tumor} toneMapped={false} />
-              </mesh>
-              <mesh position={[inner / 2 - stroke / 2, 0, 0]} userData={{ fadable: true }}>
-                <planeGeometry args={[stroke, inner - stroke * 2]} />
-                <meshBasicMaterial color={COLORS.tumor} toneMapped={false} />
-              </mesh>
-            </group>
-          )
-        })}
-
-        {/* Grid lines aligned to 96×96 tile boundaries */}
-        {Array.from({ length: grid + 1 }).map((_, i) => {
-          const o = -half + i * tileSize
-          return (
-            <group key={`grid-${i}`}>
-              <mesh position={[o, 0, 0.03]} userData={{ fadable: true }}>
-                <planeGeometry args={[0.012, mosaicSize + 0.02]} />
-                <meshBasicMaterial color="#fffcf6" transparent opacity={0.85} depthWrite={false} />
-              </mesh>
-              <mesh position={[0, o, 0.03]} userData={{ fadable: true }}>
-                <planeGeometry args={[mosaicSize + 0.02, 0.012]} />
-                <meshBasicMaterial color="#fffcf6" transparent opacity={0.85} depthWrite={false} />
-              </mesh>
+              {t.isTumor && makeFrame(TILE, COLORS.tumor, 0.012)}
             </group>
           )
         })}
       </group>
 
-      {/* Highlighted tumor patch — lifts and zooms */}
-      <group ref={hotGroup} position={[hotLocalX, hotLocalY, 0.1]}>
-        <mesh>
-          <planeGeometry args={[tileSize - gap * 0.5, tileSize - gap * 0.5]} />
-          <meshBasicMaterial map={hotTex} toneMapped={false} />
-        </mesh>
-        {/* Center 32×32 labeling cue */}
-        <mesh position={[0, 0, 0.01]}>
-          <planeGeometry args={[(tileSize - gap) * (32 / 96), (tileSize - gap) * (32 / 96)]} />
-          <meshBasicMaterial
-            color={COLORS.tumor}
-            transparent
-            opacity={0.2}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-        {(() => {
-          const inner = (tileSize - gap) * (32 / 96)
-          const stroke = 0.02
-          return (
-            <group position={[0, 0, 0.012]}>
-              <mesh position={[0, inner / 2, 0]}>
-                <planeGeometry args={[inner + stroke, stroke]} />
-                <meshBasicMaterial color="#fffcf6" toneMapped={false} />
-              </mesh>
-              <mesh position={[0, -inner / 2, 0]}>
-                <planeGeometry args={[inner + stroke, stroke]} />
-                <meshBasicMaterial color="#fffcf6" toneMapped={false} />
-              </mesh>
-              <mesh position={[-inner / 2, 0, 0]}>
-                <planeGeometry args={[stroke, inner]} />
-                <meshBasicMaterial color="#fffcf6" toneMapped={false} />
-              </mesh>
-              <mesh position={[inner / 2, 0, 0]}>
-                <planeGeometry args={[stroke, inner]} />
-                <meshBasicMaterial color="#fffcf6" toneMapped={false} />
-              </mesh>
-            </group>
-          )
-        })()}
-        <mesh position={[0, 0, -0.005]}>
-          <planeGeometry args={[tileSize + 0.04, tileSize + 0.04]} />
-          <meshBasicMaterial color={COLORS.tumor} toneMapped={false} />
-        </mesh>
-        <Html
-          center
-          position={[0, -tileSize * 0.62, 0.05]}
-          style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
-          zIndexRange={[20, 0]}
-        >
-          <div className="patch-float-label">
-            <strong>96×96 patch</strong>
-            <span>Ground truth: tumor</span>
-            <em>Center 32×32 decides the label</em>
-          </div>
-        </Html>
+      <group ref={hotRoot} position={[hotLocalX, hotLocalY, 0.02]}>
+        <group ref={hotVisual}>
+          <mesh>
+            <planeGeometry args={[TILE, TILE]} />
+            <meshBasicMaterial map={hotTex} toneMapped={false} />
+          </mesh>
+          {makeFrame(TILE, COLORS.tumor, 0.01)}
+          <mesh position={[0, 0, 0.014]}>
+            <planeGeometry args={[TILE * (32 / 96), TILE * (32 / 96)]} />
+            <meshBasicMaterial
+              color={COLORS.tumor}
+              transparent
+              opacity={0.16}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+          {makeFrame(TILE * (32 / 96), '#fffcf6', 0.018)}
+        </group>
+        <group ref={labelAnchor} position={[0, -(TILE * 0.5 + 0.16), 0.04]}>
+          <Html
+            center
+            distanceFactor={7.5}
+            style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
+            zIndexRange={[40, 0]}
+          >
+            <div
+              ref={labelRef}
+              className="patch-float-label"
+              style={{ opacity: reducedMotion ? 1 : 0 }}
+            >
+              <strong>96×96 patch</strong>
+              <span>Ground truth: tumor</span>
+              <em>Center 32×32 decides the label</em>
+            </div>
+          </Html>
+        </group>
       </group>
     </group>
   )
