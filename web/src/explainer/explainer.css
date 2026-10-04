@@ -287,7 +287,11 @@
 .scene-swatch.itc { background: #ffc4b8; }
 .scene-swatch.micro { background: #ff8f7a; }
 .scene-swatch.macro { background: #e8453a; }
-.scene-swatch.lymphoid { background: #e8f2ee; border: 1px solid #7ab0a4; }
+.scene-swatch.lymphoid {
+  background: #dcc0d4;
+  border: 1px solid #b888b0;
+  box-shadow: 0 0 6px rgba(212, 168, 200, 0.35);
+}
 .scene-swatch.patch { background: #2ae0b8; }
 
 .node-deposit-bar {
@@ -378,6 +382,12 @@
 .node-anno.soft {
   opacity: 0.85;
   font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .node-anno.hide-sm {
+    display: none;
+  }
 }
 
 .patch-float-label {
@@ -758,19 +768,22 @@
 @media (max-width: 640px) {
   .node-deposit-bar {
     top: auto;
-    bottom: 2.7rem;
-    left: 0.55rem;
-    right: 0.55rem;
+    bottom: 2.55rem;
+    left: 0.5rem;
+    right: 0.5rem;
     max-width: none;
-    justify-content: flex-start;
+    justify-content: center;
+    gap: 0.3rem;
   }
   .node-deposit-bar button {
-    padding: 0.24rem 0.5rem;
-    font-size: 0.7rem;
+    padding: 0.24rem 0.48rem;
+    font-size: 0.68rem;
   }
   .node-scale-cue {
-    left: 0.55rem;
-    bottom: 4.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 4.35rem;
+    max-width: calc(100% - 1rem);
   }
   .node-anno {
     font-size: 0.6rem;

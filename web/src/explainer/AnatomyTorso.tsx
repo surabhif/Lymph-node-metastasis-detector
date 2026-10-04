@@ -27,7 +27,6 @@ export function landmark(key: LandmarkKey): [number, number, number] {
 export const SKIN_URL = `${import.meta.env.BASE_URL}models/explainer/skin_torso.glb`
 export const MAMMARY_URL = `${import.meta.env.BASE_URL}models/explainer/mammary_r.glb`
 export const LYMPH_NODE_URL = `${import.meta.env.BASE_URL}models/explainer/lymph_node.glb`
-export const BP3D_CHEST_URL = `${import.meta.env.BASE_URL}models/explainer/bp3d_chest.glb`
 export const TORSO_URL = `${import.meta.env.BASE_URL}models/explainer/upper_torso.glb`
 export const DRACO_PATH = `${import.meta.env.BASE_URL}draco/`
 
@@ -155,18 +154,6 @@ function makeLobuleMaterial(opacity: number) {
   })
 }
 
-function makeMuscleMaterial(opacity: number) {
-  return new THREE.MeshStandardMaterial({
-    color: '#6a3a42',
-    roughness: 0.82,
-    metalness: 0.04,
-    transparent: true,
-    opacity,
-    depthWrite: false,
-    side: THREE.FrontSide,
-  })
-}
-
 function applySkinMaterials(root: THREE.Object3D, dimmed: boolean) {
   root.traverse((obj) => {
     if (!(obj as THREE.Mesh).isMesh) return
@@ -205,23 +192,31 @@ function applyMammaryMaterials(root: THREE.Object3D, dimmed: boolean) {
   })
 }
 
-function applyChestMaterials(root: THREE.Object3D, dimmed: boolean) {
-  root.traverse((obj) => {
-    if (!(obj as THREE.Mesh).isMesh) return
-    const mesh = obj as THREE.Mesh
-    const name = (mesh.name || mesh.parent?.name || '').toLowerCase()
-    // Keep only faint pec cues for axillary depth; hide everything else (looked like brown blobs).
-    if (name.includes('pec')) {
-      mesh.material = makeMuscleMaterial(dimmed ? 0.08 : 0.12)
-      mesh.visible = true
-    } else {
-      mesh.visible = false
-      return
-    }
-    mesh.renderOrder = 2
-    mesh.castShadow = false
-    mesh.receiveShadow = false
-  })
+function TumorMarker() {
+  return (
+    <group position={landmark('tumor')}>
+      <mesh renderOrder={12}>
+        <sphereGeometry args={[0.048, 20, 20]} />
+        <meshStandardMaterial
+          color={COLORS.tumor}
+          emissive={COLORS.tumorGlow}
+          emissiveIntensity={1.4}
+          toneMapped={false}
+          roughness={0.35}
+        />
+      </mesh>
+      <mesh renderOrder={11} scale={1.55}>
+        <sphereGeometry args={[0.048, 16, 16]} />
+        <meshBasicMaterial
+          color={COLORS.tumorGlow}
+          transparent
+          opacity={0.22}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  )
 }
 
 export function ProceduralTorsoFallback({
@@ -306,49 +301,12 @@ function HraMammary({ dimmed }: { dimmed: boolean }) {
     applyMammaryMaterials(c, dimmed)
     return c
   }, [scene, dimmed])
-  // Pull lobules/ducts deeper into the skin breast volume.
-  return <primitive object={cloned} scale={0.82} position={[0.004, 0.002, -0.008]} />
-}
-
-function Bp3dChest({ dimmed }: { dimmed: boolean }) {
-  const { scene } = useGLTF(BP3D_CHEST_URL, DRACO_PATH)
-  const cloned = useMemo(() => {
-    const c = scene.clone(true)
-    applyChestMaterials(c, dimmed)
-    return c
-  }, [scene, dimmed])
-  return (
-    <group position={[0.05, -0.12, -0.12]} scale={0.9} rotation={[0.08, 0.02, 0]}>
-      <primitive object={cloned} />
-    </group>
-  )
-}
-
-function TumorMarker() {
-  return (
-    <group position={landmark('tumor')}>
-      <mesh renderOrder={12}>
-        <sphereGeometry args={[0.048, 20, 20]} />
-        <meshStandardMaterial
-          color={COLORS.tumor}
-          emissive={COLORS.tumorGlow}
-          emissiveIntensity={1.4}
-          toneMapped={false}
-          roughness={0.3}
-        />
-      </mesh>
-      <mesh renderOrder={11}>
-        <sphereGeometry args={[0.085, 16, 16]} />
-        <meshBasicMaterial
-          color={COLORS.tumorGlow}
-          transparent
-          opacity={0.22}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-    </group>
-  )
+  /**
+   * Keep native VH alignment with the skin (shared coordinate space).
+   * Do NOT scale about the world origin — that pivots lobules down into the abdomen.
+   * A tiny anterior/lift nudge seats lobules inside the skin breast mound toward the nipple.
+   */
+  return <primitive object={cloned} position={[0.002, 0.01, 0.01]} />
 }
 
 function GlbFemaleTorso({
@@ -387,7 +345,7 @@ function GlbFemaleTorso({
         {showBreast && <HraMammary dimmed={dimmed} />}
         <HraSkin dimmed={dimmed} />
       </group>
-      <Bp3dChest dimmed={dimmed} />
+      {/* BP3D pec/chest cues dropped — male fragments could not be aligned cleanly under HRA skin. */}
       {showTumor && <TumorMarker />}
       {showInternals &&
         (['im_1', 'im_2', 'im_3'] as const).map((k) => (
@@ -433,7 +391,6 @@ export function AnatomyTorso(props: TorsoProps) {
 
 useGLTF.preload(SKIN_URL, DRACO_PATH)
 useGLTF.preload(MAMMARY_URL, DRACO_PATH)
-useGLTF.preload(BP3D_CHEST_URL, DRACO_PATH)
 
 export { toScenePos }
 

@@ -83,14 +83,15 @@ const AXILLA_NODES = [
 ] as const
 
 const LEVEL1_SATELLITES: [number, number, number][] = [
+  // Cluster in the axilla hollow near the sentinel — medial/anterior of the arm, not on the deltoid.
   [
-    landmark('sentinel')[0] + 0.08,
-    landmark('sentinel')[1] + 0.09,
-    landmark('sentinel')[2] - 0.02,
+    landmark('sentinel')[0] + 0.07,
+    landmark('sentinel')[1] + 0.035,
+    landmark('sentinel')[2] + 0.055,
   ],
   [
-    landmark('sentinel')[0] + 0.03,
-    landmark('sentinel')[1] + 0.15,
+    landmark('sentinel')[0] + 0.045,
+    landmark('sentinel')[1] - 0.055,
     landmark('sentinel')[2] + 0.04,
   ],
 ]
@@ -451,24 +452,27 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         <meshStandardMaterial
           color={COLORS.cortex}
           transparent
-          opacity={0.7}
+          opacity={0.55}
           roughness={0.85}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Follicles — soft spheres near the capsule edge */}
+      {/* Follicles — soft translucent lymphoid pink-purple */}
       {follicles.map((f, i) => (
         <mesh key={i} position={[f[0], f[1], f[2]]} renderOrder={4}>
           <sphereGeometry args={[f[3], 14, 14]} />
-          <meshStandardMaterial
-            color={COLORS.lymphoid}
-            emissive={COLORS.lymphoid}
-            emissiveIntensity={0.15}
-            roughness={0.7}
+          <meshPhysicalMaterial
+            color={COLORS.follicle}
+            emissive={COLORS.follicleGlow}
+            emissiveIntensity={0.35}
+            roughness={0.45}
             transparent
-            opacity={0.85}
+            opacity={0.72}
+            transmission={0.28}
+            thickness={0.2}
+            depthWrite={false}
           />
         </mesh>
       ))}
@@ -479,7 +483,7 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         <meshStandardMaterial
           color={COLORS.paracortex}
           transparent
-          opacity={0.55}
+          opacity={0.48}
           roughness={0.8}
           depthWrite={false}
         />
@@ -491,7 +495,7 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         <meshStandardMaterial
           color={COLORS.medulla}
           transparent
-          opacity={0.65}
+          opacity={0.55}
           roughness={0.75}
           depthWrite={false}
         />
@@ -527,21 +531,21 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         />
       </mesh>
 
-      {/* Labels — kept clear of deposit zones */}
-      <Html position={[-0.55, 1.05, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
-        <span className="node-anno">Cortex / follicles</span>
+      {/* Labels — clear of top-left legend; Afferent/Cortex hide on narrow screens */}
+      <Html position={[0.15, 0.92, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+        <span className="node-anno hide-sm">Cortex / follicles</span>
       </Html>
-      <Html position={[0.35, 0.15, 0.4]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[0.42, 0.12, 0.4]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno">Paracortex</span>
       </Html>
-      <Html position={[-0.35, 0.0, 0.45]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[-0.28, -0.08, 0.45]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
         <span className="node-anno soft">Medulla</span>
       </Html>
-      <Html position={[-1.5, 0.55, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
-        <span className="node-anno">Afferent</span>
+      <Html position={[-1.15, -0.72, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+        <span className="node-anno hide-sm">Afferent</span>
       </Html>
-      <Html position={[1.55, -0.35, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
-        <span className="node-anno">Efferent / hilum</span>
+      <Html position={[1.45, -0.55, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+        <span className="node-anno hide-sm">Efferent / hilum</span>
       </Html>
     </group>
   )

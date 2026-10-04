@@ -8,6 +8,10 @@ export const COLORS = {
   // Soft pale lobules (not brown)
   breastSoft: '#f0e4dc',
   breastGlow: '#ffe8dc',
+  // Soft translucent lymphoid pink-purple (follicles / healthy tissue read)
+  follicle: '#d4a8c8',
+  follicleGlow: '#e8c0d8',
+  lymphoid: '#dcc0d4',
   // Lymph — brighter for dark cinematic panel
   vessel: '#3dcfb0',
   vesselGlow: '#6dffd4',
@@ -18,15 +22,14 @@ export const COLORS = {
   tumor: '#ff6b5a',
   tumorCell: '#ff8a7a',
   tumorGlow: '#ff5544',
-  // Deposits
+  // Deposits (legend swatches stay locked to these)
   itc: '#ffc4b8',
   micro: '#ff8f7a',
   macro: '#e8453a',
-  // Node interior
-  lymphoid: '#e8f2ee',
-  cortex: '#d4e8e0',
-  paracortex: '#c0dcd4',
-  medulla: '#a8ccc4',
+  // Node interior bands
+  cortex: '#c8a8c0',
+  paracortex: '#b898b0',
+  medulla: '#a888a0',
   nodeCapsule: '#4ad4c0',
   slide: '#e6ddcf',
   patch: '#a9bfb5',

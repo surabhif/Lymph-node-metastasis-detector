@@ -1,15 +1,15 @@
 {
   "landmarks": {
-    "tumor": [-0.125, 0.455, 0.048],
-    "sentinel": [-0.225, 0.392, -0.072],
-    "level2": [-0.175, 0.445, -0.095],
-    "level3": [-0.1, 0.515, -0.062],
-    "vessel_mid1": [-0.152, 0.435, 0.008],
-    "vessel_mid2": [-0.195, 0.408, -0.038],
+    "tumor": [-0.152, 0.468, 0.068],
+    "sentinel": [-0.205, 0.392, -0.048],
+    "level2": [-0.165, 0.440, -0.075],
+    "level3": [-0.095, 0.505, -0.048],
+    "vessel_mid1": [-0.170, 0.445, 0.030],
+    "vessel_mid2": [-0.192, 0.412, -0.012],
     "im_1": [-0.03, 0.36, 0.048],
     "im_2": [-0.03, 0.4, 0.042],
     "im_3": [-0.03, 0.44, 0.038],
-    "breast": [-0.115, 0.392, 0.065]
+    "breast": [-0.115, 0.415, 0.078]
   },
   "hra_center_m": [-0.086, 0.438, 0.032],
   "units": "meters_y_up_visible_human_female",
@@ -17,5 +17,5 @@
     "min": [-0.34, 0.22, -0.18],
     "max": [0.28, 0.72, 0.1]
   },
-  "notes": "NIH/HuBMAP HRA female skin + right mammary (CC BY 4.0). Patient-right = −X. Tumor in UOQ inside skin; axillary chain deep in axilla (behind skin / lateral chest wall); level II behind pec minor; level III infraclavicular."
+  "notes": "HRA female skin + right mammary share VH coords. Tumor in upper OUTER quadrant (lateral −X, upper Y, toward axilla). Sentinel/level I in axilla hollow between chest wall and arm; level II behind pec minor; level III infraclavicular. Mammary rendered at native alignment (no origin-pivot scale). BP3D pec cues omitted."
 }
