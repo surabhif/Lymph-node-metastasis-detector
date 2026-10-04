@@ -273,13 +273,6 @@ export function ProceduralTorsoFallback({
           />
         </mesh>
       )}
-      {showInternals &&
-        (['im_1', 'im_2', 'im_3'] as const).map((k) => (
-          <mesh key={k} position={landmark(k)}>
-            <sphereGeometry args={[0.028, 10, 10]} />
-            <meshStandardMaterial color={COLORS.node} transparent opacity={0.35} />
-          </mesh>
-        ))}
     </group>
   )
 }
@@ -300,7 +293,7 @@ const MAMMARY_CENTER_M: [number, number, number] = [-0.1059569, 0.41539925, 0.05
  * Seat target inside the glass right-breast mound (toward nipple / UOQ side).
  * More lateral (−X), higher, and more anterior than the raw HRA mammary center.
  */
-const MAMMARY_TARGET_M: [number, number, number] = [-0.162, 0.488, 0.090]
+const MAMMARY_TARGET_M: [number, number, number] = [-0.188, 0.505, 0.088]
 
 function HraMammary({ dimmed }: { dimmed: boolean }) {
   const { scene } = useGLTF(MAMMARY_URL, DRACO_PATH)
@@ -312,7 +305,7 @@ function HraMammary({ dimmed }: { dimmed: boolean }) {
     return c
   }, [scene, dimmed])
   return (
-    <group position={MAMMARY_TARGET_M} scale={1.2} rotation={[0.1, -0.12, 0.02]}>
+    <group position={MAMMARY_TARGET_M} scale={1.28} rotation={[0.12, -0.08, 0.03]}>
       <primitive object={object} />
     </group>
   )
@@ -356,13 +349,7 @@ function GlbFemaleTorso({
       </group>
       {/* BP3D pec/chest cues dropped — male fragments could not be aligned cleanly under HRA skin. */}
       {showTumor && <TumorMarker />}
-      {showInternals &&
-        (['im_1', 'im_2', 'im_3'] as const).map((k) => (
-          <mesh key={k} position={landmark(k)} renderOrder={8}>
-            <sphereGeometry args={[0.02, 10, 10]} />
-            <meshStandardMaterial color={COLORS.node} transparent opacity={0.12} depthWrite={false} />
-          </mesh>
-        ))}
+      {/* Internal mammary chain omitted — read as stray mid-chest dots against glass skin. */}
     </group>
   )
 }

@@ -62,9 +62,6 @@ function SceneLegendBody({
         <div className="scene-legend-row">
           <span className="scene-swatch node" /> Levels II–III
         </div>
-        <div className="scene-legend-row">
-          <span className="scene-swatch node soft" /> Internal mammary (faint)
-        </div>
         {activeNode && (
           <div className="scene-legend-row">
             Focused:{' '}
