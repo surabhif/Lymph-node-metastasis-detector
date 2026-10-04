@@ -1,11 +1,11 @@
 {
   "landmarks": {
-    "tumor": [-0.162, -0.008, 0.118],
+    "tumor": [-0.175, -0.005, 0.112],
     "sentinel": [-0.192, -0.032, -0.012],
     "level2": [-0.12, 0.018, -0.022],
     "level3": [-0.052, 0.042, 0.002],
-    "vessel_mid1": [-0.172, -0.016, 0.068],
-    "vessel_mid2": [-0.184, -0.026, 0.02],
+    "vessel_mid1": [-0.18, -0.014, 0.062],
+    "vessel_mid2": [-0.187, -0.026, 0.018],
     "im_1": [-0.018, -0.08, 0.075],
     "im_2": [-0.018, -0.045, 0.07],
     "im_3": [-0.018, -0.01, 0.065],
@@ -17,5 +17,5 @@
     "min": [-0.2623, -0.1996, -0.1597],
     "max": [0.2616, 0.167, 0.1112]
   },
-  "notes": "BodyParts3D v4.0; patient-right=-X. Breast on nipple/midclavicular line. Tumor in UOQ (lateral of nipple, medial of sentinel) with short axillary path."
+  "notes": "BodyParts3D v4.0; patient-right=-X. Breast on nipple/midclavicular line. Compact tumor in UOQ just medial of sentinel with short drainage path."
 }
