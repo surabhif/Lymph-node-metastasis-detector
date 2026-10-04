@@ -123,19 +123,44 @@ export const SURGERY_PANEL_SCALE = 0.82
  */
 export const PATCHES_LAYOUT = {
   tile: 1,
-  gutter: 0.012,
+  gutter: 0.02,
   grid: 3,
 } as const
 
 /** Axis-aligned bounds of the full 3×3 mosaic (including gutters). */
 export function patchesFocusBox(): THREE.Box3 {
-  const { tile, gutter, grid } = PATCHES_LAYOUT
-  const span = grid * tile + (grid - 1) * gutter
+  const { tile, grid } = PATCHES_LAYOUT
+  // Continuous mosaic footprint (seam gutters are drawn on the plane, not outside it).
+  const span = grid * tile
   const half = span / 2
   return new THREE.Box3(
-    new THREE.Vector3(-half, -half, -0.05),
-    new THREE.Vector3(half, half, 0.45),
+    new THREE.Vector3(-half, -half, -0.02),
+    new THREE.Vector3(half, half, 0.08),
   )
+}
+
+/** Frontal camera for the patches mosaic — ≥8% margin on the limiting axis. */
+export function patchesCameraTarget(
+  aspect: number,
+  fovDeg: number,
+  mobile = false,
+): CameraTarget {
+  const box = patchesFocusBox()
+  const center = box.getCenter(new THREE.Vector3())
+  const size = box.getSize(new THREE.Vector3())
+  // 1.38 ≈ 14% total slack → ≥8% each side after accounting for UI chrome
+  const margin = mobile ? 1.62 : 1.52
+  const vFov = THREE.MathUtils.degToRad(fovDeg)
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
+  const dist = Math.max(
+    (size.y * margin) / (2 * Math.tan(vFov / 2)),
+    (size.x * margin) / (2 * Math.tan(hFov / 2)),
+    3.5,
+  )
+  return {
+    position: [center.x, center.y, center.z + dist],
+    lookAt: [center.x, center.y, center.z],
+  }
 }
 
 /** Dual-panel surgery framing: both panels side-by-side with a clear center gap. */
@@ -191,15 +216,8 @@ export function cameraTargetFor(
       : { position: [0.15, 0.25, 3.8], lookAt: [0, -0.05, 0] }
   }
   if (stepId === 'patches') {
-    // Frontal fit of the full 3×3 with ≥8% margin on each side (margin 1.2 ≈ 83% fill)
-    return fitThreeQuarterCamera({
-      box: patchesFocusBox(),
-      aspect,
-      fovDeg: fov,
-      azimuthDeg: 0,
-      elevationDeg: 0,
-      margin: mobile ? 1.28 : 1.22,
-    })
+    // Straight-on fit of the full 3×3 with ≥8% margin (no three-quarter bias).
+    return patchesCameraTarget(aspect, fov, mobile)
   }
   if (stepId === 'surgery') {
     if (mobile || surgerySingle) {

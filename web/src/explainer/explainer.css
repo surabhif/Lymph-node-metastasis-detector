@@ -247,15 +247,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.12rem;
-  padding: 0.35rem 0.55rem;
-  background: rgba(255, 252, 246, 0.94);
+  gap: 0.08rem;
+  padding: 0.28rem 0.45rem;
+  background: rgba(255, 252, 246, 0.96);
   border: 1px solid rgba(159, 45, 34, 0.45);
-  border-radius: 0.4rem;
-  box-shadow: 0 4px 14px rgba(26, 36, 33, 0.12);
+  border-radius: 0.35rem;
+  box-shadow: 0 3px 10px rgba(26, 36, 33, 0.1);
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
   color: #1a2421;
-  line-height: 1.2;
+  line-height: 1.15;
+  transform: scale(0.92);
+  transform-origin: top center;
 }
 
 .patch-float-label strong {
@@ -412,8 +414,8 @@
 }
 
 .explainer-cta-block {
-  margin-top: auto;
-  padding-top: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.35rem;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
@@ -422,6 +424,12 @@
 .explainer-cta-block .btn {
   align-self: flex-start;
   text-align: center;
+}
+
+@media (max-width: 980px) {
+  .explainer-cta-block .btn {
+    align-self: stretch;
+  }
 }
 
 .explainer-sources {

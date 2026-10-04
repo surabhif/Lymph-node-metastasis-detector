@@ -167,6 +167,8 @@ export default function LymphExplainer() {
   useEffect(() => {
     setActiveNode(null)
     if (EXPLAINER_STEPS[stepIndex]?.id === 'surgery') setSurgeryPanel('slnb')
+    // Keep the patches mosaic unobstructed; legend can be reopened via toggle.
+    if (EXPLAINER_STEPS[stepIndex]?.id === 'patches') setLegendOpen(false)
   }, [stepIndex])
 
   useEffect(() => {
@@ -372,19 +374,6 @@ export default function LymphExplainer() {
             <h2 className="explainer-step-title">{step.title}</h2>
             <p>{step.body}</p>
             {step.id === 'patches' && (
-              <p className="patch-mosaic-caption sidebar">{patchesMeta.label}</p>
-            )}
-            {step.callouts && (
-              <ul className="explainer-callouts">
-                {step.callouts.map((c) => (
-                  <li key={c.label}>
-                    <strong>{c.label}</strong>
-                    <span>{c.detail}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {step.id === 'patches' && (
               <div className="explainer-cta-block">
                 <p className="patch-rule-note">
                   PCam labeling rule: a patch is labeled <strong>tumor</strong> if the{' '}
@@ -398,6 +387,16 @@ export default function LymphExplainer() {
                   ONNX model in your browser.
                 </p>
               </div>
+            )}
+            {step.callouts && (
+              <ul className="explainer-callouts">
+                {step.callouts.map((c) => (
+                  <li key={c.label}>
+                    <strong>{c.label}</strong>
+                    <span>{c.detail}</span>
+                  </li>
+                ))}
+              </ul>
             )}
           </aside>
         </div>

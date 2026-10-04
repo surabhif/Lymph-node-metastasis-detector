@@ -121,6 +121,7 @@ export default function ExplainerCanvas({
   if (!mounted) return null
 
   const shadowY = getTorsoBounds().min.y - 0.08
+  const isPatches = stepId === 'patches'
 
   return (
     <Canvas
@@ -151,17 +152,20 @@ export default function ExplainerCanvas({
           onActiveNode={onActiveNode}
           surgeryMode={surgeryMode}
         />
-        <ContactShadows position={[0, shadowY, 0]} opacity={0.22} scale={12} blur={2.8} far={5} />
-        <Environment preset="apartment" environmentIntensity={0.28} />
+        {!isPatches && (
+          <ContactShadows position={[0, shadowY, 0]} opacity={0.22} scale={12} blur={2.8} far={5} />
+        )}
+        {!isPatches && <Environment preset="apartment" environmentIntensity={0.28} />}
         <OrbitControls
           ref={controlsRef}
           enablePan={false}
-          enableZoom
-          minDistance={1.6}
+          enableZoom={!isPatches}
+          enableRotate={!isPatches}
+          minDistance={isPatches ? 4.5 : 1.6}
           maxDistance={12}
           maxPolarAngle={Math.PI * 0.78}
           minPolarAngle={0.15}
-          enableDamping
+          enableDamping={!isPatches}
           dampingFactor={0.08}
           makeDefault
         />
