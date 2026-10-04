@@ -1,56 +1,17 @@
 {
   "landmarks": {
-    "tumor": [
-      -0.0811,
-      -0.0156,
-      0.0491
-    ],
-    "sentinel": [
-      -0.134,
-      0.0286,
-      0.007
-    ],
-    "level2": [
-      -0.0919,
-      0.0346,
-      0.0127
-    ],
-    "level3": [
-      -0.0307,
-      0.0406,
-      0.0323
-    ],
-    "vessel_mid1": [
-      -0.1049,
-      0.0043,
-      0.0302
-    ],
-    "vessel_mid2": [
-      -0.1208,
-      0.0176,
-      0.0175
-    ],
-    "im_1": [
-      -0.0168,
-      -0.0611,
-      0.0858
-    ],
-    "im_2": [
-      -0.0198,
-      -0.0385,
-      0.078
-    ],
-    "im_3": [
-      -0.0163,
-      -0.0127,
-      0.0698
-    ]
+    "tumor": [-0.0851, -0.0262, 0.0796],
+    "sentinel": [-0.178, -0.028, 0.005],
+    "level2": [-0.108, 0.028, -0.015],
+    "level3": [-0.042, 0.048, 0.015],
+    "vessel_mid1": [-0.125, -0.03, 0.055],
+    "vessel_mid2": [-0.155, -0.032, 0.025],
+    "im_1": [-0.018, -0.08, 0.075],
+    "im_2": [-0.018, -0.045, 0.07],
+    "im_3": [-0.018, -0.01, 0.065],
+    "breast": [-0.078, -0.045, 0.085]
   },
-  "center_m": [
-    0.0,
-    1.2588266209260697,
-    0.1167926023027519
-  ],
+  "center_m": [0.0, 1.256763303054946, 0.11381430250594116],
   "units": "meters_y_up",
-  "notes": "Derived from BodyParts3D v4.0 mesh stats; patient-right=-X; Level I between pec minor lateral border and humeral head"
+  "notes": "Derived from BodyParts3D v4.0 mesh stats; patient-right=-X. Level I/sentinel in axillary hollow (lateral to pec major, inferior to humeral head); Level II behind pec minor; Level III infraclavicular; tumor in UOQ."
 }

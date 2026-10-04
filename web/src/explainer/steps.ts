@@ -64,7 +64,7 @@ export const EXPLAINER_STEPS: ExplainerStep[] = [
     shortTitle: 'Surgery',
     title: 'Surgery choices and staging',
     body: 'Sentinel lymph node biopsy samples the first draining node(s) with a smaller operation. Axillary lymph node dissection removes more nodes and is a larger procedure. Node findings feed into the N category of TNM staging — a structured way teams summarize tumor (T), nodes (N), and distant spread (M). This explainer is educational only, not advice about any person’s care.',
-    alt: 'Two schematic procedures: a focused sentinel-node biopsy versus a broader axillary dissection, plus a simple TNM diagram highlighting the N (node) category.',
+    alt: 'Two side-by-side BodyParts3D torso views: sentinel lymph node biopsy highlighting one to three axillary nodes, versus axillary dissection highlighting levels I and II, with a TNM N-category cue.',
     callouts: [
       { label: 'SLNB', detail: 'Sentinel lymph node biopsy — fewer nodes sampled' },
       { label: 'ALND', detail: 'Axillary lymph node dissection — more nodes removed' },

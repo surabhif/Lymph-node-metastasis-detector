@@ -116,8 +116,12 @@ function SceneLegendBody({
   if (stepId === 'surgery') {
     return (
       <>
-        <div className="scene-legend-row">Left: sentinel biopsy</div>
-        <div className="scene-legend-row">Right: axillary dissection</div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch sentinel" /> Left: SLNB (1–3 nodes)
+        </div>
+        <div className="scene-legend-row">
+          <span className="scene-swatch node" /> Right: ALND (levels I–II)
+        </div>
         <div className="scene-legend-row tnm-chip">
           Staging: T · <strong>N</strong> · M
         </div>
