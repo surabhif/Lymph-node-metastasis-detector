@@ -137,6 +137,7 @@ export default function ExplainerCanvas({
 
   const shadowY = getTorsoBounds().min.y - 0.08
   const isPatches = stepId === 'patches'
+  const isInside = stepId === 'inside'
 
   return (
     <Canvas
@@ -167,7 +168,7 @@ export default function ExplainerCanvas({
           onActiveNode={onActiveNode}
           surgeryMode={surgeryMode}
         />
-        {!isPatches && (
+        {!isPatches && !isInside && (
           <ContactShadows position={[0, shadowY, 0]} opacity={0.28} scale={12} blur={2.6} far={5} />
         )}
         {!isPatches && (

@@ -30,6 +30,8 @@ export const LYMPH_NODE_URL = `${import.meta.env.BASE_URL}models/explainer/lymph
 export const BP3D_CHEST_URL = `${import.meta.env.BASE_URL}models/explainer/bp3d_chest.glb`
 /** Legacy full torso — kept as procedural-fallback companion. */
 export const TORSO_URL = `${import.meta.env.BASE_URL}models/explainer/upper_torso.glb`
+/** Self-hosted Draco decoder (avoid CDN / Trusted-Types issues). */
+export const DRACO_PATH = `${import.meta.env.BASE_URL}draco/`
 
 const boundsMeta = landmarksData as unknown as {
   bounds_m?: { min: number[]; max: number[] }
@@ -217,7 +219,7 @@ export function ProceduralTorsoFallback({
 }
 
 function HraSkin({ dimmed }: { dimmed: boolean }) {
-  const { scene } = useGLTF(SKIN_URL, true)
+  const { scene } = useGLTF(SKIN_URL, DRACO_PATH)
   const cloned = useMemo(() => {
     const c = scene.clone(true)
     applyNamedMaterials(c, 'skin', dimmed)
@@ -227,7 +229,7 @@ function HraSkin({ dimmed }: { dimmed: boolean }) {
 }
 
 function HraMammary({ dimmed }: { dimmed: boolean }) {
-  const { scene } = useGLTF(MAMMARY_URL, true)
+  const { scene } = useGLTF(MAMMARY_URL, DRACO_PATH)
   const cloned = useMemo(() => {
     const c = scene.clone(true)
     applyNamedMaterials(c, 'breast', dimmed)
@@ -241,7 +243,7 @@ function HraMammary({ dimmed }: { dimmed: boolean }) {
  * Male mesh inside female skin is approximate; kept translucent for axillary depth cues.
  */
 function Bp3dChest({ dimmed }: { dimmed: boolean }) {
-  const { scene } = useGLTF(BP3D_CHEST_URL, true)
+  const { scene } = useGLTF(BP3D_CHEST_URL, DRACO_PATH)
   const cloned = useMemo(() => {
     const c = scene.clone(true)
     applyNamedMaterials(c, 'chest', dimmed)
@@ -365,13 +367,13 @@ export function AnatomyTorso(props: TorsoProps) {
   )
 }
 
-useGLTF.preload(SKIN_URL, true)
-useGLTF.preload(MAMMARY_URL, true)
-useGLTF.preload(BP3D_CHEST_URL, true)
+useGLTF.preload(SKIN_URL, DRACO_PATH)
+useGLTF.preload(MAMMARY_URL, DRACO_PATH)
+useGLTF.preload(BP3D_CHEST_URL, DRACO_PATH)
 // Lymph-node interior is lazy-loaded only when step 3 mounts (see scenes.tsx).
 
 export { toScenePos }
 
 export function preloadLymphNode() {
-  useGLTF.preload(LYMPH_NODE_URL, true)
+  useGLTF.preload(LYMPH_NODE_URL, DRACO_PATH)
 }

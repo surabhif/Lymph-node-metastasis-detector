@@ -59,3 +59,12 @@ CC BY 4.0 allows redistribution and adaptation with attribution. The **code** of
 | **Source** | https://polyhaven.com/a/studio_small_09 |
 | **License** | CC0 1.0 (public domain dedication) — https://polyhaven.com/license |
 | **Phase 1 usage** | Not required at runtime; explainer uses self-contained Lightformers for IBL |
+
+## Google Draco decoders (`web/public/draco/`)
+
+| Field | Detail |
+| --- | --- |
+| **Asset** | `draco_decoder.wasm`, `draco_wasm_wrapper.js`, `draco_decoder.js` |
+| **Source** | https://github.com/google/draco (mirrored decoder build 1.5.5) |
+| **License** | Apache-2.0 |
+| **Why self-hosted** | Avoids CDN Trusted-Types / offline failures when decoding Draco GLBs |

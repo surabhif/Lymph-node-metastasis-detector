@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { Html, useGLTF, useTexture } from '@react-three/drei'
 import type { ExplainerStepId } from './steps'
 import { COLORS } from './colors'
-import { AnatomyTorso, landmark, LYMPH_NODE_URL } from './AnatomyTorso'
+import { AnatomyTorso, landmark, LYMPH_NODE_URL, DRACO_PATH } from './AnatomyTorso'
 import { CinematicLight, MacroNodeLight } from './CinematicLight'
 import {
   cameraTargetFor,
@@ -393,27 +393,48 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
 
 /** Step 3 — HRA lymph-node interior with educational deposit overlays. */
 function HraLymphNodeShell({ quality }: { quality: SceneQuality }) {
-  const { scene } = useGLTF(LYMPH_NODE_URL, true)
+  const { scene } = useGLTF(LYMPH_NODE_URL, DRACO_PATH)
   const cloned = useMemo(() => {
     const c = scene.clone(true)
     c.traverse((obj) => {
       if (!(obj as Mesh).isMesh) return
       const mesh = obj as Mesh
       const name = (mesh.name || mesh.parent?.name || '').toLowerCase()
-      const isVessel = /vessel|arter|vein|afferent|efferent/.test(name)
-      const isCapsule = /capsule|hilum/.test(name)
+      const isVessel = /vessel|arter|vein|afferent|efferent|blood/.test(name)
+      const isCapsule = /capsule/.test(name)
+      const isMedulla = /medulla/.test(name)
+      const isCortex = /follicle|paracortex|cortex/.test(name)
+      let color: string = COLORS.lymphoid
+      let opacity = 0.55
+      let emissive: string = '#000000'
+      let emissiveIntensity = 0
+      if (isVessel) {
+        color = COLORS.vessel
+        opacity = 0.9
+        emissive = COLORS.vesselGlow
+        emissiveIntensity = 0.45
+      } else if (isCapsule) {
+        color = COLORS.nodeCapsule
+        opacity = 0.28
+      } else if (isMedulla) {
+        color = '#e8efe9'
+        opacity = 0.5
+      } else if (isCortex) {
+        color = '#dfe8e1'
+        opacity = 0.62
+      }
       mesh.material = new THREE.MeshPhysicalMaterial({
-        color: isVessel ? COLORS.vessel : isCapsule ? COLORS.nodeCapsule : COLORS.lymphoid,
-        roughness: isVessel ? 0.35 : 0.85,
+        color,
+        roughness: isVessel ? 0.35 : 0.78,
         metalness: 0,
         transparent: true,
-        opacity: isVessel ? 0.85 : isCapsule ? 0.55 : 0.72,
+        opacity,
         depthWrite: !isCapsule,
         side: THREE.DoubleSide,
-        transmission: isCapsule ? 0.15 : 0,
-        thickness: isCapsule ? 0.2 : 0,
-        emissive: new THREE.Color(isVessel ? COLORS.vesselGlow : '#000000'),
-        emissiveIntensity: isVessel ? 0.4 : 0,
+        transmission: isCapsule ? 0.35 : 0.05,
+        thickness: isCapsule ? 0.25 : 0.1,
+        emissive: new THREE.Color(emissive),
+        emissiveIntensity,
       })
       mesh.castShadow = false
       mesh.receiveShadow = false
@@ -421,9 +442,9 @@ function HraLymphNodeShell({ quality }: { quality: SceneQuality }) {
     return c
   }, [scene])
 
-  // HRA lymph node is authored near origin in metres; scale up for macro framing.
-  const s = quality === 'high' ? 28 : 24
-  return <primitive object={cloned} scale={s} />
+  // Asset is ~2 cm across, centered at origin; scale to ~2 scene units for macro framing.
+  const s = quality === 'high' ? 110 : 95
+  return <primitive object={cloned} scale={s} rotation={[0.35, -0.85, 0.15]} />
 }
 
 function SchematicNodeFallback({ quality }: { quality: SceneQuality }) {
