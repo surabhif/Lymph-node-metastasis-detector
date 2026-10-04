@@ -438,28 +438,29 @@
 
 .surgery-divider {
   position: absolute;
-  top: 12%;
-  bottom: 18%;
+  top: 8%;
+  bottom: 14%;
   left: 50%;
-  width: 1px;
+  width: 2px;
   transform: translateX(-50%);
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(90, 103, 98, 0.35) 12%,
-    rgba(90, 103, 98, 0.45) 50%,
-    rgba(90, 103, 98, 0.35) 88%,
+    rgba(90, 103, 98, 0.5) 8%,
+    rgba(90, 103, 98, 0.62) 50%,
+    rgba(90, 103, 98, 0.5) 92%,
     transparent 100%
   );
+  box-shadow: 0 0 0 5px rgba(255, 252, 246, 0.42);
 }
 
 .surgery-captions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  padding: 0 0.85rem 2.35rem;
+  gap: 0.75rem;
+  padding: 0 0.85rem 2.2rem;
   font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #3a4540;
   text-align: center;

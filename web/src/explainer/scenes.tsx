@@ -6,7 +6,12 @@ import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
 import { COLORS } from './colors'
 import { AnatomyTorso, landmark } from './AnatomyTorso'
-import { cameraTargetFor, type CameraTarget } from './cameraFit'
+import {
+  cameraTargetFor,
+  SURGERY_PANEL_SCALE,
+  SURGERY_PANEL_X,
+  type CameraTarget,
+} from './cameraFit'
 
 export type SceneQuality = 'high' | 'low'
 export type { CameraTarget }
@@ -369,41 +374,43 @@ function SurgeryPanelNodes({
 }) {
   const segs = quality === 'high' ? 22 : 12
   if (mode === 'slnb') {
+    // 1–3 clearly lit Level I nodes for sentinel biopsy
     const nodes = [landmark('sentinel'), ...LEVEL1_SATELLITES.slice(0, 2)]
     return (
       <group>
         {nodes.map((p, i) => (
           <mesh key={i} position={p} renderOrder={12}>
-            <sphereGeometry args={[i === 0 ? 0.12 : 0.09, segs, segs]} />
+            <sphereGeometry args={[i === 0 ? 0.13 : 0.1, segs, segs]} />
             <OverlayMaterial
               color={COLORS.sentinel}
               emissive={COLORS.sentinel}
-              emissiveIntensity={i === 0 ? 0.5 : 0.28}
+              emissiveIntensity={i === 0 ? 0.55 : 0.38}
             />
           </mesh>
         ))}
       </group>
     )
   }
+  // Levels I–II highlighted; Level III stays faint for contrast
   return (
     <group>
       <mesh position={landmark('sentinel')} renderOrder={12}>
         <sphereGeometry args={[0.12, segs, segs]} />
-        <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.4} />
+        <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.45} />
       </mesh>
       {LEVEL1_SATELLITES.map((p, i) => (
         <mesh key={`l1-${i}`} position={p} renderOrder={12}>
-          <sphereGeometry args={[0.095, segs, segs]} />
-          <OverlayMaterial color={COLORS.sentinel} emissive={COLORS.sentinel} emissiveIntensity={0.28} />
+          <sphereGeometry args={[0.1, segs, segs]} />
+          <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.35} />
         </mesh>
       ))}
       <mesh position={landmark('level2')} renderOrder={12}>
-        <sphereGeometry args={[0.105, segs, segs]} />
-        <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.35} />
+        <sphereGeometry args={[0.115, segs, segs]} />
+        <OverlayMaterial color={COLORS.nodeHot} emissive={COLORS.nodeHot} emissiveIntensity={0.42} />
       </mesh>
-      <mesh position={landmark('level3')} renderOrder={12} scale={0.85}>
-        <sphereGeometry args={[0.08, segs, segs]} />
-        <OverlayMaterial color={COLORS.node} opacity={0.4} transparent />
+      <mesh position={landmark('level3')} renderOrder={12} scale={0.8}>
+        <sphereGeometry args={[0.075, segs, segs]} />
+        <OverlayMaterial color={COLORS.node} opacity={0.28} transparent />
       </mesh>
     </group>
   )
@@ -422,10 +429,10 @@ export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: S
   })
 
   const single = surgeryMode !== 'both'
-  // Match step-1 three-quarter feel via local yaw; scale down so both fit with margin
-  const panelScale = single ? 1 : 0.58
-  const panelX = single ? 0 : 1.2
-  const yaw = -0.45 // ~26° — same gentle three-quarter as step 1 camera
+  // Match step-1 three-quarter feel via local yaw; dual layout synced with cameraFit
+  const panelScale = single ? 1 : SURGERY_PANEL_SCALE
+  const panelX = single ? 0 : SURGERY_PANEL_X
+  const yaw = -0.42 // ~24° — gentle three-quarter, slightly flatter for dual read
 
   const showSlnb = surgeryMode === 'slnb' || surgeryMode === 'both'
   const showAlnd = surgeryMode === 'alnd' || surgeryMode === 'both'

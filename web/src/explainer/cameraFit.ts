@@ -42,6 +42,23 @@ export function anatomyFocusBox(): THREE.Box3 {
 }
 
 /**
+ * Narrower per-panel focus for dual surgery views: shoulders → below breast,
+ * ipsilateral chest + axilla only. Keeps the union box from going ultra-wide
+ * so the camera can match step-1 vertical fill with a clear center gap.
+ */
+export function surgeryPanelFocusBox(): THREE.Box3 {
+  const b = torsoBounds
+  const min = b.min
+  const max = b.max
+  const h = max.y - min.y
+  const d = max.z - min.z
+  return new THREE.Box3(
+    new THREE.Vector3(min.x * 0.9, min.y + h * 0.1, min.z + d * 0.38),
+    new THREE.Vector3(max.x * 0.08, max.y - h * 0.03, max.z),
+  )
+}
+
+/**
  * Gentle three-quarter camera from the affected side.
  * azimuthDeg: 0 = straight front (+Z), positive = toward −X (patient-right). Prefer 25–35.
  */
@@ -81,8 +98,8 @@ export function fitThreeQuarterCamera(opts: {
   const distD = (size.z * margin * 1.15) / (2 * Math.tan(vFov / 2))
   let dist = Math.max(distV, distH, distD, 2.5)
   if (preferHeight) {
-    // Prefer vertical fill for dual panels
-    dist = distV * 1.0
+    // Prefer vertical fill, but never ignore a wider dual-panel footprint
+    dist = Math.max(distV, distH * 0.92)
   }
 
   const az = THREE.MathUtils.degToRad(azimuthDeg)
@@ -96,15 +113,29 @@ export function fitThreeQuarterCamera(opts: {
   return { position, lookAt: [lookAt.x, lookAt.y, lookAt.z] }
 }
 
-/** Dual-panel surgery framing: both torsos side-by-side with a clear gap. */
-export function surgeryFocusBox(panelX = 1.2, panelScale = 0.58): THREE.Box3 {
+/** Dual-panel surgery layout defaults — keep in sync with SurgeryScene. */
+export const SURGERY_PANEL_X = 1.08
+export const SURGERY_PANEL_SCALE = 0.86
+
+/** Dual-panel surgery framing: both panels side-by-side with a clear center gap. */
+export function surgeryFocusBox(
+  panelX = SURGERY_PANEL_X,
+  panelScale = SURGERY_PANEL_SCALE,
+): THREE.Box3 {
   const s = panelScale
-  // Same anatomy focus as step 1, per panel (affected-side torso)
-  const local = anatomyFocusBox()
+  const local = surgeryPanelFocusBox()
   const sized = new THREE.Box3(
     new THREE.Vector3(local.min.x * s, local.min.y * s, local.min.z * s),
     new THREE.Vector3(local.max.x * s, local.max.y * s, local.max.z * s),
   )
+  // Pad for local three-quarter yaw (~0.42 rad) which widens screen footprint
+  const padX = (sized.max.x - sized.min.x) * 0.1
+  const padZ = (sized.max.z - sized.min.z) * 0.18
+  sized.min.x -= padX
+  sized.max.x += padX
+  sized.min.z -= padZ
+  sized.max.z += padZ
+
   const left = sized.clone()
   left.min.x -= panelX
   left.max.x -= panelX
@@ -141,19 +172,36 @@ export function cameraTargetFor(
         fovDeg: fov,
         azimuthDeg: mobile ? 25 : 27,
         elevationDeg: mobile ? 9 : 10,
-        margin: mobile ? 1.42 : 1.28,
+        margin: mobile ? 1.42 : 1.35,
       })
     }
-    // Desktop: pull back so BOTH torsos fit fully in frame with margin
-    return fitThreeQuarterCamera({
-      box: surgeryFocusBox(),
+    // Desktop: fit both panels; look at the gap center so halves read clearly
+    const box = surgeryFocusBox()
+    const cfg = fitThreeQuarterCamera({
+      box,
       aspect,
       fovDeg: fov,
-      azimuthDeg: 27,
-      elevationDeg: 10,
-      margin: 1.38,
-      preferHeight: false,
+      azimuthDeg: 22,
+      elevationDeg: 9,
+      margin: 1.32,
+      preferHeight: true,
     })
+    const centerY = (box.min.y + box.max.y) * 0.5
+    cfg.lookAt = [0, centerY + 0.04, 0.04]
+    const dist = Math.hypot(
+      cfg.position[0] - cfg.lookAt[0],
+      cfg.position[1] - cfg.lookAt[1],
+      cfg.position[2] - cfg.lookAt[2],
+    )
+    const az = THREE.MathUtils.degToRad(22)
+    const el = THREE.MathUtils.degToRad(9)
+    const cosEl = Math.cos(el)
+    cfg.position = [
+      cfg.lookAt[0] - Math.sin(az) * cosEl * dist,
+      cfg.lookAt[1] + Math.sin(el) * dist,
+      cfg.lookAt[2] + Math.cos(az) * cosEl * dist,
+    ]
+    return cfg
   }
   return fitThreeQuarterCamera({
     box: anatomyFocusBox(),
