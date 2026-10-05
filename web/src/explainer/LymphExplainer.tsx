@@ -198,6 +198,25 @@ export default function LymphExplainer() {
     setLegendOpen(!isMobile)
   }, [isMobile])
 
+  // Capture / QA helper: hold an exact scrub without GSAP snap fighting mid-frames.
+  useEffect(() => {
+    const w = window as Window & {
+      __setExplainerProgress?: (p: number, holdMs?: number) => void
+    }
+    w.__setExplainerProgress = (p: number, holdMs = 4000) => {
+      const clamped = Math.min(1, Math.max(0, p))
+      scrollingToRef.current = true
+      setProgress(clamped)
+      setStepIndex(stepIndexFromProgress(clamped))
+      window.setTimeout(() => {
+        scrollingToRef.current = false
+      }, holdMs)
+    }
+    return () => {
+      delete w.__setExplainerProgress
+    }
+  }, [])
+
   // GSAP ScrollTrigger: scrub progress from the tall track. Use CSS sticky
   // instead of ScrollTrigger pin — pin's position:fixed reparents the WebGL
   // canvas and freezes R3F scene updates under SwiftShader.

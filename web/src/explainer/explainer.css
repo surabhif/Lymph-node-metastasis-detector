@@ -335,7 +335,8 @@
 .node-scale-cue {
   position: absolute;
   left: 0.75rem;
-  bottom: 2.55rem;
+  /* Clear the multi-line viewport hint on all breakpoints */
+  bottom: 3.35rem;
   z-index: 4;
   display: inline-flex;
   align-items: center;

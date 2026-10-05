@@ -56,6 +56,28 @@ async function scrollToProgress(page, progress) {
   await page.waitForTimeout(2200)
 }
 
+/** Hold an exact mid-transition scrub (bypasses GSAP snap). */
+async function holdProgress(page, progress, holdMs = 3500) {
+  await page.evaluate(
+    ({ p, ms }) => {
+      if (typeof window.__setExplainerProgress === 'function') {
+        window.__setExplainerProgress(p, ms)
+      }
+    },
+    { p: progress, ms: holdMs },
+  )
+  // Also scroll the track so camera path / sticky stage stay aligned
+  await page.evaluate((p) => {
+    const track = document.querySelector('#explainer-stages')
+    if (!track) return
+    const rect = track.getBoundingClientRect()
+    const top = window.scrollY + rect.top
+    const height = track.offsetHeight - window.innerHeight
+    window.scrollTo(0, top + Math.max(0, height) * p)
+  }, progress)
+  await page.waitForTimeout(2600)
+}
+
 const browser = await chromium.launch({
   headless: true,
   args: ['--use-gl=swiftshader', '--ignore-gpu-blocklist'],
@@ -81,11 +103,11 @@ const fpsReport = { desktop: {}, phone: {}, notes: [] }
     console.log('desktop fps step', i + 1, fps)
   }
 
-  // Mid 2→3 (progress ~0.375)
-  await scrollToProgress(page, 0.375)
+  // Mid 2→3 (progress ~0.375) — hold so GSAP snap cannot pull to a step
+  await holdProgress(page, 0.375)
   await shotViewport(page, 'p2_desktop_mid_2_3.png')
   // Mid 4→5 (progress ~0.875)
-  await scrollToProgress(page, 0.875)
+  await holdProgress(page, 0.875)
   await shotViewport(page, 'p2_desktop_mid_4_5.png')
 
   // Full scroll-through for recording
@@ -134,14 +156,20 @@ const fpsReport = { desktop: {}, phone: {}, notes: [] }
 await browser.close()
 
 fpsReport.notes.push('Measured via rAF frame count in-page over ~2s on SwiftShader')
+fpsReport.notes.push(
+  'Soft-GPU path caps cells ~4.5k and PerformanceMonitor declines FX (full→bloom→off). Real desktop GPUs should sustain full tier.',
+)
 fpsReport.bundle = {
   main_c988817_ExplainerCanvas_gzip_kb: 393.33,
-  branch_ExplainerCanvas_named_gzip_kb: 13.08,
-  branch_drei_shared_gzip_kb: 352.19,
-  branch_postfx_gzip_kb: 20.86,
-  branch_3d_payload_approx_gzip_kb: 13.08 + 352.19 + 20.86,
-  delta_named_chunk_kb: 13.08 - 393.33,
-  delta_total_3d_vs_main_kb: 13.08 + 352.19 + 20.86 - 393.33,
+  branch_ExplainerCanvas_named_gzip_kb: 8.89,
+  branch_scenes_lazy_gzip_kb: 4.62,
+  branch_PostFX_wrapper_gzip_kb: 0.94,
+  branch_postfx_lib_gzip_kb: 20.31,
+  branch_drei_shared_gzip_kb: 327.2,
+  branch_gsap_lazy_gzip_kb: 43.25,
+  branch_3d_payload_approx_gzip_kb: 405.21,
+  delta_named_ExplainerCanvas_vs_main_kb: -384.44,
+  delta_total_3d_vs_main_kb: 11.88,
 }
 writeFileSync(join(OUT, 'p2_fps_bundle_report.json'), JSON.stringify(fpsReport, null, 2))
 console.log(JSON.stringify(fpsReport, null, 2))
