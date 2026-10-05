@@ -98,11 +98,12 @@ const browser = await chromium.launch({
   const page = await context.newPage()
   await gotoExplainer(page)
 
-  // Warm lazy/warm-mounted scenes before stills
-  await holdProgress(page, 0.2, 2000)
-  await holdProgress(page, 0.5, 3500)
-  await holdProgress(page, 0.75, 2500)
-  await holdProgress(page, 1, 2500)
+  // Warm meshes for continuous mid-blends, then return to step 1 before stills
+  await holdProgress(page, 0.2, 1800)
+  await holdProgress(page, 0.5, 2800)
+  await holdProgress(page, 0.75, 2000)
+  await holdProgress(page, 1, 2000)
+  await holdProgress(page, 0, 2000)
 
   // Mid blends (held scrub — geometric midpoints)
   await holdProgress(page, 0.375, 5000)
@@ -113,10 +114,12 @@ const browser = await chromium.launch({
   console.log('mid45', await page.getAttribute('[data-progress]', 'data-progress'))
   await shotViewport(page, 'p2_desktop_mid_4_5.png')
 
-  // Settled steps via eased tab navigation
+  // Settled steps via eased tab navigation (from a clean step-1 baseline)
+  await page.locator('.step-tab').nth(0).click()
+  await page.waitForTimeout(1600)
   for (let i = 0; i < 5; i++) {
     await page.locator('.step-tab').nth(i).click()
-    await page.waitForTimeout(1500) // allow ~1s ease + settle
+    await page.waitForTimeout(1600)
     await shotViewport(page, `p2_desktop_step${i + 1}.png`)
   }
   // Full page step 5 for CTA visibility
