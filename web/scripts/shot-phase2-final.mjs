@@ -95,6 +95,17 @@ const fpsReport = { desktop: {}, phone: {}, notes: [] }
   const page = await context.newPage()
   await gotoExplainer(page)
 
+  // Mid-transition frames FIRST (before tab snaps) so GSAP/lazy state stay clean
+  await holdProgress(page, 0.375)
+  const mid23Progress = await page.getAttribute('[data-progress]', 'data-progress')
+  console.log('mid 2→3 data-progress', mid23Progress)
+  await shotViewport(page, 'p2_desktop_mid_2_3.png')
+
+  await holdProgress(page, 0.875)
+  const mid45Progress = await page.getAttribute('[data-progress]', 'data-progress')
+  console.log('mid 4→5 data-progress', mid45Progress)
+  await shotViewport(page, 'p2_desktop_mid_4_5.png')
+
   for (let i = 0; i < 5; i++) {
     await clickStep(page, i)
     await shotViewport(page, `p2_desktop_step${i + 1}.png`)
@@ -102,13 +113,6 @@ const fpsReport = { desktop: {}, phone: {}, notes: [] }
     fpsReport.desktop[`step${i + 1}`] = fps
     console.log('desktop fps step', i + 1, fps)
   }
-
-  // Mid 2→3 (progress ~0.375) — hold so GSAP snap cannot pull to a step
-  await holdProgress(page, 0.375)
-  await shotViewport(page, 'p2_desktop_mid_2_3.png')
-  // Mid 4→5 (progress ~0.875)
-  await holdProgress(page, 0.875)
-  await shotViewport(page, 'p2_desktop_mid_4_5.png')
 
   // Full scroll-through for recording
   await scrollToProgress(page, 0)

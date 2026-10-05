@@ -336,7 +336,7 @@
   position: absolute;
   left: 0.75rem;
   /* Clear the multi-line viewport hint on all breakpoints */
-  bottom: 3.35rem;
+  bottom: 3.6rem;
   z-index: 4;
   display: inline-flex;
   align-items: center;
@@ -806,10 +806,12 @@
     font-size: 0.66rem;
   }
   .node-scale-cue {
+    /* Park above the deposit toggles — never fight the bottom hint */
     left: 50%;
+    right: auto;
+    top: 2.85rem;
+    bottom: auto;
     transform: translateX(-50%);
-    /* Clear gap above multi-line “Scroll to travel…” hint (~2 lines) */
-    bottom: 5.75rem;
     max-width: calc(100% - 1.25rem);
     padding: 0.16rem 0.45rem;
   }
