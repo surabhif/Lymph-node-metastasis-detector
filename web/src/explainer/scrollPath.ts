@@ -115,6 +115,12 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
   return {
     sample(progress: number): CameraTarget {
       const p = THREE.MathUtils.clamp(progress, 0, 1)
+      // Land exactly on step framings at snaps — CatmullRom neighbors (esp. the
+      // close dive key) otherwise pull step-3 inward and over-zoom the cut-away.
+      const snapEps = 0.012
+      for (let s = 0; s < STEP_SNAP.length; s++) {
+        if (Math.abs(p - STEP_SNAP[s]!) <= snapEps) return frames[s]!
+      }
       // Piecewise map scrub → curve parameter through keyT
       let i = 0
       while (i < keyT.length - 2 && p > keyT[i + 1]!) i++

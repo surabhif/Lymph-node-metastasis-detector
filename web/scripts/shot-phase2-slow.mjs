@@ -105,8 +105,8 @@ const browser = await chromium.launch({
   await holdProgress(page, 1, 2000)
   await holdProgress(page, 0, 2000)
 
-  // Mid 2→3: dive with node present but clip/cap still sealed (no torso-slicing disc)
-  await holdProgress(page, 0.34, 5000)
+  // Mid 2→3: dive with glowing orb (cutaway interior still sealed — no torso disc)
+  await holdProgress(page, 0.38, 5000)
   console.log('mid23', await page.getAttribute('[data-progress]', 'data-progress'))
   await shotViewport(page, 'p2_desktop_mid_2_3.png')
 
@@ -143,9 +143,13 @@ const browser = await chromium.launch({
     // Force settle at snap so mobile step-5 mosaic is fully in
     await holdProgress(page, [0, 0.25, 0.5, 0.75, 1][i], 2000)
     await page.waitForTimeout(600)
-    await shotViewport(page, `p2_phone_step${i + 1}.png`)
-    if (i === 2) {
-      await page.screenshot({ path: join(OUT, 'p2_phone_step3_full.png'), type: 'png' })
+    try {
+      await shotViewport(page, `p2_phone_step${i + 1}.png`)
+      if (i === 2) {
+        await page.screenshot({ path: join(OUT, 'p2_phone_step3_full.png'), type: 'png' })
+      }
+    } catch (err) {
+      console.warn('phone shot failed', i + 1, String(err))
     }
   }
   await context.close()

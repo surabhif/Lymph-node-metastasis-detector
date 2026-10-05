@@ -580,7 +580,7 @@ function CutawayLymphNode({
       {/* Labels only with the interior */}
       {showInterior && (
         <>
-          <Html position={[0.15, 0.92, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+          <Html position={[0.1, 0.78, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno hide-sm">Cortex / follicles</span>
           </Html>
           <Html position={[0.48, 0.08, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
@@ -589,10 +589,10 @@ function CutawayLymphNode({
           <Html position={[-0.22, -0.02, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno soft">Medulla</span>
           </Html>
-          <Html position={[-1.15, -0.42, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+          <Html position={[-1.1, -0.35, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno hide-sm">Afferent</span>
           </Html>
-          <Html position={[1.35, -0.42, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+          <Html position={[1.3, -0.35, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno hide-sm">Efferent / hilum</span>
           </Html>
         </>

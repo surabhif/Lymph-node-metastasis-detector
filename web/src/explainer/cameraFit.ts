@@ -139,16 +139,16 @@ export function insideNodeCameraTarget(
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
   // Room for cortex label above + afferent/efferent + bottom hint clearance
-  const margin = mobile ? 1.95 : 1.95
+  const margin = mobile ? 2.15 : 2.2
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
   const dist = Math.max(
     (size.y * margin) / (2 * Math.tan(vFov / 2)),
     (size.x * margin) / (2 * Math.tan(hFov / 2)),
-    5.4,
+    6.2,
   )
   // Bias look-at up so Afferent clears the bottom hint
-  const lookY = center.y + (mobile ? 0.18 : 0.14)
+  const lookY = center.y + (mobile ? 0.2 : 0.16)
   return {
     position: [center.x * 0.08, lookY + 0.02, center.z + dist],
     lookAt: [center.x * 0.05, lookY, center.z],
