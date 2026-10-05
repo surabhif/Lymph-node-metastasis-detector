@@ -454,8 +454,10 @@ function CutawayLymphNode({
           side={THREE.DoubleSide}
         />
       </mesh>
-      {/* Capsule rim — solid torus ring (not a diameter line through the cut) */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
+      {/* Capsule rim — torus in XY (facing camera). Do NOT rotate π/2 around X:
+          that lays the ring in XZ and reads as a glowing horizontal bar through
+          the cut center (the “dashed diameter line” artifact). */}
+      <mesh position={[0, 0, 0.02]} renderOrder={2}>
         <torusGeometry args={[1.05, 0.028, 10, Math.max(32, segs)]} />
         <meshStandardMaterial
           color={COLORS.nodeCapsule}

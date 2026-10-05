@@ -211,14 +211,13 @@ function AxillaNodes({
 }
 
 /**
- * Soft sequential handoff: outgoing clears before incoming peaks.
- * Brief low-opacity overlap is allowed so the canvas never goes fully black;
- * both never exceed ~0.35 at the same time ("never both opaque").
+ * Strict sequential handoff: outgoing fully clears before incoming rises.
+ * Brief dark gap at mid-blend is intentional so scenes never stack opaque.
  */
 function sequentialFade(t: number): { out: number; inn: number } {
   const c = THREE.MathUtils.clamp(t, 0, 1)
-  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 0.55)
-  const inn = THREE.MathUtils.smoothstep(c, 0.4, 1.0)
+  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 0.42)
+  const inn = THREE.MathUtils.smoothstep(c, 0.55, 1.0)
   return { out, inn }
 }
 
