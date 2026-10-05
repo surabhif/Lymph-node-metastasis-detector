@@ -208,8 +208,8 @@ export default function ExplainerCanvas({
     mobile ? 390 / 360 : 800 / 576,
     surgerySingle,
   )
-  // Dense stream: ~2k phones, ~12k desktop (cap 20k for SwiftShader headroom)
-  const particleCount = quality === 'high' ? 12000 : 2000
+  // Dense stream: ~2k phones, ~10–15k desktop (headroom under SwiftShader)
+  const particleCount = quality === 'high' ? 14000 : 2000
 
   useEffect(() => {
     setMounted(true)
