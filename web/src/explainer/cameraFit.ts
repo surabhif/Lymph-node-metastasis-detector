@@ -121,8 +121,14 @@ export const SURGERY_PANEL_SCALE = 0.74
  * Step 3 cut-away node AABB (capsule + afferent/efferent stubs).
  * Fitted with ≥8% margin on the limiting axis.
  */
-export function insideNodeFocusBox(): THREE.Box3 {
-  // Include afferent/efferent stubs + label clearance above cortex / below vessels
+export function insideNodeFocusBox(mobile = false): THREE.Box3 {
+  // Phone: body+stubs only so the node fills ~75% width. Desktop: extra label slack.
+  if (mobile) {
+    return new THREE.Box3(
+      new THREE.Vector3(-1.25, -1.05, -0.35),
+      new THREE.Vector3(1.35, 1.05, 0.55),
+    )
+  }
   return new THREE.Box3(
     new THREE.Vector3(-1.7, -1.35, -0.4),
     new THREE.Vector3(1.75, 1.35, 0.6),
@@ -135,23 +141,22 @@ export function insideNodeCameraTarget(
   fovDeg: number,
   mobile = false,
 ): CameraTarget {
-  const box = insideNodeFocusBox()
+  const box = insideNodeFocusBox(mobile)
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
-  // Desktop: generous slack for labels. Phone: fill ~75% of the shorter axis
-  // (margin ≈ 1/0.75). Never force a huge minDist on narrow aspects.
-  const margin = mobile ? 1.32 : 2.15
+  // Phone: fill ~78% of width (margin≈1.28). Desktop: room for labels.
+  const margin = mobile ? 1.28 : 2.15
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
-  const distFit = Math.max(
-    (size.y * margin) / (2 * Math.tan(vFov / 2)),
-    (size.x * margin) / (2 * Math.tan(hFov / 2)),
-  )
-  const dist = Math.max(distFit, mobile ? 3.1 : 6.2)
-  const lookY = center.y + (mobile ? 0.08 : 0.06)
+  // Prefer width fill on portrait; prefer height on landscape
+  const distW = (size.x * margin) / (2 * Math.tan(hFov / 2))
+  const distH = (size.y * margin) / (2 * Math.tan(vFov / 2))
+  const distFit = mobile ? distW : Math.max(distW, distH)
+  const dist = Math.max(distFit, mobile ? 2.6 : 6.2)
+  const lookY = center.y + (mobile ? 0.06 : 0.06)
   return {
-    position: [center.x * 0.06, lookY + 0.02, center.z + dist],
-    lookAt: [center.x * 0.04, lookY, center.z],
+    position: [center.x * 0.05, lookY + 0.02, center.z + dist],
+    lookAt: [center.x * 0.03, lookY, center.z],
   }
 }
 

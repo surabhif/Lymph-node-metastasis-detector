@@ -461,39 +461,8 @@ function CutawayLymphNode({
 
       {showInterior && (
         <>
-          {/* Soft capsule volume — CLOSED sphere (no cut rim / diameter edge) */}
-          <mesh renderOrder={1} userData={{ skipClip: true }}>
-            <sphereGeometry args={[1.02, segs, segs]} />
-            <meshStandardMaterial
-              color="#1e4548"
-              transparent
-              opacity={0.06 * face * op}
-              roughness={0.5}
-              depthWrite={false}
-              side={THREE.BackSide}
-            />
-          </mesh>
-
-          {/* Cortex as a THICK torus — flat ringGeometry caused a shimmering diameter line */}
-          {showFace && (
-            <mesh
-              rotation={[Math.PI / 2, 0, 0]}
-              position={[0, 0, 0.1]}
-              renderOrder={3}
-              userData={{ skipClip: true }}
-            >
-              <torusGeometry args={[0.78, 0.155, 14, Math.max(40, segs)]} />
-              <meshStandardMaterial
-                color={COLORS.cortex}
-                emissive={COLORS.follicleGlow}
-                emissiveIntensity={0.12 * face}
-                transparent
-                opacity={0.55 * face * op}
-                roughness={0.78}
-                depthWrite={false}
-              />
-            </mesh>
-          )}
+          {/* No flat ring / torus — those read as a shimmering diameter line through the cut.
+              Cortex is conveyed by the follicle spheres alone. */}
 
           {/* Follicles — sit in front of the torus band */}
           {follicles.map((f, i) => (

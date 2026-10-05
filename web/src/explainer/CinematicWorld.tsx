@@ -332,7 +332,6 @@ export function CinematicWorld({
     0,
     1,
   )
-  const nodeAmt = nodeOpacity
 
   // No mid-dive clipping — flat rings + clip planes caused dashed diameter artifacts.
   // Cutaway is geometric (open shell + thick torus), not a sweeping plane.
