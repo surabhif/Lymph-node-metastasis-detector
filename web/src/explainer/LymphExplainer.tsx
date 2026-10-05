@@ -212,6 +212,7 @@ export default function LymphExplainer() {
       const gen = (w.__explainerHoldGen = (w.__explainerHoldGen ?? 0) + 1)
       scrollingToRef.current = true
       tweenRef.current?.kill()
+      progressRef.current = clamped
       setProgress(clamped)
       setStepIndex(stepIndexFromProgress(clamped))
       if (holdMs <= 0) {
@@ -232,6 +233,8 @@ export default function LymphExplainer() {
       delete w.__releaseExplainerScroll
     }
   }, [])
+
+  // Expose pill helper after scrollToStep exists (see below).
 
   // GSAP ScrollTrigger: scrub progress from the tall track. Use CSS sticky
   // instead of ScrollTrigger pin — pin's position:fixed reparents the WebGL
@@ -258,6 +261,8 @@ export default function LymphExplainer() {
           invalidateOnRefresh: true,
           snap: {
             snapTo: (value: number) => {
+              // Freeze snap while pills / programmatic flights own the scrub.
+              if (scrollingToRef.current) return value
               let best: number = STEP_SNAP[0]!
               let bestDist = Infinity
               for (const s of STEP_SNAP) {
@@ -298,12 +303,15 @@ export default function LymphExplainer() {
     }
   }, [scrollDriven, isMobile])
 
+  const stepIndexRef = useRef(stepIndex)
+  useEffect(() => {
+    stepIndexRef.current = stepIndex
+  }, [stepIndex])
+
   const scrollToStep = useCallback((index: number) => {
     const next = Math.max(0, Math.min(EXPLAINER_STEPS.length - 1, index))
     const target = STEP_SNAP[next] ?? 0
     const from = progressRef.current
-    const st = triggerRef.current
-    const gsap = gsapRef.current
 
     // Kill any in-flight pill tween / rAF so rapid clicks never stack scenes.
     flightGenRef.current += 1
@@ -316,67 +324,66 @@ export default function LymphExplainer() {
     }
     scrollingToRef.current = true
 
-    const apply = (p: number) => {
+    /** Animate React progress only — avoid ScrollTrigger.scroll mid-flight (bounds/snap fight). */
+    const applyProgress = (p: number, landIndex?: number) => {
       if (flightGenRef.current !== gen) return
-      progressRef.current = p
-      setProgress(p)
-      setStepIndex(stepIndexFromProgress(p))
-      if (st) {
-        const y = st.start + (st.end - st.start) * p
-        window.scrollTo(0, y)
-        st.scroll(y)
-      }
+      const clamped = Math.min(1, Math.max(0, p))
+      progressRef.current = clamped
+      setProgress(clamped)
+      setStepIndex(landIndex ?? stepIndexFromProgress(clamped))
     }
 
-    // Reduced-motion: snap immediately. Otherwise always ease ~1s through the flight.
-    if (reducedMotion) {
-      apply(target)
-      setStepIndex(next)
-      scrollingToRef.current = false
+    const syncScrollToProgress = (p: number) => {
+      const st = triggerRef.current
+      if (!st) return
+      const y = st.start + (st.end - st.start) * p
+      window.scrollTo(0, y)
+      st.scroll(y)
+    }
+
+    const finish = () => {
+      if (flightGenRef.current !== gen) return
+      applyProgress(target, next)
+      syncScrollToProgress(target)
+      // Hold the lock so ScrollTrigger snap/scrub cannot yank off the landing.
+      window.setTimeout(() => {
+        if (flightGenRef.current === gen) {
+          syncScrollToProgress(target)
+          scrollingToRef.current = false
+        }
+      }, 400)
+      tweenRef.current = null
+      rafRef.current = null
+    }
+
+    if (reducedMotion || Math.abs(target - from) < 0.001) {
+      applyProgress(target, next)
+      syncScrollToProgress(target)
+      window.setTimeout(() => {
+        if (flightGenRef.current === gen) scrollingToRef.current = false
+      }, 400)
       return
     }
 
-    // ~1s eased flight so pills / Prev-Next / arrows match the scroll path
-    const stepSpan = Math.max(1, Math.round(Math.abs(next - stepIndex) || 1))
+    const stepSpan = Math.max(1, Math.round(Math.abs(next - stepIndexRef.current) || 1))
     const dur = Math.min(1.15, Math.max(0.95, 0.95 + (stepSpan - 1) * 0.12))
 
-    if (gsap && scrollDriven) {
-      const proxy = { p: from }
-      tweenRef.current = gsap.to(proxy, {
-        p: target,
-        duration: dur,
-        ease: 'power2.inOut',
-        onUpdate: () => apply(proxy.p),
-        onComplete: () => {
-          if (flightGenRef.current !== gen) return
-          apply(target)
-          setStepIndex(next)
-          scrollingToRef.current = false
-          tweenRef.current = null
-        },
-      })
-      return
-    }
-
-    // GSAP not ready yet — rAF ease so we still show the flight
+    // Prefer rAF for progress so GSAP ScrollTrigger snap cannot overwrite the proxy tween.
     const t0 = performance.now()
     const ms = dur * 1000
     const tick = (now: number) => {
       if (flightGenRef.current !== gen) return
       const t = Math.min(1, (now - t0) / ms)
       const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-      apply(from + (target - from) * e)
+      applyProgress(from + (target - from) * e)
       if (t < 1) {
         rafRef.current = requestAnimationFrame(tick)
       } else {
-        apply(target)
-        setStepIndex(next)
-        scrollingToRef.current = false
-        rafRef.current = null
+        finish()
       }
     }
     rafRef.current = requestAnimationFrame(tick)
-  }, [scrollDriven, reducedMotion, stepIndex])
+  }, [scrollDriven, reducedMotion])
 
   const go = useCallback(
     (next: number) => {
@@ -384,6 +391,14 @@ export default function LymphExplainer() {
     },
     [scrollToStep],
   )
+
+  useEffect(() => {
+    const w = window as Window & { __scrollToExplainerStep?: (index: number) => void }
+    w.__scrollToExplainerStep = (index: number) => scrollToStep(index)
+    return () => {
+      delete w.__scrollToExplainerStep
+    }
+  }, [scrollToStep])
 
   const onKeyNav = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
