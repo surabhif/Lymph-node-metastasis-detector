@@ -434,166 +434,169 @@ function CutawayLymphNode({
     opacity: hudVisible ? 1 : 0,
   }
   const face = THREE.MathUtils.clamp(cutFaceAmt, 0, 1)
-  const showFace = face > 0.04
+  const showFace = face > 0.08
+  // During the torso dive, show only a compact glowing orb — flat rings/sphere
+  // cross-sections otherwise read as a pink disc slicing the body.
+  const showInterior = face > 0.12
 
   return (
     <group>
-      {/* Capsule shell — alpha only (transmission reads as a solid green disc on SwiftShader) */}
-      <mesh rotation={[0, 0, 0]} renderOrder={1}>
-        <sphereGeometry args={[1.05, segs, segs, 0, Math.PI * 2, 0, Math.PI * 0.72]} />
-        <meshStandardMaterial
-          color="#1e4548"
-          transparent
-          opacity={0.08 * Math.max(face, 0.35)}
-          roughness={0.42}
-          depthWrite={false}
-          side={THREE.FrontSide}
-        />
-      </mesh>
-      {/* Open cut edge — only once inside; keep it a thin ring (not a filled disc) */}
-      {showFace && (
-        <mesh
-          rotation={[Math.PI / 2, 0, 0]}
-          position={[0, 0, 0.02]}
-          renderOrder={2}
-          userData={{ skipClip: true }}
-        >
-          <torusGeometry args={[1.035, 0.014, 8, Math.max(48, segs)]} />
-          <meshBasicMaterial
-            color="#8ec4be"
+      {!showInterior && (
+        <mesh renderOrder={4} userData={{ skipClip: true }}>
+          <sphereGeometry args={[0.42, 24, 24]} />
+          <meshStandardMaterial
+            color={COLORS.sentinel}
+            emissive={COLORS.sentinel}
+            emissiveIntensity={1.1}
             transparent
-            opacity={0.22 * face}
+            opacity={0.85}
             depthWrite={false}
             toneMapped={false}
           />
         </mesh>
       )}
 
-      {/* Cortex band — fade in only at node-scale so it never becomes a torso-slicing disc */}
-      {showFace && (
-        <mesh
-          position={[0, 0, 0.05]}
-          renderOrder={3}
-          userData={{ skipClip: true }}
-          scale={[1, 1, 1]}
-        >
-          <ringGeometry args={[0.62, 0.95, segs]} />
-          <meshStandardMaterial
-            color={COLORS.cortex}
-            emissive={COLORS.follicleGlow}
-            emissiveIntensity={0.18 * face}
-            transparent
-            opacity={0.55 * face}
-            roughness={0.8}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-            polygonOffset
-            polygonOffsetFactor={-1}
-            polygonOffsetUnits={-1}
-          />
-        </mesh>
+      {showInterior && (
+        <>
+          {/* Capsule shell — alpha only */}
+          <mesh rotation={[0, 0, 0]} renderOrder={1}>
+            <sphereGeometry args={[1.05, segs, segs, 0, Math.PI * 2, 0, Math.PI * 0.72]} />
+            <meshStandardMaterial
+              color="#1e4548"
+              transparent
+              opacity={0.1 * face}
+              roughness={0.42}
+              depthWrite={false}
+              side={THREE.FrontSide}
+            />
+          </mesh>
+
+          {/* Cortex band — only inside node scale */}
+          {showFace && (
+            <mesh position={[0, 0, 0.05]} renderOrder={3} userData={{ skipClip: true }}>
+              <ringGeometry args={[0.62, 0.95, segs]} />
+              <meshStandardMaterial
+                color={COLORS.cortex}
+                emissive={COLORS.follicleGlow}
+                emissiveIntensity={0.16 * face}
+                transparent
+                opacity={0.5 * face}
+                roughness={0.8}
+                side={THREE.DoubleSide}
+                depthWrite={false}
+                polygonOffset
+                polygonOffsetFactor={-2}
+                polygonOffsetUnits={-2}
+              />
+            </mesh>
+          )}
+
+          {/* Follicles */}
+          {follicles.map((f, i) => (
+            <mesh key={i} position={[f[0], f[1], f[2]]} renderOrder={4}>
+              <sphereGeometry args={[f[3], 14, 14]} />
+              <meshStandardMaterial
+                color={COLORS.follicle}
+                emissive={COLORS.follicleGlow}
+                emissiveIntensity={0.95}
+                roughness={0.48}
+                transparent
+                opacity={0.92 * face}
+                depthWrite={false}
+                toneMapped={false}
+              />
+            </mesh>
+          ))}
+
+          {/* Paracortex */}
+          <mesh position={[0.12, -0.05, 0.08]} renderOrder={3}>
+            <sphereGeometry args={[0.42, segs, segs]} />
+            <meshStandardMaterial
+              color={COLORS.paracortex}
+              transparent
+              opacity={0.42 * face}
+              roughness={0.8}
+              depthWrite={false}
+            />
+          </mesh>
+
+          {/* Medulla */}
+          <mesh position={[-0.08, 0.02, 0.1]} renderOrder={3}>
+            <sphereGeometry args={[0.28, segs, segs]} />
+            <meshStandardMaterial
+              color={COLORS.medulla}
+              transparent
+              opacity={0.5 * face}
+              roughness={0.75}
+              depthWrite={false}
+            />
+          </mesh>
+
+          {/* Afferent — radial entry stubs (no horizontal through-cut) */}
+          {[
+            { pos: [-1.2, 0.55, 0.32] as const, rot: [0.15, 0.2, 0.85] as const },
+            { pos: [-1.28, 0.05, 0.3] as const, rot: [0.05, 0.15, 0.15] as const },
+            { pos: [-1.15, -0.48, 0.3] as const, rot: [-0.2, 0.1, -0.75] as const },
+          ].map((v, i) => (
+            <mesh
+              key={`aff-${i}`}
+              position={v.pos}
+              rotation={v.rot}
+              renderOrder={5}
+              userData={{ skipClip: true }}
+            >
+              <capsuleGeometry args={[0.04, 0.28, 6, 12]} />
+              <meshStandardMaterial
+                color={COLORS.vessel}
+                emissive={COLORS.vesselGlow}
+                emissiveIntensity={0.5}
+                toneMapped={false}
+                roughness={0.36}
+                depthWrite={false}
+              />
+            </mesh>
+          ))}
+
+          {/* Efferent */}
+          <mesh
+            position={[1.35, -0.15, 0.32]}
+            rotation={[0.1, -0.15, Math.PI / 2 + 0.35]}
+            renderOrder={5}
+            userData={{ skipClip: true }}
+          >
+            <capsuleGeometry args={[0.045, 0.38, 6, 12]} />
+            <meshStandardMaterial
+              color={COLORS.vessel}
+              emissive={COLORS.vesselGlow}
+              emissiveIntensity={0.55}
+              toneMapped={false}
+              roughness={0.34}
+              depthWrite={false}
+            />
+          </mesh>
+        </>
       )}
 
-      {/* Follicles — soft translucent lymphoid pink-purple (not grey) */}
-      {follicles.map((f, i) => (
-        <mesh key={i} position={[f[0], f[1], f[2]]} renderOrder={4}>
-          <sphereGeometry args={[f[3], 14, 14]} />
-          <meshStandardMaterial
-            color={COLORS.follicle}
-            emissive={COLORS.follicleGlow}
-            emissiveIntensity={0.95}
-            roughness={0.48}
-            transparent
-            opacity={0.92}
-            depthWrite={false}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
-
-      {/* Paracortex */}
-      <mesh position={[0.12, -0.05, 0.06]} renderOrder={3}>
-        <sphereGeometry args={[0.42, segs, segs]} />
-        <meshStandardMaterial
-          color={COLORS.paracortex}
-          transparent
-          opacity={0.48}
-          roughness={0.8}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Medulla (center) */}
-      <mesh position={[-0.08, 0.02, 0.08]} renderOrder={3}>
-        <sphereGeometry args={[0.28, segs, segs]} />
-        <meshStandardMaterial
-          color={COLORS.medulla}
-          transparent
-          opacity={0.55}
-          roughness={0.75}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Afferent vessels — radial stubs from upper/lower left (not a dashed horizontal through the cut) */}
-      {[
-        { pos: [-1.2, 0.55, 0.28] as const, rot: [0.15, 0.2, 0.85] as const },
-        { pos: [-1.28, 0.05, 0.26] as const, rot: [0.05, 0.15, 0.15] as const },
-        { pos: [-1.15, -0.48, 0.26] as const, rot: [-0.2, 0.1, -0.75] as const },
-      ].map((v, i) => (
-        <mesh
-          key={`aff-${i}`}
-          position={v.pos}
-          rotation={v.rot}
-          renderOrder={5}
-          userData={{ skipClip: true }}
-        >
-          <capsuleGeometry args={[0.04, 0.28, 6, 12]} />
-          <meshStandardMaterial
-            color={COLORS.vessel}
-            emissive={COLORS.vesselGlow}
-            emissiveIntensity={0.45}
-            toneMapped={false}
-            roughness={0.38}
-            depthWrite={false}
-          />
-        </mesh>
-      ))}
-
-      {/* Efferent vessel at hilum — single solid tube on the right, clear of the cut face */}
-      <mesh
-        position={[1.35, -0.15, 0.28]}
-        rotation={[0.1, -0.15, Math.PI / 2 + 0.35]}
-        renderOrder={5}
-        userData={{ skipClip: true }}
-      >
-        <capsuleGeometry args={[0.045, 0.38, 6, 12]} />
-        <meshStandardMaterial
-          color={COLORS.vessel}
-          emissive={COLORS.vesselGlow}
-          emissiveIntensity={0.5}
-          toneMapped={false}
-          roughness={0.36}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Labels — Cortex above ring; Afferent clear of bottom hint */}
-      <Html position={[0.15, 0.92, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
-        <span className="node-anno hide-sm">Cortex / follicles</span>
-      </Html>
-      <Html position={[0.48, 0.08, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
-        <span className="node-anno">Paracortex</span>
-      </Html>
-      <Html position={[-0.22, -0.02, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
-        <span className="node-anno soft">Medulla</span>
-      </Html>
-      <Html position={[-1.15, -0.42, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
-        <span className="node-anno hide-sm">Afferent</span>
-      </Html>
-      <Html position={[1.35, -0.42, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
-        <span className="node-anno hide-sm">Efferent / hilum</span>
-      </Html>
+      {/* Labels only with the interior */}
+      {showInterior && (
+        <>
+          <Html position={[0.15, 0.92, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+            <span className="node-anno hide-sm">Cortex / follicles</span>
+          </Html>
+          <Html position={[0.48, 0.08, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
+            <span className="node-anno">Paracortex</span>
+          </Html>
+          <Html position={[-0.22, -0.02, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
+            <span className="node-anno soft">Medulla</span>
+          </Html>
+          <Html position={[-1.15, -0.42, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+            <span className="node-anno hide-sm">Afferent</span>
+          </Html>
+          <Html position={[1.35, -0.42, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+            <span className="node-anno hide-sm">Efferent / hilum</span>
+          </Html>
+        </>
+      )}
     </group>
   )
 }
