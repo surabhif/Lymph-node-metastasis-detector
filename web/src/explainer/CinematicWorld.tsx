@@ -228,7 +228,11 @@ function NodeClipReveal({
   children: ReactNode
 }) {
   const { gl } = useThree()
-  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 1.15), [])
+  const plane = useMemo(() => {
+    const p = new THREE.Plane(new THREE.Vector3(0, 0, 1), 1.15)
+    p.userData.local = new THREE.Plane(new THREE.Vector3(0, 0, 1), 1.15)
+    return p
+  }, [])
   const group = useRef<THREE.Group>(null)
 
   useEffect(() => {
@@ -239,13 +243,17 @@ function NodeClipReveal({
   }, [gl])
 
   useFrame(() => {
-    // Plane normal +Z: clip when z > -constant.
+    // Plane normal +Z in node-local space: clip when local z > -constant.
     // Sealed (reveal=0): constant≈1.15 → keep only z ≲ -1.15 (almost nothing)
     // Open (reveal=1): constant≈-1.6 → keep z ≲ 1.6 (whole node)
     const r = THREE.MathUtils.clamp(reveal, 0, 1)
-    plane.constant = THREE.MathUtils.lerp(1.15, -1.6, r)
+    const local = plane.userData.local as THREE.Plane
+    local.normal.set(0, 0, 1)
+    local.constant = THREE.MathUtils.lerp(1.15, -1.6, r)
     const root = group.current
     if (!root) return
+    root.updateWorldMatrix(true, false)
+    plane.copy(local).applyMatrix4(root.matrixWorld)
     root.traverse((obj) => {
       const mesh = obj as THREE.Mesh
       if (!mesh.isMesh) return
