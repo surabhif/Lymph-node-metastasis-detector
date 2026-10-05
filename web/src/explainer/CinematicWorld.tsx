@@ -325,16 +325,18 @@ export function CinematicWorld({
     0,
     1,
   )
-  // Clip opens with dive; reduced-motion snaps open via cross-fade only
+  // Delay clip/cap until the camera is inside node scale — mid-dive sphere
+  // cross-sections otherwise read as a solid pink disc slicing the torso.
   const clipReveal = reducedMotion
-    ? intoNode > 0.45
+    ? intoNode > 0.72
       ? 1
       : 0
-    : intoNode
-  // Flat cortex/cap discs only once the camera is inside node scale (not mid-torso dive)
+    : THREE.MathUtils.smoothstep(intoNode, 0.78, 0.98) *
+      THREE.MathUtils.clamp(1 - outOfNode * 1.35, 0, 1)
+  // Flat cortex/cap discs only once fully inside (and fade on pull-out)
   const cutFaceAmt =
-    THREE.MathUtils.smoothstep(intoNode, 0.62, 0.92) *
-    THREE.MathUtils.clamp(1 - outOfNode * 1.1, 0, 1)
+    THREE.MathUtils.smoothstep(intoNode, 0.82, 0.98) *
+    THREE.MathUtils.clamp(1 - outOfNode * 1.25, 0, 1)
 
   const surgeryAmt = THREE.MathUtils.clamp(
     outOfNode * (1 - toPatches),

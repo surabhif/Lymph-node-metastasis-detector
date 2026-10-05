@@ -535,11 +535,11 @@ function CutawayLymphNode({
         />
       </mesh>
 
-      {/* Afferent vessels — fully in front of the cut (no clip dashes) */}
+      {/* Afferent vessels — radial stubs from upper/lower left (not a dashed horizontal through the cut) */}
       {[
-        { pos: [-1.15, 0.28, 0.22] as const, rot: [0, 0, 0.35] as const },
-        { pos: [-1.1, -0.2, 0.2] as const, rot: [0, 0, -0.3] as const },
-        { pos: [-1.0, 0.55, 0.2] as const, rot: [0, 0, 0.7] as const },
+        { pos: [-1.2, 0.55, 0.28] as const, rot: [0.15, 0.2, 0.85] as const },
+        { pos: [-1.28, 0.05, 0.26] as const, rot: [0.05, 0.15, 0.15] as const },
+        { pos: [-1.15, -0.48, 0.26] as const, rot: [-0.2, 0.1, -0.75] as const },
       ].map((v, i) => (
         <mesh
           key={`aff-${i}`}
@@ -548,50 +548,50 @@ function CutawayLymphNode({
           renderOrder={5}
           userData={{ skipClip: true }}
         >
-          <capsuleGeometry args={[0.038, 0.22, 6, 12]} />
+          <capsuleGeometry args={[0.04, 0.28, 6, 12]} />
           <meshStandardMaterial
             color={COLORS.vessel}
             emissive={COLORS.vesselGlow}
-            emissiveIntensity={0.4}
+            emissiveIntensity={0.45}
             toneMapped={false}
-            roughness={0.4}
+            roughness={0.38}
             depthWrite={false}
           />
         </mesh>
       ))}
 
-      {/* Efferent vessel at hilum — solid tube, ahead of the cut plane */}
+      {/* Efferent vessel at hilum — single solid tube on the right, clear of the cut face */}
       <mesh
-        position={[1.25, -0.05, 0.22]}
-        rotation={[0, 0, Math.PI / 2]}
+        position={[1.35, -0.15, 0.28]}
+        rotation={[0.1, -0.15, Math.PI / 2 + 0.35]}
         renderOrder={5}
         userData={{ skipClip: true }}
       >
-        <capsuleGeometry args={[0.042, 0.32, 6, 12]} />
+        <capsuleGeometry args={[0.045, 0.38, 6, 12]} />
         <meshStandardMaterial
           color={COLORS.vessel}
           emissive={COLORS.vesselGlow}
-          emissiveIntensity={0.45}
+          emissiveIntensity={0.5}
           toneMapped={false}
-          roughness={0.38}
+          roughness={0.36}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Labels — Afferent raised clear of the bottom hint */}
-      <Html position={[0.2, 0.78, 0.3]} center style={hudStyle} zIndexRange={[20, 0]}>
+      {/* Labels — Cortex above ring; Afferent clear of bottom hint */}
+      <Html position={[0.15, 0.92, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Cortex / follicles</span>
       </Html>
-      <Html position={[0.42, 0.12, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
+      <Html position={[0.48, 0.08, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno">Paracortex</span>
       </Html>
-      <Html position={[-0.28, -0.08, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
+      <Html position={[-0.22, -0.02, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno soft">Medulla</span>
       </Html>
-      <Html position={[-1.05, -0.55, 0.28]} center style={hudStyle} zIndexRange={[20, 0]}>
+      <Html position={[-1.15, -0.42, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Afferent</span>
       </Html>
-      <Html position={[1.25, -0.55, 0.28]} center style={hudStyle} zIndexRange={[20, 0]}>
+      <Html position={[1.35, -0.42, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Efferent / hilum</span>
       </Html>
     </group>

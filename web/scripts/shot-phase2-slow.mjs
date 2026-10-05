@@ -105,8 +105,8 @@ const browser = await chromium.launch({
   await holdProgress(page, 1, 2000)
   await holdProgress(page, 0, 2000)
 
-  // Mid blends — bias slightly past geometric mid so the destination scene is readable
-  await holdProgress(page, 0.42, 5000)
+  // Mid 2→3: dive with node present but clip/cap still sealed (no torso-slicing disc)
+  await holdProgress(page, 0.34, 5000)
   console.log('mid23', await page.getAttribute('[data-progress]', 'data-progress'))
   await shotViewport(page, 'p2_desktop_mid_2_3.png')
 
