@@ -30,6 +30,19 @@ type Metrics = {
   model_artifact?: Record<string, unknown>
 }
 
+type StainSummary = {
+  label: string
+  disclaimer: string
+  n: number
+  rows: {
+    perturbation: string
+    accuracy: number
+    roc_auc: number
+    delta_auc_vs_clean: number
+  }[]
+  plots: { auc: string; examples: string }
+}
+
 function RocChart({ points }: { points: Metrics['roc_curve'] }) {
   const w = 320
   const h = 240
@@ -111,6 +124,7 @@ function CalibrationChart({ bins }: { bins: Metrics['calibration'] }) {
 
 export default function ResultsPage() {
   const [data, setData] = useState<Metrics | null>(null)
+  const [stain, setStain] = useState<StainSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -122,6 +136,11 @@ export default function ResultsPage() {
       })
       .then((j: Metrics) => setData(j))
       .catch((e: Error) => setError(e.message))
+
+    fetch(`${import.meta.env.BASE_URL}results/stain_robustness_summary.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: StainSummary | null) => setStain(j))
+      .catch(() => setStain(null))
   }, [])
 
   if (error) {
@@ -220,8 +239,9 @@ export default function ResultsPage() {
       <section className="panel">
         <h2 className="section-title">Confident mistakes</h2>
         <p className="muted">
-          Highest-confidence errors on the evaluation subset. Review these before writing
-          conclusions.
+          Highest-confidence errors on the evaluation subset. These are a good place to stay humble:
+          morphology can be ambiguous, stain can mislead, and a patch is not a patient. Review before
+          writing conclusions.
         </p>
         <div className="mistakes-grid">
           {data.mistakes.map((item) => (
@@ -240,6 +260,74 @@ export default function ResultsPage() {
             </figure>
           ))}
         </div>
+      </section>
+
+      {stain && (
+        <section className="panel">
+          <h2 className="section-title">Stain / colour robustness</h2>
+          <p>
+            <strong>{stain.label}.</strong> {stain.disclaimer} Held-out official-test subset (n=
+            {stain.n}). Full write-up:{' '}
+            <code>results/stain_robustness.md</code>.
+          </p>
+          <div className="stain-plots">
+            <figure>
+              <img
+                src={`${import.meta.env.BASE_URL}${stain.plots.auc}`}
+                alt="ROC-AUC under colour and stain-like perturbations"
+              />
+            </figure>
+            <figure>
+              <img
+                src={`${import.meta.env.BASE_URL}${stain.plots.examples}`}
+                alt="Example clean versus strong colour-jitter patches"
+              />
+            </figure>
+          </div>
+          <table className="cm-table">
+            <thead>
+              <tr>
+                <th scope="col">Perturbation</th>
+                <th scope="col">Accuracy</th>
+                <th scope="col">ROC-AUC</th>
+                <th scope="col">Δ AUC vs clean</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stain.rows.map((r) => (
+                <tr key={r.perturbation}>
+                  <th scope="row">
+                    <code>{r.perturbation}</code>
+                  </th>
+                  <td>{(r.accuracy * 100).toFixed(2)}%</td>
+                  <td>{r.roc_auc.toFixed(4)}</td>
+                  <td>
+                    {r.delta_auc_vs_clean >= 0 ? '+' : ''}
+                    {r.delta_auc_vs_clean.toFixed(4)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      <section className="panel">
+        <h2 className="section-title">Limitations (honest)</h2>
+        <ul>
+          <li>
+            Metrics are from a fixed-seed <em>subset</em> of the official test split, not a claim of
+            full-split or clinical AUROC.
+          </li>
+          <li>
+            Colour / stain stress tests here use principled jitter and approximate H&amp;E RGB
+            scaling — not Macenko/Vahadane or external labs.
+          </li>
+          <li>
+            Surabhi still owns interpretation of these figures and can replace the model with her
+            own Colab run.
+          </li>
+        </ul>
       </section>
 
       <section className="panel">

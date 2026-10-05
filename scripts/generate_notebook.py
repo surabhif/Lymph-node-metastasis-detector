@@ -603,18 +603,20 @@ plt.show()
 cells.append(
     md(
         """
-## 8. Stub: stain-color robustness test *(you complete this)*
+## 8. Stain-color robustness test
 
 Pathology slides are stained with hematoxylin & eosin (H&E). Color can shift across labs and scanners. A model that only memorizes one stain look may fail on another.
 
-### Guidance (do not skip the thinking)
+A reproducible scripted experiment lives at `scripts/run_stain_robustness.py` (colour jitter + approximate H&E RGB scaling; **not** full Macenko/Vahadane). It writes `results/stain_robustness.md` and a Results-page summary.
+
+### Guidance
 1. Take a batch of test patches.
-2. Apply a **color perturbation** that mimics stain shift (e.g. `ColorJitter` on brightness/contrast/saturation/hue, or a simple hematoxylin-eosin channel scaling if you research one).
+2. Apply a **color perturbation** that mimics stain shift.
 3. Measure AUC **before vs after** on the **same** images.
 4. Write what changed and what that means for real-world use.
 
 ### Try this
-Implement `evaluate_under_colorjitter(...)` below, run it, and paste the numbers into your Results page with a short plain-language explanation.
+Run the helper below (mirrors the scripted mild jitter), or from a shell: `python scripts/run_stain_robustness.py`.
 """
     )
 )
@@ -622,21 +624,28 @@ Implement `evaluate_under_colorjitter(...)` below, run it, and paste the numbers
 cells.append(
     code(
         """
-# === STUB for Surabhi to complete ===
-def evaluate_under_colorjitter(severity: float = 0.2) -> None:
-    \"\"\"TODO: rebuild a test loader with ColorJitter *before* Normalize and compare AUC.
+def evaluate_under_colorjitter(jitter_strength: float = 0.2) -> None:
+    \"\"\"Mild colour-jitter AUC vs clean on the same test subset indices.\"\"\"
+    from torchvision import transforms as T
+    jitter = T.Compose([
+        T.ColorJitter(
+            brightness=jitter_strength,
+            contrast=jitter_strength,
+            saturation=jitter_strength,
+            hue=min(0.08, jitter_strength / 2),
+        ),
+        T.ToTensor(),
+        T.Normalize(IMAGENET_MEAN, IMAGENET_STD),
+    ])
+    test_j = datasets.PCAM(root=str(DATA_ROOT), split="test", transform=jitter, download=False)
+    indices = getattr(test_ds, "indices", list(range(min(2000, len(test_j)))))
+    loader_j = DataLoader(Subset(test_j, indices), batch_size=BATCH_SIZE, shuffle=False)
+    y_j, p_j = collect_probs(model, loader_j)
+    auc_j = float(roc_auc_score(y_j, p_j))
+    print(f"Colour-jitter strength={jitter_strength}: AUC={auc_j:.4f}")
+    print("For the fuller table (mild/strong/H&E-approx/hue), run: python scripts/run_stain_robustness.py")
 
-    Hints:
-      - Create a new transform pipeline: ColorJitter → ToTensor → Normalize
-      - Use datasets.PCAM(..., split='test', transform=that_pipeline)
-      - Subset with the *same indices* as test_ds.indices for a fair comparison
-      - Call collect_probs / roc_auc_score and print delta vs the clean-test AUC
-    \"\"\"
-    raise NotImplementedError("Surabhi: implement the stain-color robustness check")
-
-# Uncomment when ready:
-# evaluate_under_colorjitter(0.2)
-print("Stain robustness stub left for you to complete.")
+evaluate_under_colorjitter(0.2)
 """
     )
 )

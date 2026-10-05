@@ -1,0 +1,92 @@
+{
+  "experiment": "stain_colour_robustness",
+  "method": "Held-out fixed-seed subset of the official PCam test split. Perturbations: mild/strong ColorJitter (hue/saturation/brightness/contrast), approximate H&E RGB channel scaling, and fixed warm/cool hue shifts. Not full Macenko or Vahadane stain normalization \u2014 those were out of scope for this CPU VM; a principled simpler colour jitter is used instead.",
+  "knobs": {
+    "max_eval_samples": 2000,
+    "seed": 42,
+    "index_seed": 49,
+    "batch_size": 64,
+    "decision_threshold": 0.5,
+    "backbone": "resnet18",
+    "checkpoint": "export/best_model.pt",
+    "source_run_id": "baseline_fuller_run"
+  },
+  "what_was_tested": [
+    "mild_color_jitter",
+    "strong_color_jitter",
+    "he_channel_scale (RGB approximation)",
+    "hue_shift_warm / hue_shift_cool"
+  ],
+  "what_was_not_tested": [
+    "Macenko stain normalization",
+    "Vahadane stain separation",
+    "scanner-specific colour profiles",
+    "cross-lab external cohorts"
+  ],
+  "rows": [
+    {
+      "perturbation": "clean",
+      "n": 2000,
+      "accuracy": 0.79,
+      "roc_auc": 0.9077391696525268,
+      "mean_probability": 0.3537122905254364,
+      "delta_accuracy_vs_clean": 0.0,
+      "delta_auc_vs_clean": 0.0,
+      "mean_abs_prob_delta_vs_clean": 0.0
+    },
+    {
+      "perturbation": "mild_color_jitter",
+      "n": 2000,
+      "accuracy": 0.7605,
+      "roc_auc": 0.8796269166422497,
+      "mean_probability": 0.32291772961616516,
+      "delta_accuracy_vs_clean": -0.02950000000000008,
+      "delta_auc_vs_clean": -0.02811225301027709,
+      "mean_abs_prob_delta_vs_clean": 0.09041162580251694
+    },
+    {
+      "perturbation": "strong_color_jitter",
+      "n": 2000,
+      "accuracy": 0.6765,
+      "roc_auc": 0.7885925973333759,
+      "mean_probability": 0.24544404447078705,
+      "delta_accuracy_vs_clean": -0.11350000000000005,
+      "delta_auc_vs_clean": -0.11914657231915082,
+      "mean_abs_prob_delta_vs_clean": 0.17896768450737
+    },
+    {
+      "perturbation": "he_channel_scale",
+      "n": 2000,
+      "accuracy": 0.6635,
+      "roc_auc": 0.7902241120170082,
+      "mean_probability": 0.23113763332366943,
+      "delta_accuracy_vs_clean": -0.12650000000000006,
+      "delta_auc_vs_clean": -0.11751505763551862,
+      "mean_abs_prob_delta_vs_clean": 0.16998296976089478
+    },
+    {
+      "perturbation": "hue_shift_warm",
+      "n": 2000,
+      "accuracy": 0.738,
+      "roc_auc": 0.8506176555589,
+      "mean_probability": 0.2919076681137085,
+      "delta_accuracy_vs_clean": -0.052000000000000046,
+      "delta_auc_vs_clean": -0.05712151409362676,
+      "mean_abs_prob_delta_vs_clean": 0.14107702672481537
+    },
+    {
+      "perturbation": "hue_shift_cool",
+      "n": 2000,
+      "accuracy": 0.643,
+      "roc_auc": 0.7436966932702394,
+      "mean_probability": 0.23397094011306763,
+      "delta_accuracy_vs_clean": -0.14700000000000002,
+      "delta_auc_vs_clean": -0.16404247638228742,
+      "mean_abs_prob_delta_vs_clean": 0.18399891257286072
+    }
+  ],
+  "artifacts": {
+    "auc_plot": "results/stain_robustness_auc.png",
+    "examples_plot": "results/stain_robustness_examples.png"
+  }
+}

@@ -15,9 +15,11 @@ Lymph-node status matters for breast-cancer surgery planning. This project is an
 | `notebooks/01_train_pcam.ipynb` | Guided Colab teaching notebook (train, evaluate, export ONNX) |
 | `web/` | React + Vite research site (3D educational landing, guided demo, Results, About) |
 | `web/src/explainer/` | Lazy-loaded Three.js / R3F lymph-node metastasis explainer (HRA female anatomy + overlays) |
-| `web/public/models/pcam_cam.onnx` | Quick Cursor-assisted baseline ONNX (**INT8**, ~11 MB) |
+| `web/public/models/pcam_cam.onnx` | Improved Cursor-assisted baseline ONNX (see Results for knobs; often INT8 ~11 MB) |
 | `web/public/results/metrics.json` | Data-driven Results page (ROC, calibration, CM, mistakes) |
-| `results/baseline_quick_run.json` | Raw baseline training metrics/config |
+| `results/baseline_fuller_run.json` | Raw improved-baseline training metrics/config |
+| `results/baseline_quick_run.json` | Original quick stub run (historical reference) |
+| `results/stain_robustness.md` | Stain / colour robustness experiment write-up |
 | `results/quantization_report.json` | FP32→INT8 size and gallery score deltas |
 | `web/public/samples/` | Real PCam **test-set** gallery patches (CC0) |
 | `scripts/` | Training, gallery export, results export, quantization helpers |
@@ -29,17 +31,21 @@ The landing explainer uses **NIH/HuBMAP Human Reference Atlas** female skin, rig
 
 ## Honest status of the bundled model
 
-The file at `web/public/models/pcam_cam.onnx` is a **quick baseline** trained with Cursor’s help on a **subset** of the official PCam splits (ResNet-18, 2 epochs, 4000 train / 1000 val / 4000 test), then **dynamically quantized to INT8** (~11 MB, down from ~43 MB FP32; gallery max |ΔP| ≈ 0.025). **It is not Surabhi’s final model.** The site banner stays visitor-facing; technical paths and quantization notes live here and under Model card → Current served model.
+The file at `web/public/models/pcam_cam.onnx` is an **improved Cursor-assisted baseline** trained on a **larger subset** of the official PCam splits than the original quick stub (ResNet-18; see `results/baseline_fuller_run.json` for exact sample counts, epochs, hardware, and metrics). It may be **dynamically quantized to INT8** for browser size when gallery probability deltas stay small. **It is not Surabhi’s final model** — she owns the science narrative and can replace it with her own Colab run. The site banner stays visitor-facing; technical paths live here and under Model card → Current served model.
 
 Reference metrics:
 
-- `results/baseline_quick_run.json` — training run dump  
-- `web/public/results/metrics.json` — powers the Results page (overwrite after your run)
+- `results/baseline_fuller_run.json` — improved baseline training run dump  
+- `results/baseline_quick_run.json` — original quick stub (historical)  
+- `web/public/results/metrics.json` — powers the Results page (overwrite after your run)  
+- `results/stain_robustness.md` — colour / stain-shift stress test
 
 ```bash
-python scripts/run_baseline_quick.py      # train quick baseline (mirrors notebook knobs)
-python scripts/export_web_results.py      # refresh Results JSON + mistake images
-python scripts/quantize_onnx.py           # optional INT8 shrink + delta report
+python scripts/run_baseline_fuller.py    # improved baseline (larger subset / more epochs)
+python scripts/run_baseline_quick.py     # original quick stub knobs
+python scripts/export_web_results.py     # refresh Results JSON + mistake images
+python scripts/quantize_onnx.py          # optional INT8 shrink + delta report
+python scripts/run_stain_robustness.py   # colour / stain-shift experiment + report
 ```
 
 Then overwrite `web/public/models/pcam_cam.onnx` and update `MODEL_STATUS` in `web/src/lib/constants.ts`.
@@ -52,7 +58,7 @@ The notebook also documents a **MobileNetV2** backbone option (`BACKBONE = "mobi
 2. Runtime → GPU (T4 is fine).
 3. Start with the knobs near the top (`MAX_TRAIN_SAMPLES`, `EPOCHS`) so a quick run finishes in well under an hour.
 4. Keep PCam’s **official train / val / test splits** — never reshuffle across splits.
-5. Complete the **Try this** exercises and the stain-robustness stub yourself.
+5. Complete the **Try this** exercises; the stain-robustness stub is also implemented as `scripts/run_stain_robustness.py`.
 6. Run the ONNX export cell; download `export/pcam_cam.onnx`.
 
 ### Drop in your trained model

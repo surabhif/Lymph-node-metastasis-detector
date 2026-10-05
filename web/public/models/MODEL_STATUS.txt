@@ -1,5 +1,6 @@
-STATUS=quick_baseline_int8
-DESCRIPTION=Quick Cursor-assisted baseline with dynamic INT8 quantization (~11MB) for browser loading. Replace with Surabhi's Colab export when ready.
+STATUS=improved_baseline_int8
+DESCRIPTION=Improved Cursor-assisted baseline (dynamic INT8 quantization for browser size). Surabhi can still replace with her own Colab export. See results/baseline_fuller_run.json for train/val/test counts and epochs.
+METHOD=onnxruntime.quantization.quantize_dynamic default ops (incl. Conv) QUInt8
 FP32_MB=42.63
 INT8_MB=10.72
-GALLERY_MAX_ABS_DELTA=0.0250
+GALLERY_MAX_ABS_DELTA=0.0113
