@@ -165,8 +165,7 @@ const browser = await chromium.launch({
   await holdProgress(page, 0, 1200)
   // Ensure overlapping hold locks are cleared before real scroll
   await page.evaluate(() => {
-    const w = window
-    w.__explainerHoldGen = (w.__explainerHoldGen ?? 0) + 1
+    window.__releaseExplainerScroll?.()
   })
   await page.waitForTimeout(400)
 

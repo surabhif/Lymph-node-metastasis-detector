@@ -209,6 +209,7 @@ export default function LymphExplainer() {
   useEffect(() => {
     const w = window as Window & {
       __setExplainerProgress?: (p: number, holdMs?: number) => void
+      __releaseExplainerScroll?: () => void
       __explainerHoldGen?: number
     }
     w.__setExplainerProgress = (p: number, holdMs = 4000) => {
@@ -218,13 +219,22 @@ export default function LymphExplainer() {
       tweenRef.current?.kill()
       setProgress(clamped)
       setStepIndex(stepIndexFromProgress(clamped))
+      if (holdMs <= 0) {
+        scrollingToRef.current = false
+        return
+      }
       window.setTimeout(() => {
         // Only the latest hold may clear the lock (overlapping holds raced before).
         if (w.__explainerHoldGen === gen) scrollingToRef.current = false
       }, holdMs)
     }
+    w.__releaseExplainerScroll = () => {
+      w.__explainerHoldGen = (w.__explainerHoldGen ?? 0) + 1
+      scrollingToRef.current = false
+    }
     return () => {
       delete w.__setExplainerProgress
+      delete w.__releaseExplainerScroll
     }
   }, [])
 
