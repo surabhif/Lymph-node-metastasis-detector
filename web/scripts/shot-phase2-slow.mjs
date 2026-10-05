@@ -105,12 +105,12 @@ const browser = await chromium.launch({
   await holdProgress(page, 1, 2000)
   await holdProgress(page, 0, 2000)
 
-  // Mid blends (held scrub — geometric midpoints)
-  await holdProgress(page, 0.375, 5000)
+  // Mid blends — bias slightly past geometric mid so the destination scene is readable
+  await holdProgress(page, 0.42, 5000)
   console.log('mid23', await page.getAttribute('[data-progress]', 'data-progress'))
   await shotViewport(page, 'p2_desktop_mid_2_3.png')
 
-  await holdProgress(page, 0.875, 5000)
+  await holdProgress(page, 0.9, 5000)
   console.log('mid45', await page.getAttribute('[data-progress]', 'data-progress'))
   await shotViewport(page, 'p2_desktop_mid_4_5.png')
 
@@ -139,7 +139,10 @@ const browser = await chromium.launch({
   await gotoExplainer(page)
   for (const i of [0, 2, 4]) {
     await page.locator('.step-tab').nth(i).click()
-    await page.waitForTimeout(1500)
+    await page.waitForTimeout(1600)
+    // Force settle at snap so mobile step-5 mosaic is fully in
+    await holdProgress(page, [0, 0.25, 0.5, 0.75, 1][i], 2000)
+    await page.waitForTimeout(600)
     await shotViewport(page, `p2_phone_step${i + 1}.png`)
     if (i === 2) {
       await page.screenshot({ path: join(OUT, 'p2_phone_step3_full.png'), type: 'png' })
