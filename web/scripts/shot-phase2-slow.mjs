@@ -26,10 +26,29 @@ async function gotoExplainer(page) {
 }
 
 async function shotViewport(page, name) {
-  const path = join(OUT, 'screenshots', name)
-  await page.locator('.explainer-viewport').screenshot({ path, type: 'png' })
-  await page.locator('.explainer-viewport').screenshot({ path: join(OUT, name), type: 'png' })
-  console.log('saved', name)
+  const dest = join(OUT, name)
+  const dest2 = join(OUT, 'screenshots', name)
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      await page.waitForTimeout(180)
+      const host = page.locator('.explainer-viewport, .explainer-canvas-host').first()
+      await host.scrollIntoViewIfNeeded()
+      await host.screenshot({ path: dest, type: 'png', timeout: 15000 })
+      await host.screenshot({ path: dest2, type: 'png', timeout: 15000 }).catch(() => {})
+      console.log('saved', name)
+      return
+    } catch (err) {
+      console.warn('shot retry', name, attempt, String(err).slice(0, 140))
+      await page.waitForTimeout(450 * (attempt + 1))
+    }
+  }
+  const box = await page.locator('.explainer-canvas-host').first().boundingBox()
+  if (box) {
+    await page.screenshot({ path: dest, type: 'png', clip: box })
+    console.log('saved (clip)', name)
+    return
+  }
+  throw new Error('failed to capture ' + name)
 }
 
 async function holdProgress(page, progress, holdMs = 4500) {
