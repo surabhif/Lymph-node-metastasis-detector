@@ -418,15 +418,15 @@ function CutawayLymphNode({
   sceneOpacity?: number
 }) {
   const segs = quality === 'high' ? 48 : 28
-  const follicleCount = quality === 'high' ? 10 : 7
+  const follicleCount = quality === 'high' ? 14 : 10
   const mobile = quality === 'low'
 
   const follicles = useMemo(() => {
     const pts: [number, number, number, number][] = []
     for (let i = 0; i < follicleCount; i++) {
-      const a = (i / follicleCount) * Math.PI * 1.55 + 0.35
-      const r = 0.78
-      pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.85, 0.16 + (i % 3) * 0.03, 0.09 + (i % 2) * 0.02])
+      const a = (i / follicleCount) * Math.PI * 1.7 + 0.25
+      const r = 0.72 + (i % 3) * 0.04
+      pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.88, 0.18 + (i % 3) * 0.03, 0.085 + (i % 2) * 0.025])
     }
     return pts
   }, [follicleCount])
@@ -664,8 +664,8 @@ export function InsideNodeScene({
 
   useFrame(({ clock }) => {
     if (reducedMotion || !group.current) return
-    // Very gentle yaw only — large yaw made the flat cortex read as a diameter line
-    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.28) * 0.08
+    // Keep nearly frontal — any yaw made translucent bands read as a diameter line
+    group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.22) * 0.03
   })
 
   const showDeposits = cutFaceAmt > 0.25 && sceneOpacity > 0.4
