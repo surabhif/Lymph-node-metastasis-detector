@@ -423,17 +423,17 @@ function CutawayLymphNode({
 
   const follicles = useMemo(() => {
     const pts: [number, number, number, number][] = []
-    // Upper + lower cortex arcs only — follicles on the horizontal equator
-    // read as a broken dashed line through the node center.
+    // Upper + lower cortex arcs only — keep clear of the horizontal mid-line
+    // so follicles never read as a dashed vessel through the node center.
     const upper = Math.ceil(follicleCount * 0.55)
     const lower = follicleCount - upper
     for (let i = 0; i < upper; i++) {
-      const a = 0.45 + (i / Math.max(1, upper - 1)) * (Math.PI - 0.9)
+      const a = 0.75 + (i / Math.max(1, upper - 1)) * (Math.PI - 1.5)
       const r = 0.74 + (i % 3) * 0.035
       pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.9, 0.2 + (i % 3) * 0.025, 0.09 + (i % 2) * 0.02])
     }
     for (let i = 0; i < lower; i++) {
-      const a = Math.PI + 0.45 + (i / Math.max(1, lower - 1)) * (Math.PI - 0.9)
+      const a = Math.PI + 0.75 + (i / Math.max(1, lower - 1)) * (Math.PI - 1.5)
       const r = 0.74 + (i % 3) * 0.035
       pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.9, 0.2 + (i % 3) * 0.025, 0.085 + (i % 2) * 0.02])
     }
