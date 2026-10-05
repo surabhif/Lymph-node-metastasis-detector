@@ -31,8 +31,8 @@ export default function App() {
 
       <div className="site-notice" role="note">
         <p>
-          Research demo, not for clinical use. Currently running an improved Cursor-assisted
-          baseline; Surabhi can still replace it with her own training run.{' '}
+          Research demo, not for clinical use. Educational baseline only — never for diagnosis or
+          care decisions.{' '}
           <NavLink to="/model-card#current-model" className="notice-learn-more">
             Learn more
           </NavLink>
