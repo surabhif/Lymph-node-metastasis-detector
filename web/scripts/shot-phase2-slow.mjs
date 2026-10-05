@@ -105,10 +105,16 @@ const browser = await chromium.launch({
   await holdProgress(page, 1, 2000)
   await holdProgress(page, 0, 2000)
 
-  // Mid 2→3: dive with glowing orb (cutaway interior still sealed — no torso disc)
-  await holdProgress(page, 0.38, 5000)
-  console.log('mid23', await page.getAttribute('[data-progress]', 'data-progress'))
+  // Dive frames at ~1/3 and ~2/3 of the 2→3 window (0.25→0.5)
+  await holdProgress(page, 0.25 + 0.25 / 3, 5000)
+  console.log('dive13', await page.getAttribute('[data-progress]', 'data-progress'))
+  await shotViewport(page, 'p2_desktop_dive_1_3.png')
+  // Keep mid_2_3 alias for continuity
   await shotViewport(page, 'p2_desktop_mid_2_3.png')
+
+  await holdProgress(page, 0.25 + (0.25 * 2) / 3, 5000)
+  console.log('dive23', await page.getAttribute('[data-progress]', 'data-progress'))
+  await shotViewport(page, 'p2_desktop_dive_2_3.png')
 
   await holdProgress(page, 0.9, 5000)
   console.log('mid45', await page.getAttribute('[data-progress]', 'data-progress'))
