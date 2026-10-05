@@ -7,8 +7,8 @@ import type { ExplainerStepId } from './steps'
 import { SceneForStep, type DepositMode, type SceneQuality } from './scenes'
 import { cameraTargetFor, getTorsoBounds } from './cameraFit'
 import { PostFX } from './PostFX'
-import { buildCameraPaths, axillaryPathCurve } from './scrollPath'
-import { InstancedTumorCells } from './InstancedTumorCells'
+import { buildCameraPaths } from './scrollPath'
+import { CinematicWorld } from './CinematicWorld'
 
 export type SurgeryMode = 'slnb' | 'alnd' | 'both'
 
@@ -161,6 +161,7 @@ function ScrollCameraRig({
     desiredPos.current.set(...cfg.position)
     desiredLook.current.set(...cfg.lookAt)
     if (reducedMotion) {
+      // Snap framing; world handles opacity cross-fades
       camera.position.copy(desiredPos.current)
       target.current.copy(desiredLook.current)
       if (controlsRef.current) {
@@ -197,7 +198,7 @@ export default function ExplainerCanvas({
   scrollDriven = false,
 }: Props) {
   const mobile = quality === 'low'
-  const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.2]
+  const dpr: [number, number] = quality === 'high' ? [1, 1.5] : [1, 1.15]
   const [mounted, setMounted] = useState(true)
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
   const surgerySingle = surgeryMode !== 'both'
@@ -207,7 +208,8 @@ export default function ExplainerCanvas({
     mobile ? 390 / 360 : 800 / 576,
     surgerySingle,
   )
-  const particleCount = quality === 'high' ? 160 : 48
+  // Dense stream: ~2k phones, ~12k desktop (cap 20k for SwiftShader headroom)
+  const particleCount = quality === 'high' ? 12000 : 2000
 
   useEffect(() => {
     setMounted(true)
@@ -217,13 +219,7 @@ export default function ExplainerCanvas({
   if (!mounted) return null
 
   const isPatches = stepId === 'patches'
-  // During scroll scrub, allow gentle orbit nudge but prefer scroll ownership
   const orbitEnabled = !scrollDriven || isPatches
-  // Spread step: stream instanced cells along the vessel as a motion layer
-  const showCells = scrollDriven && stepId === 'spread'
-  const cellPath = useMemo(() => (showCells ? axillaryPathCurve() : null), [showCells])
-  // Keep progress referenced so scroll scrub state stays wired for future camera path
-  const cellIntensity = showCells ? 0.55 + 0.45 * Math.min(1, Math.abs(progress - 0.25) * 4) : 0
 
   return (
     <Canvas
@@ -247,24 +243,16 @@ export default function ExplainerCanvas({
               mobile={mobile}
               controlsRef={controlsRef}
             />
-            <SceneForStep
-              key={stepId}
-              stepId={stepId}
+            <CinematicWorld
+              progress={progress}
               quality={quality}
               reducedMotion={reducedMotion}
               activeNode={activeNode}
               onActiveNode={onActiveNode}
               surgeryMode={surgeryMode}
               depositMode={depositMode}
+              particleCount={particleCount}
             />
-            {showCells && cellPath && (
-              <InstancedTumorCells
-                curve={cellPath}
-                count={particleCount}
-                reducedMotion={reducedMotion}
-                intensity={cellIntensity}
-              />
-            )}
           </>
         ) : (
           <>
@@ -287,7 +275,12 @@ export default function ExplainerCanvas({
           </>
         )}
         {!isPatches && (
-          <PostFX quality={quality} reducedMotion={reducedMotion} enabled />
+          <PostFX
+            quality={quality}
+            reducedMotion={reducedMotion}
+            enabled
+            focusAxilla={scrollDriven && (stepId === 'lymphatic' || stepId === 'spread' || stepId === 'surgery')}
+          />
         )}
         <OrbitControls
           ref={controlsRef}

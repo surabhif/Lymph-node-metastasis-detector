@@ -807,9 +807,19 @@
   .node-scale-cue {
     left: 50%;
     transform: translateX(-50%);
-    bottom: 2.45rem;
+    /* Sit above the viewport hint (~2 lines) with clear gap — was overlapping at 2.45rem */
+    bottom: 3.65rem;
     max-width: calc(100% - 1rem);
     padding: 0.16rem 0.45rem;
+  }
+  .explainer-viewport-hint {
+    bottom: 0.4rem;
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+  .explainer-canvas-host {
+    /* Extra bottom padding so hint + scale cue never collide */
+    padding-bottom: 0;
   }
   .node-anno {
     font-size: 0.58rem;

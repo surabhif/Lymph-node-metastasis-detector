@@ -14,9 +14,11 @@ type Props = {
   sentinelU?: number
 }
 
+const LOOKUP = 256
+
 /**
  * Dense instanced tumor cells advected along a vessel curve.
- * Procedural look: emissive spheres with a cheap Fresnel rim via onBeforeCompile.
+ * Curve samples are cached so 2k–20k instances stay cheap per frame.
  */
 export function InstancedTumorCells({
   curve,
@@ -28,6 +30,17 @@ export function InstancedTumorCells({
 }: Props) {
   const mesh = useRef<THREE.InstancedMesh>(null)
   const dummy = useMemo(() => new THREE.Object3D(), [])
+  const lookup = useMemo(() => {
+    const arr = new Float32Array(LOOKUP * 3)
+    for (let i = 0; i < LOOKUP; i++) {
+      const p = curve.getPointAt(i / (LOOKUP - 1))
+      arr[i * 3] = p.x
+      arr[i * 3 + 1] = p.y
+      arr[i * 3 + 2] = p.z
+    }
+    return arr
+  }, [curve])
+
   const offsets = useMemo(() => {
     const arr = new Float32Array(count)
     for (let i = 0; i < count; i++) arr[i] = Math.random()
@@ -35,12 +48,12 @@ export function InstancedTumorCells({
   }, [count])
   const speeds = useMemo(() => {
     const arr = new Float32Array(count)
-    for (let i = 0; i < count; i++) arr[i] = 0.06 + Math.random() * 0.08
+    for (let i = 0; i < count; i++) arr[i] = 0.05 + Math.random() * 0.09
     return arr
   }, [count])
   const scales = useMemo(() => {
     const arr = new Float32Array(count)
-    for (let i = 0; i < count; i++) arr[i] = 0.018 + Math.random() * 0.028
+    for (let i = 0; i < count; i++) arr[i] = 0.012 + Math.random() * 0.022
     return arr
   }, [count])
 
@@ -66,11 +79,12 @@ export function InstancedTumorCells({
         `,
       )
     }
-    mat.customProgramCacheKey = () => 'tumor-cell-fresnel-v1'
+    mat.customProgramCacheKey = () => 'tumor-cell-fresnel-v2'
     return mat
   }, [])
 
-  const geo = useMemo(() => new THREE.SphereGeometry(1, 8, 8), [])
+  // Low-poly spheres — counts are high
+  const geo = useMemo(() => new THREE.SphereGeometry(1, 6, 6), [])
   const arriveAcc = useRef(0)
 
   useFrame(({ clock }, dt) => {
@@ -82,6 +96,7 @@ export function InstancedTumorCells({
 
     const t = clock.getElapsedTime()
     let arrivals = 0
+    const last = LOOKUP - 1
     for (let i = 0; i < count; i++) {
       let u: number
       if (reducedMotion) {
@@ -89,28 +104,32 @@ export function InstancedTumorCells({
       } else {
         u = (offsets[i]! + t * speeds[i]!) % 1
       }
-      const p = curve.getPointAt(u)
-      // Mild noise displacement off the tube centerline
-      const n = 0.012 * Math.sin(t * 2.1 + i * 1.7)
-      dummy.position.set(p.x + n, p.y + n * 0.6, p.z - n * 0.4)
-      const s = scales[i]! * (0.65 + 0.55 * intensity)
+      const fi = u * last
+      const i0 = Math.min(last - 1, fi | 0)
+      const i1 = i0 + 1
+      const f = fi - i0
+      const a = i0 * 3
+      const b = i1 * 3
+      const x = lookup[a]! + (lookup[b]! - lookup[a]!) * f
+      const y = lookup[a + 1]! + (lookup[b + 1]! - lookup[a + 1]!) * f
+      const z = lookup[a + 2]! + (lookup[b + 2]! - lookup[a + 2]!) * f
+      const n = 0.01 * Math.sin(t * 2.1 + i * 1.7)
+      dummy.position.set(x + n, y + n * 0.6, z - n * 0.4)
+      const s = scales[i]! * (0.55 + 0.65 * intensity)
       dummy.scale.setScalar(s)
       dummy.updateMatrix()
       inst.setMatrixAt(i, dummy.matrix)
-      if (!reducedMotion && Math.abs(u - sentinelU) < 0.02) arrivals++
+      if (!reducedMotion && Math.abs(u - sentinelU) < 0.018) arrivals++
     }
     inst.instanceMatrix.needsUpdate = true
-    inst.material = material
-    if (material.opacity !== undefined) {
-      material.opacity = 0.35 + 0.65 * intensity
-      material.emissiveIntensity = 0.6 + 0.9 * intensity
-    }
+    material.opacity = 0.3 + 0.7 * intensity
+    material.emissiveIntensity = 0.55 + 1.0 * intensity
 
     if (onArrive && arrivals > 0) {
-      arriveAcc.current = Math.min(1, arriveAcc.current + arrivals * dt * 0.35)
+      arriveAcc.current = Math.min(1, arriveAcc.current + arrivals * dt * 0.08)
       onArrive(arriveAcc.current)
     } else if (onArrive) {
-      arriveAcc.current = Math.max(0, arriveAcc.current - dt * 0.25)
+      arriveAcc.current = Math.max(0, arriveAcc.current - dt * 0.22)
       onArrive(arriveAcc.current)
     }
   })
