@@ -372,10 +372,13 @@ export function CinematicWorld({
   const showSurgery = surgeryPanelAmt > 0.02 && patchesAmt < 0.9
   const showPatches = patchesAmt > 0.02
 
-  // Soft scale/position for the dive into the node — rest scale must be 1 (camera is fitted to unit node)
+  // Soft scale for the dive — keep small through mid-dive so the proxy never
+  // becomes a torso-filling disc; rest at 0.72 so labels clear the frame.
   const torsoScale = 1 - intoNode * 0.7 + outOfNode * 0.35 * (1 - toPatches)
   const torsoY = -intoNode * 0.35 + outOfNode * 0.12
-  const nodeScale = THREE.MathUtils.lerp(0.38, 1.0, intoNode) * (1 - outOfNode * 0.42)
+  const diveSeat = THREE.MathUtils.smoothstep(intoNode, 0.58, 0.98)
+  const nodeScale =
+    THREE.MathUtils.lerp(0.16, 0.72, diveSeat) * (1 - outOfNode * 0.38)
   // Pull the cut-away out of the axilla toward origin early so mid-scroll frames it.
   const sent = landmark('sentinel')
   const seat = Math.pow(1 - intoNode, 1.55)

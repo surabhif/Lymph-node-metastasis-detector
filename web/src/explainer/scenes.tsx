@@ -423,7 +423,7 @@ function CutawayLymphNode({
     for (let i = 0; i < follicleCount; i++) {
       const a = (i / follicleCount) * Math.PI * 1.55 + 0.35
       const r = 0.78
-      pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.85, 0.12 + (i % 3) * 0.04, 0.09 + (i % 2) * 0.02])
+      pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.85, 0.14 + (i % 3) * 0.04, 0.09 + (i % 2) * 0.02])
     }
     return pts
   }, [follicleCount])
@@ -442,14 +442,14 @@ function CutawayLymphNode({
   return (
     <group>
       {!showInterior && (
-        <mesh renderOrder={4} userData={{ skipClip: true }}>
-          <sphereGeometry args={[0.42, 24, 24]} />
+        <mesh renderOrder={4} userData={{ skipClip: true }} scale={[0.55, 0.55, 0.55]}>
+          <sphereGeometry args={[0.28, 20, 20]} />
           <meshStandardMaterial
             color={COLORS.sentinel}
             emissive={COLORS.sentinel}
-            emissiveIntensity={1.1}
+            emissiveIntensity={0.85}
             transparent
-            opacity={0.85}
+            opacity={0.9}
             depthWrite={false}
             toneMapped={false}
           />
@@ -471,22 +471,22 @@ function CutawayLymphNode({
             />
           </mesh>
 
-          {/* Cortex band — only inside node scale */}
+          {/* Cortex band — FrontSide only to avoid diameter z-fight line */}
           {showFace && (
-            <mesh position={[0, 0, 0.05]} renderOrder={3} userData={{ skipClip: true }}>
+            <mesh position={[0, 0, 0.06]} renderOrder={3} userData={{ skipClip: true }}>
               <ringGeometry args={[0.62, 0.95, segs]} />
               <meshStandardMaterial
                 color={COLORS.cortex}
                 emissive={COLORS.follicleGlow}
-                emissiveIntensity={0.16 * face}
+                emissiveIntensity={0.14 * face}
                 transparent
-                opacity={0.5 * face}
-                roughness={0.8}
-                side={THREE.DoubleSide}
+                opacity={0.48 * face}
+                roughness={0.82}
+                side={THREE.FrontSide}
                 depthWrite={false}
                 polygonOffset
-                polygonOffsetFactor={-2}
-                polygonOffsetUnits={-2}
+                polygonOffsetFactor={-4}
+                polygonOffsetUnits={-4}
               />
             </mesh>
           )}
@@ -509,62 +509,37 @@ function CutawayLymphNode({
           ))}
 
           {/* Paracortex */}
-          <mesh position={[0.12, -0.05, 0.08]} renderOrder={3}>
+          <mesh position={[0.12, -0.05, 0.1]} renderOrder={3}>
             <sphereGeometry args={[0.42, segs, segs]} />
             <meshStandardMaterial
               color={COLORS.paracortex}
               transparent
-              opacity={0.42 * face}
+              opacity={0.4 * face}
               roughness={0.8}
               depthWrite={false}
             />
           </mesh>
 
           {/* Medulla */}
-          <mesh position={[-0.08, 0.02, 0.1]} renderOrder={3}>
+          <mesh position={[-0.08, 0.02, 0.12]} renderOrder={3}>
             <sphereGeometry args={[0.28, segs, segs]} />
             <meshStandardMaterial
               color={COLORS.medulla}
               transparent
-              opacity={0.5 * face}
+              opacity={0.48 * face}
               roughness={0.75}
               depthWrite={false}
             />
           </mesh>
 
-          {/* Afferent — radial entry stubs (no horizontal through-cut) */}
-          {[
-            { pos: [-1.2, 0.55, 0.32] as const, rot: [0.15, 0.2, 0.85] as const },
-            { pos: [-1.28, 0.05, 0.3] as const, rot: [0.05, 0.15, 0.15] as const },
-            { pos: [-1.15, -0.48, 0.3] as const, rot: [-0.2, 0.1, -0.75] as const },
-          ].map((v, i) => (
-            <mesh
-              key={`aff-${i}`}
-              position={v.pos}
-              rotation={v.rot}
-              renderOrder={5}
-              userData={{ skipClip: true }}
-            >
-              <capsuleGeometry args={[0.04, 0.28, 6, 12]} />
-              <meshStandardMaterial
-                color={COLORS.vessel}
-                emissive={COLORS.vesselGlow}
-                emissiveIntensity={0.5}
-                toneMapped={false}
-                roughness={0.36}
-                depthWrite={false}
-              />
-            </mesh>
-          ))}
-
-          {/* Efferent */}
+          {/* Two solid afferent stubs (angled, not a dashed horizontal through the cut) */}
           <mesh
-            position={[1.35, -0.15, 0.32]}
-            rotation={[0.1, -0.15, Math.PI / 2 + 0.35]}
-            renderOrder={5}
+            position={[-1.22, 0.32, 0.38]}
+            rotation={[0.2, 0.25, 0.55]}
+            renderOrder={6}
             userData={{ skipClip: true }}
           >
-            <capsuleGeometry args={[0.045, 0.38, 6, 12]} />
+            <capsuleGeometry args={[0.048, 0.42, 8, 14]} />
             <meshStandardMaterial
               color={COLORS.vessel}
               emissive={COLORS.vesselGlow}
@@ -574,25 +549,59 @@ function CutawayLymphNode({
               depthWrite={false}
             />
           </mesh>
+          <mesh
+            position={[-1.18, -0.38, 0.36]}
+            rotation={[-0.25, 0.15, -0.65]}
+            renderOrder={6}
+            userData={{ skipClip: true }}
+          >
+            <capsuleGeometry args={[0.042, 0.34, 8, 14]} />
+            <meshStandardMaterial
+              color={COLORS.vessel}
+              emissive={COLORS.vesselGlow}
+              emissiveIntensity={0.5}
+              toneMapped={false}
+              roughness={0.34}
+              depthWrite={false}
+            />
+          </mesh>
+
+          {/* Single solid efferent at hilum */}
+          <mesh
+            position={[1.32, -0.12, 0.38]}
+            rotation={[0.12, -0.2, Math.PI / 2 + 0.4]}
+            renderOrder={6}
+            userData={{ skipClip: true }}
+          >
+            <capsuleGeometry args={[0.05, 0.44, 8, 14]} />
+            <meshStandardMaterial
+              color={COLORS.vessel}
+              emissive={COLORS.vesselGlow}
+              emissiveIntensity={0.6}
+              toneMapped={false}
+              roughness={0.32}
+              depthWrite={false}
+            />
+          </mesh>
         </>
       )}
 
       {/* Labels only with the interior */}
       {showInterior && (
         <>
-          <Html position={[0.1, 0.78, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+          <Html position={[0.05, 0.7, 0.35]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno hide-sm">Cortex / follicles</span>
           </Html>
-          <Html position={[0.48, 0.08, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
+          <Html position={[0.45, 0.06, 0.42]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno">Paracortex</span>
           </Html>
-          <Html position={[-0.22, -0.02, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
+          <Html position={[-0.2, 0.0, 0.48]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno soft">Medulla</span>
           </Html>
-          <Html position={[-1.1, -0.35, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+          <Html position={[-1.05, -0.28, 0.35]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno hide-sm">Afferent</span>
           </Html>
-          <Html position={[1.3, -0.35, 0.32]} center style={hudStyle} zIndexRange={[20, 0]}>
+          <Html position={[1.25, -0.28, 0.35]} center style={hudStyle} zIndexRange={[20, 0]}>
             <span className="node-anno hide-sm">Efferent / hilum</span>
           </Html>
         </>
