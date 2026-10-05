@@ -1,14 +1,20 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
-import { SceneForStep, type DepositMode, type SceneQuality } from './scenes'
+import type { DepositMode, SceneQuality } from './scenes'
 import { cameraTargetFor, getTorsoBounds } from './cameraFit'
-import { PostFX } from './PostFX'
 import { buildCameraPaths } from './scrollPath'
 import { CinematicWorld } from './CinematicWorld'
+
+/** PostFX (bloom/vignette/DOF) loads async so postprocessing stays out of the canvas critical chunk. */
+const PostFX = lazy(() => import('./PostFX').then((m) => ({ default: m.PostFX })))
+/** Discrete step scenes only for the non-scroll fallback path. */
+const SceneForStep = lazy(() =>
+  import('./scenes').then((m) => ({ default: m.SceneForStep })),
+)
 
 export type SurgeryMode = 'slnb' | 'alnd' | 'both'
 
@@ -277,24 +283,28 @@ export default function ExplainerCanvas({
               controlsRef={controlsRef}
               surgeryMode={surgeryMode}
             />
-            <SceneForStep
-              stepId={stepId}
-              quality={quality}
-              reducedMotion={reducedMotion}
-              activeNode={activeNode}
-              onActiveNode={onActiveNode}
-              surgeryMode={surgeryMode}
-              depositMode={depositMode}
-            />
+            <Suspense fallback={null}>
+              <SceneForStep
+                stepId={stepId}
+                quality={quality}
+                reducedMotion={reducedMotion}
+                activeNode={activeNode}
+                onActiveNode={onActiveNode}
+                surgeryMode={surgeryMode}
+                depositMode={depositMode}
+              />
+            </Suspense>
           </>
         )}
         {!isPatches && (
-          <PostFX
-            quality={quality}
-            reducedMotion={reducedMotion}
-            enabled
-            focusAxilla={scrollDriven && (stepId === 'lymphatic' || stepId === 'spread' || stepId === 'surgery')}
-          />
+          <Suspense fallback={null}>
+            <PostFX
+              quality={quality}
+              reducedMotion={reducedMotion}
+              enabled
+              focusAxilla={scrollDriven && (stepId === 'lymphatic' || stepId === 'spread' || stepId === 'surgery')}
+            />
+          </Suspense>
         )}
         <OrbitControls
           ref={controlsRef}

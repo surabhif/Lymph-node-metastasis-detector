@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { useMemo, useRef, useState, useCallback, useEffect, lazy, Suspense, type ReactNode } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { AnatomyTorso, landmark } from './AnatomyTorso'
@@ -10,13 +10,18 @@ import {
   blendBetween,
   stepWeight,
 } from './scrollPath'
-import {
-  InsideNodeScene,
-  PatchesScene,
-  SurgeryScene,
-  type DepositMode,
-  type SceneQuality,
-} from './scenes'
+import type { DepositMode, SceneQuality } from './scenes'
+
+/** Per-step scenes load on demand so the early cell-stream path stays lighter. */
+const InsideNodeScene = lazy(() =>
+  import('./scenes').then((m) => ({ default: m.InsideNodeScene })),
+)
+const SurgeryScene = lazy(() =>
+  import('./scenes').then((m) => ({ default: m.SurgeryScene })),
+)
+const PatchesScene = lazy(() =>
+  import('./scenes').then((m) => ({ default: m.PatchesScene })),
+)
 
 type Props = {
   progress: number
@@ -303,11 +308,14 @@ export function CinematicWorld({
     0,
     1,
   )
-  // Prefer dual surgery panels once we've pulled back from the node
-  const surgeryPanelAmt = THREE.MathUtils.clamp((outOfNode - 0.35) / 0.55, 0, 1) * (1 - toPatches)
+  // Prefer dual surgery panels once we've pulled back from the node;
+  // fade them out faster as patches take over so mid 4→5 reads as a blend.
+  const surgeryPanelAmt =
+    THREE.MathUtils.clamp((outOfNode - 0.35) / 0.55, 0, 1) *
+    THREE.MathUtils.clamp(1 - toPatches * 1.35, 0, 1)
 
   // Soft bring-up of patches earlier so mid 4→5 is visibly blended
-  const patchesAmt = THREE.MathUtils.clamp((toPatches - 0.05) / 0.9, 0, 1)
+  const patchesAmt = THREE.MathUtils.smoothstep(toPatches, 0.08, 0.85)
 
   const cellIntensity = THREE.MathUtils.clamp(
     toSpread * 0.55 +
@@ -329,9 +337,10 @@ export function CinematicWorld({
   const showSurgery = surgeryPanelAmt > 0.08
   const showPatches = patchesAmt > 0.06
 
-  // Soft scale/position for the dive into the node
-  const torsoScale = 1 - intoNode * 0.42 + outOfNode * 0.35 * (1 - toPatches)
-  const torsoY = -intoNode * 0.22 + outOfNode * 0.12
+  // Soft scale/position for the dive into the node — bias node larger mid-blend
+  const torsoScale = 1 - intoNode * 0.55 + outOfNode * 0.35 * (1 - toPatches)
+  const torsoY = -intoNode * 0.28 + outOfNode * 0.12
+  const nodeScale = 0.55 + intoNode * 0.9 - outOfNode * 0.55
 
   return (
     <group>
@@ -374,18 +383,20 @@ export function CinematicWorld({
 
       {showNode && (
         <group
-          position={[0, 0.05 - (1 - nodeAmt) * 0.1, 0]}
-          scale={0.4 + nodeAmt * 0.85}
+          position={[0, 0.05 - (1 - nodeAmt) * 0.08, intoNode * 0.15]}
+          scale={Math.max(0.35, nodeScale)}
         >
-          <NodeClipReveal reveal={clipReveal}>
-            <InsideNodeScene
-              quality={quality}
-              reducedMotion={reducedMotion}
-              activeNode={null}
-              onActiveNode={() => undefined}
-              depositMode={depositMode}
-            />
-          </NodeClipReveal>
+          <Suspense fallback={null}>
+            <NodeClipReveal reveal={clipReveal}>
+              <InsideNodeScene
+                quality={quality}
+                reducedMotion={reducedMotion}
+                activeNode={null}
+                onActiveNode={() => undefined}
+                depositMode={depositMode}
+              />
+            </NodeClipReveal>
+          </Suspense>
         </group>
       )}
 
@@ -395,24 +406,28 @@ export function CinematicWorld({
           // Soft bring-up of dual panels as we leave the node
           position={[0, (1 - surgeryPanelAmt) * 0.15, 0]}
         >
-          <SurgeryScene
-            quality={quality}
-            reducedMotion={reducedMotion}
-            activeNode={null}
-            onActiveNode={() => undefined}
-            surgeryMode={surgeryMode}
-          />
+          <Suspense fallback={null}>
+            <SurgeryScene
+              quality={quality}
+              reducedMotion={reducedMotion}
+              activeNode={null}
+              onActiveNode={() => undefined}
+              surgeryMode={surgeryMode}
+            />
+          </Suspense>
         </group>
       )}
 
       {showPatches && (
         <group scale={0.82 + patchesAmt * 0.22} position={[0, (1 - patchesAmt) * -0.2, 0]}>
-          <PatchesScene
-            quality={quality}
-            reducedMotion={reducedMotion}
-            activeNode={null}
-            onActiveNode={() => undefined}
-          />
+          <Suspense fallback={null}>
+            <PatchesScene
+              quality={quality}
+              reducedMotion={reducedMotion}
+              activeNode={null}
+              onActiveNode={() => undefined}
+            />
+          </Suspense>
         </group>
       )}
     </group>

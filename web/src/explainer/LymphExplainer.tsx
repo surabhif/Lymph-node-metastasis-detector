@@ -10,8 +10,6 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { Link } from 'react-router-dom'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { EXPLAINER_SOURCES, EXPLAINER_STEPS } from './steps'
 import ExplainerFallback from './ExplainerFallback'
 import patchesMeta from './patchesMeta.json'
@@ -19,9 +17,17 @@ import type { DepositMode } from './scenes'
 import { STEP_SNAP, stepIndexFromProgress } from './scrollSteps'
 import './explainer.css'
 
-gsap.registerPlugin(ScrollTrigger)
-
 const ExplainerCanvas = lazy(() => import('./ExplainerCanvas'))
+
+/** Lazy GSAP + ScrollTrigger so the scroll scrubber is not in the critical path. */
+async function loadScrollTrigger() {
+  const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([
+    import('gsap'),
+    import('gsap/ScrollTrigger'),
+  ])
+  gsap.registerPlugin(ScrollTrigger)
+  return { gsap, ScrollTrigger }
+}
 
 function detectWebGL(): boolean {
   try {
@@ -159,7 +165,14 @@ export default function LymphExplainer() {
   const panelId = useId()
   const trackRef = useRef<HTMLDivElement>(null)
   const pinRef = useRef<HTMLDivElement>(null)
-  const triggerRef = useRef<ScrollTrigger | null>(null)
+  // ScrollTrigger instance (loaded async with GSAP)
+  const triggerRef = useRef<{
+    start: number
+    end: number
+    progress: number
+    scroll: (y: number) => void
+    kill: () => void
+  } | null>(null)
   const scrollingToRef = useRef(false)
 
   const reducedMotion = useMediaFlag('(prefers-reduced-motion: reduce)')
@@ -194,44 +207,55 @@ export default function LymphExplainer() {
       return
     }
 
-    const ctx = gsap.context(() => {
-      const st = ScrollTrigger.create({
-        trigger: trackRef.current,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: isMobile ? 0.85 : 0.55,
-        invalidateOnRefresh: true,
-        snap: {
-          snapTo: (value) => {
-            let best: number = STEP_SNAP[0]!
-            let bestDist = Infinity
-            for (const s of STEP_SNAP) {
-              const d = Math.abs(value - s)
-              if (d < bestDist) {
-                bestDist = d
-                best = s
+    let cancelled = false
+    let cleanup: (() => void) | undefined
+
+    void loadScrollTrigger().then(({ gsap, ScrollTrigger }) => {
+      if (cancelled || !trackRef.current) return
+      const ctx = gsap.context(() => {
+        const st = ScrollTrigger.create({
+          trigger: trackRef.current,
+          start: 'top top',
+          end: 'bottom bottom',
+          scrub: isMobile ? 0.85 : 0.55,
+          invalidateOnRefresh: true,
+          snap: {
+            snapTo: (value: number) => {
+              let best: number = STEP_SNAP[0]!
+              let bestDist = Infinity
+              for (const s of STEP_SNAP) {
+                const d = Math.abs(value - s)
+                if (d < bestDist) {
+                  bestDist = d
+                  best = s
+                }
               }
-            }
-            return best
+              return best
+            },
+            duration: { min: 0.12, max: 0.4 },
+            ease: 'power1.inOut',
+            delay: 0.04,
           },
-          duration: { min: 0.12, max: 0.4 },
-          ease: 'power1.inOut',
-          delay: 0.04,
-        },
-        onUpdate: (self) => {
-          if (scrollingToRef.current) return
-          const p = self.progress
-          setProgress(p)
-          const idx = stepIndexFromProgress(p)
-          setStepIndex((prev) => (prev === idx ? prev : idx))
-        },
+          onUpdate: (self: { progress: number }) => {
+            if (scrollingToRef.current) return
+            const p = self.progress
+            setProgress(p)
+            const idx = stepIndexFromProgress(p)
+            setStepIndex((prev) => (prev === idx ? prev : idx))
+          },
+        })
+        triggerRef.current = st
       })
-      triggerRef.current = st
+      cleanup = () => {
+        triggerRef.current = null
+        ctx.revert()
+      }
     })
 
     return () => {
+      cancelled = true
+      cleanup?.()
       triggerRef.current = null
-      ctx.revert()
     }
   }, [scrollDriven, isMobile])
 
