@@ -138,21 +138,20 @@ export function insideNodeCameraTarget(
   const box = insideNodeFocusBox()
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
-  // Room for cortex label above + afferent/efferent + bottom hint clearance
-  // Rest node renders at ~0.72 scale; still give the unit AABB generous slack.
-  const margin = mobile ? 2.35 : 2.45
+  // Desktop: generous slack for labels. Phone: fill ~75% of the shorter axis
+  // (margin ≈ 1/0.75). Never force a huge minDist on narrow aspects.
+  const margin = mobile ? 1.32 : 2.15
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
-  const dist = Math.max(
+  const distFit = Math.max(
     (size.y * margin) / (2 * Math.tan(vFov / 2)),
     (size.x * margin) / (2 * Math.tan(hFov / 2)),
-    7.2,
   )
-  // Mild upward bias — too much clips the bottom of the cortex ring
-  const lookY = center.y + (mobile ? 0.12 : 0.06)
+  const dist = Math.max(distFit, mobile ? 3.1 : 6.2)
+  const lookY = center.y + (mobile ? 0.08 : 0.06)
   return {
-    position: [center.x * 0.08, lookY + 0.02, center.z + dist],
-    lookAt: [center.x * 0.05, lookY, center.z],
+    position: [center.x * 0.06, lookY + 0.02, center.z + dist],
+    lookAt: [center.x * 0.04, lookY, center.z],
   }
 }
 

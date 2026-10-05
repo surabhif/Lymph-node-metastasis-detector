@@ -315,28 +315,33 @@ export function CinematicWorld({
     if (progress > 0.62 || toPatches > 0.02) setWarmPatches(true)
   }, [progress, intoNode, outOfNode, toPatches])
 
-  // Torso yields quickly once the dive starts; returns for surgery before patches.
-  const torsoFade = Math.max(0, 1 - intoNode * 1.15) * (1 - toPatches)
-  const torsoReturn = outOfNode * (1 - toPatches) * (1 - Math.min(1, intoNode * 1.05))
+  // —— Dive ordering: torso fully out BEFORE the node grows past sentinel size ——
+  // Phase A (into≲0.4): fade torso. Phase B: fade node in at small scale. Phase C: grow + cut-face.
+  const torsoOut = THREE.MathUtils.smoothstep(intoNode, 0.04, 0.4)
+  const torsoFade = (1 - torsoOut) * (1 - toPatches)
+  const torsoReturn =
+    THREE.MathUtils.smoothstep(outOfNode, 0.35, 0.85) *
+    (1 - toPatches) *
+    (1 - Math.min(1, intoNode * 1.05))
   const torsoAmt = THREE.MathUtils.clamp(Math.max(torsoFade, torsoReturn * 0.95), 0, 1)
 
-  const nodeAmt = THREE.MathUtils.clamp(
-    intoNode * (1 - outOfNode * 0.92) * (1 - toPatches),
+  const nodeFadeIn = THREE.MathUtils.smoothstep(intoNode, 0.22, 0.48)
+  const nodeFadeOut = THREE.MathUtils.smoothstep(outOfNode, 0.05, 0.42)
+  const nodeOpacity = THREE.MathUtils.clamp(
+    nodeFadeIn * (1 - nodeFadeOut) * (1 - toPatches),
     0,
     1,
   )
-  // Open the clip plane early so mid-dive never shows sphere cross-section discs.
-  // Flat cortex/cap rings still wait until the camera is inside (cutFaceAmt).
-  const clipReveal = reducedMotion
-    ? intoNode > 0.35
-      ? 1
-      : 0
-    : THREE.MathUtils.smoothstep(intoNode, 0.12, 0.38) *
-      THREE.MathUtils.clamp(1 - outOfNode * 1.2, 0, 1)
-  // Flat cortex/cap discs only once fully inside (and fade on pull-out)
+  const nodeAmt = nodeOpacity
+
+  // No mid-dive clipping — flat rings + clip planes caused dashed diameter artifacts.
+  // Cutaway is geometric (open shell + thick torus), not a sweeping plane.
+  const clipReveal = 1
+
+  // Cut-face / cortex only once torso is gone and node has started to grow
   const cutFaceAmt =
-    THREE.MathUtils.smoothstep(intoNode, 0.82, 0.98) *
-    THREE.MathUtils.clamp(1 - outOfNode * 1.25, 0, 1)
+    THREE.MathUtils.smoothstep(intoNode, 0.62, 0.9) *
+    THREE.MathUtils.clamp(1 - outOfNode * 1.3, 0, 1)
 
   const surgeryAmt = THREE.MathUtils.clamp(
     outOfNode * (1 - toPatches),
@@ -364,28 +369,30 @@ export function CinematicWorld({
     stepWeight(progress, 0) * 0.85 +
       stepWeight(progress, 1) * 1.25 +
       stepWeight(progress, 3) * 0.45,
-  ) * (1 - intoNode * 0.85) * (1 - toPatches)
+  ) * (1 - torsoOut) * (1 - toPatches)
 
   // Keep scenes mounted (no Suspense pop-in) and drive visibility from blend amounts.
   const showTorso = torsoAmt > 0.02 && patchesAmt < 0.9
-  const showNode = nodeAmt > 0.02 && patchesAmt < 0.28
+  const showNode = nodeOpacity > 0.02 && patchesAmt < 0.28
   const showSurgery = surgeryPanelAmt > 0.02 && patchesAmt < 0.9
   const showPatches = patchesAmt > 0.02
 
-  // Soft scale for the dive — keep small through mid-dive so the proxy never
-  // becomes a torso-filling disc; rest at 0.72 so labels clear the frame.
-  const torsoScale = 1 - intoNode * 0.7 + outOfNode * 0.35 * (1 - toPatches)
-  const torsoY = -intoNode * 0.35 + outOfNode * 0.12
-  const diveSeat = THREE.MathUtils.smoothstep(intoNode, 0.58, 0.98)
+  // Scale: hold ≈ sentinel size until torso is gone, then grow to rest.
+  // Mobile rest closer to 1.0 so phone fill isn't fighting a 0.72 world scale.
+  const restScale = quality === 'low' ? 1.0 : 0.82
+  const growT = THREE.MathUtils.smoothstep(intoNode, 0.48, 0.95)
+  const torsoScale = 1 - torsoOut * 0.55 + torsoReturn * 0.2
+  const torsoY = -torsoOut * 0.28 + torsoReturn * 0.1
   const nodeScale =
-    THREE.MathUtils.lerp(0.16, 0.72, diveSeat) * (1 - outOfNode * 0.38)
-  // Pull the cut-away out of the axilla toward origin early so mid-scroll frames it.
+    THREE.MathUtils.lerp(0.14, restScale, growT) *
+    THREE.MathUtils.clamp(1 - outOfNode * 0.45, 0.35, 1)
+  // Seat the cut-away toward origin only after torso has mostly left.
   const sent = landmark('sentinel')
-  const seat = Math.pow(1 - intoNode, 1.55)
+  const seat = Math.pow(1 - THREE.MathUtils.smoothstep(intoNode, 0.15, 0.55), 1.4)
   const nodePos: [number, number, number] = [
     sent[0] * seat,
-    sent[1] * seat + 0.05 - (1 - nodeAmt) * 0.08,
-    sent[2] * seat + intoNode * 0.18,
+    sent[1] * seat + 0.05,
+    sent[2] * seat + growT * 0.12,
   ]
 
   return (
@@ -401,7 +408,7 @@ export function CinematicWorld({
             quality={quality}
             showTumor={stepWeight(progress, 0) + stepWeight(progress, 1) > 0.12}
             showBreast
-            dimmed={intoNode > 0.35 || surgeryAmt > 0.45 || torsoAmt < 0.55}
+            dimmed={torsoOut > 0.35 || surgeryAmt > 0.45 || torsoAmt < 0.55}
           />
           {vesselIntensity > 0.08 && (
             <PulsingVessel
@@ -435,20 +442,24 @@ export function CinematicWorld({
       {(warmNode || showNode) && (
         <group
           position={nodePos}
-          scale={Math.max(0.28, nodeScale)}
+          scale={Math.max(0.12, nodeScale)}
           visible={showNode}
         >
-          <NodeClipReveal reveal={clipReveal}>
-            <InsideNodeScene
-              quality={quality}
-              reducedMotion={reducedMotion}
-              activeNode={null}
-              onActiveNode={() => undefined}
-              depositMode={depositMode}
-              hudVisible={showNode && nodeAmt > 0.35}
-              cutFaceAmt={cutFaceAmt}
-            />
-          </NodeClipReveal>
+          {/* Opacity fade so the node never reads as a disc inside the torso */}
+          <group visible={nodeOpacity > 0.04}>
+            <NodeClipReveal reveal={clipReveal}>
+              <InsideNodeScene
+                quality={quality}
+                reducedMotion={reducedMotion}
+                activeNode={null}
+                onActiveNode={() => undefined}
+                depositMode={depositMode}
+                hudVisible={showNode && nodeOpacity > 0.55 && growT > 0.45}
+                cutFaceAmt={cutFaceAmt}
+                sceneOpacity={nodeOpacity}
+              />
+            </NodeClipReveal>
+          </group>
         </group>
       )}
 
