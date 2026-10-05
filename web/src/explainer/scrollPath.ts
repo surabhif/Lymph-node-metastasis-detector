@@ -51,12 +51,6 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
     new THREE.Vector3(...frames[0]!.position),
     new THREE.Vector3(...step1Close.position),
     new THREE.Vector3(...frames[1]!.position),
-    // Mid 2→3: pull toward sentinel before diving into the node
-    new THREE.Vector3(
-      (frames[1]!.position[0] + frames[2]!.position[0]) * 0.5,
-      (frames[1]!.position[1] + frames[2]!.position[1]) * 0.5 + 0.15,
-      (frames[1]!.position[2] + frames[2]!.position[2]) * 0.42,
-    ),
     new THREE.Vector3(...frames[2]!.position),
     new THREE.Vector3(...frames[3]!.position),
     new THREE.Vector3(...frames[4]!.position),
@@ -65,7 +59,6 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
     new THREE.Vector3(...frames[0]!.lookAt),
     new THREE.Vector3(...step1Close.lookAt),
     new THREE.Vector3(...frames[1]!.lookAt),
-    new THREE.Vector3(...landmark('sentinel')),
     new THREE.Vector3(...frames[2]!.lookAt),
     new THREE.Vector3(...frames[3]!.lookAt),
     new THREE.Vector3(...frames[4]!.lookAt),
@@ -73,9 +66,9 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
 
   const positionCurve = new THREE.CatmullRomCurve3(posPts)
   const lookCurve = new THREE.CatmullRomCurve3(lookPts)
-  // Remap scrub t∈[0,1] so snap points land on keyframes 0,2,4,5,6.
-  // Pull the 2→3 dive early enough that mid (~0.375) already frames the cut-away.
-  const keyT = [0, 0.12, 0.25, 0.3, 0.4, 0.75, 1]
+  // Scrub snaps land on keyframes 0,2,3,4,5. Extra key at 0.12 is a soft step-1 dolly.
+  // No mid-dolly between spread→inside — CatmullRom overshoot was missing the cut-away at ~0.375.
+  const keyT = [0, 0.12, 0.25, 0.5, 0.75, 1]
 
   return {
     sample(progress: number): CameraTarget {
