@@ -222,7 +222,7 @@ function NodeClipReveal({
   children: ReactNode
 }) {
   const { gl } = useThree()
-  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, -1), 1.4), [])
+  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 1.15), [])
   const group = useRef<THREE.Group>(null)
 
   useEffect(() => {
@@ -233,8 +233,11 @@ function NodeClipReveal({
   }, [gl])
 
   useFrame(() => {
-    // reveal 0 → sealed (plane in front); 1 → fully open
-    plane.constant = THREE.MathUtils.lerp(1.55, -1.35, THREE.MathUtils.clamp(reveal, 0, 1))
+    // Plane normal +Z: clip when z > -constant.
+    // Sealed (reveal=0): constant≈1.15 → keep only z ≲ -1.15 (almost nothing)
+    // Open (reveal=1): constant≈-1.6 → keep z ≲ 1.6 (whole node)
+    const r = THREE.MathUtils.clamp(reveal, 0, 1)
+    plane.constant = THREE.MathUtils.lerp(1.15, -1.6, r)
     const root = group.current
     if (!root) return
     root.traverse((obj) => {
@@ -243,7 +246,7 @@ function NodeClipReveal({
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       for (const m of mats) {
         if (!m) continue
-        m.clippingPlanes = [plane]
+        m.clippingPlanes = reveal >= 0.98 ? [] : [plane]
         m.clipShadows = false
         m.needsUpdate = true
       }
@@ -303,7 +306,8 @@ export function CinematicWorld({
   // Prefer dual surgery panels once we've pulled back from the node
   const surgeryPanelAmt = THREE.MathUtils.clamp((outOfNode - 0.35) / 0.55, 0, 1) * (1 - toPatches)
 
-  const patchesAmt = toPatches
+  // Soft bring-up of patches earlier so mid 4→5 is visibly blended
+  const patchesAmt = THREE.MathUtils.clamp((toPatches - 0.05) / 0.9, 0, 1)
 
   const cellIntensity = THREE.MathUtils.clamp(
     toSpread * 0.55 +

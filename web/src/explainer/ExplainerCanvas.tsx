@@ -208,8 +208,22 @@ export default function ExplainerCanvas({
     mobile ? 390 / 360 : 800 / 576,
     surgerySingle,
   )
-  // Dense stream: ~2k phones, ~10–15k desktop (headroom under SwiftShader)
-  const particleCount = quality === 'high' ? 14000 : 2000
+  // Dense stream: ~2k phones, ~10–15k desktop. Cap soft GPUs (SwiftShader) lower.
+  const softGpu =
+    typeof navigator !== 'undefined' &&
+    /swiftshader|llvmpipe|intel/i.test(
+      (() => {
+        try {
+          const c = document.createElement('canvas')
+          const gl = c.getContext('webgl')
+          const dbg = gl?.getExtension('WEBGL_debug_renderer_info')
+          return dbg && gl ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '') : ''
+        } catch {
+          return ''
+        }
+      })(),
+    )
+  const particleCount = quality === 'high' ? (softGpu ? 4500 : 14000) : 2000
 
   useEffect(() => {
     setMounted(true)
