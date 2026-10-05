@@ -438,7 +438,6 @@ function CutawayLymphNode({
   }
   const face = THREE.MathUtils.clamp(cutFaceAmt, 0, 1)
   const op = THREE.MathUtils.clamp(sceneOpacity, 0, 1)
-  const showFace = face > 0.08
   // During the torso dive, show only a compact glowing orb — never a flat disc.
   const showInterior = face > 0.12
 
@@ -481,25 +480,25 @@ function CutawayLymphNode({
             </mesh>
           ))}
 
-          {/* Paracortex / medulla — volumetric, no flat fill through the cut */}
-          <mesh position={[0.18, -0.02, 0.14]} renderOrder={3} userData={{ skipClip: true }}>
-            <sphereGeometry args={[0.38, segs, segs]} />
+          {/* Paracortex / medulla — separated so their overlap never draws a diameter seam */}
+          <mesh position={[0.42, 0.06, 0.2]} renderOrder={3} userData={{ skipClip: true }}>
+            <sphereGeometry args={[0.34, segs, segs]} />
             <meshStandardMaterial
               color={COLORS.paracortex}
               transparent
-              opacity={0.42 * face * op}
-              roughness={0.8}
-              depthWrite={false}
+              opacity={0.55 * face * op}
+              roughness={0.78}
+              depthWrite
             />
           </mesh>
-          <mesh position={[-0.12, 0.04, 0.16]} renderOrder={3} userData={{ skipClip: true }}>
+          <mesh position={[-0.4, -0.06, 0.22]} renderOrder={3} userData={{ skipClip: true }}>
             <sphereGeometry args={[0.26, segs, segs]} />
             <meshStandardMaterial
               color={COLORS.medulla}
               transparent
-              opacity={0.5 * face * op}
-              roughness={0.75}
-              depthWrite={false}
+              opacity={0.62 * face * op}
+              roughness={0.72}
+              depthWrite
             />
           </mesh>
 
@@ -564,7 +563,7 @@ function CutawayLymphNode({
             <span className="node-anno hide-sm">Cortex / follicles</span>
           </Html>
           <Html
-            position={mobile ? ([0.55, 0.42, 0.45] as [number, number, number]) : ([0.48, 0.1, 0.42] as [number, number, number])}
+            position={mobile ? ([0.62, 0.48, 0.5] as [number, number, number]) : ([0.62, 0.28, 0.48] as [number, number, number])}
             center
             style={hudStyle}
             zIndexRange={[20, 0]}
@@ -572,7 +571,7 @@ function CutawayLymphNode({
             <span className="node-anno">Paracortex</span>
           </Html>
           <Html
-            position={mobile ? ([-0.55, -0.4, 0.45] as [number, number, number]) : ([-0.22, -0.02, 0.48] as [number, number, number])}
+            position={mobile ? ([-0.62, -0.48, 0.5] as [number, number, number]) : ([-0.58, -0.28, 0.5] as [number, number, number])}
             center
             style={hudStyle}
             zIndexRange={[20, 0]}

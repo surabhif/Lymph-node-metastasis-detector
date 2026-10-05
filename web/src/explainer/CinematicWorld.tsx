@@ -378,7 +378,7 @@ export function CinematicWorld({
 
   // Scale: hold ≈ sentinel size until torso is gone, then grow to rest.
   // Mobile rest closer to 1.0 so phone fill isn't fighting a 0.72 world scale.
-  const restScale = quality === 'low' ? 1.0 : 0.82
+  const restScale = quality === 'low' ? 1.12 : 0.95
   const growT = THREE.MathUtils.smoothstep(intoNode, 0.48, 0.95)
   const torsoScale = 1 - torsoOut * 0.55 + torsoReturn * 0.2
   const torsoY = -torsoOut * 0.28 + torsoReturn * 0.1

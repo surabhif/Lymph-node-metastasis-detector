@@ -144,15 +144,15 @@ export function insideNodeCameraTarget(
   const box = insideNodeFocusBox(mobile)
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
-  // Phone: fill ~78% of width (margin≈1.28). Desktop: room for labels.
-  const margin = mobile ? 1.28 : 2.15
+  // Phone: fill ~80% of width. Desktop: room for labels without looking tiny.
+  const margin = mobile ? 1.18 : 1.78
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
   // Prefer width fill on portrait; prefer height on landscape
   const distW = (size.x * margin) / (2 * Math.tan(hFov / 2))
   const distH = (size.y * margin) / (2 * Math.tan(vFov / 2))
-  const distFit = mobile ? distW : Math.max(distW, distH)
-  const dist = Math.max(distFit, mobile ? 2.6 : 6.2)
+  const distFit = mobile ? distW * 0.85 : Math.max(distW, distH)
+  const dist = Math.max(distFit, mobile ? 2.0 : 5.4)
   const lookY = center.y + (mobile ? 0.06 : 0.06)
   return {
     position: [center.x * 0.05, lookY + 0.02, center.z + dist],
