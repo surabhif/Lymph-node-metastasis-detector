@@ -122,16 +122,16 @@ export const SURGERY_PANEL_SCALE = 0.74
  * Fitted with ≥8% margin on the limiting axis.
  */
 export function insideNodeFocusBox(mobile = false): THREE.Box3 {
-  // Phone: body+stubs only so the node fills ~75% width. Desktop: extra label slack.
+  // Phone: tight body so the node fills ~75–80% width. Desktop: label slack.
   if (mobile) {
     return new THREE.Box3(
-      new THREE.Vector3(-1.25, -1.05, -0.35),
-      new THREE.Vector3(1.35, 1.05, 0.55),
+      new THREE.Vector3(-1.05, -0.95, -0.3),
+      new THREE.Vector3(1.1, 0.95, 0.5),
     )
   }
   return new THREE.Box3(
-    new THREE.Vector3(-1.7, -1.35, -0.4),
-    new THREE.Vector3(1.75, 1.35, 0.6),
+    new THREE.Vector3(-1.55, -1.2, -0.4),
+    new THREE.Vector3(1.6, 1.2, 0.55),
   )
 }
 
@@ -144,19 +144,18 @@ export function insideNodeCameraTarget(
   const box = insideNodeFocusBox(mobile)
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
-  // Phone: fill ~80% of width. Desktop: room for labels without looking tiny.
-  const margin = mobile ? 1.18 : 1.78
+  // Phone: fill ~80% width (margin≈1.25, then *0.78 pull-in). Desktop: label room.
+  const margin = mobile ? 1.22 : 1.72
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
-  // Prefer width fill on portrait; prefer height on landscape
   const distW = (size.x * margin) / (2 * Math.tan(hFov / 2))
   const distH = (size.y * margin) / (2 * Math.tan(vFov / 2))
-  const distFit = mobile ? distW * 0.85 : Math.max(distW, distH)
-  const dist = Math.max(distFit, mobile ? 2.0 : 5.4)
-  const lookY = center.y + (mobile ? 0.06 : 0.06)
+  const distFit = mobile ? distW * 0.78 : Math.max(distW, distH)
+  const dist = Math.max(distFit, mobile ? 1.85 : 5.2)
+  const lookY = center.y + (mobile ? 0.04 : 0.05)
   return {
-    position: [center.x * 0.05, lookY + 0.02, center.z + dist],
-    lookAt: [center.x * 0.03, lookY, center.z],
+    position: [center.x * 0.04, lookY + 0.02, center.z + dist],
+    lookAt: [center.x * 0.02, lookY, center.z],
   }
 }
 

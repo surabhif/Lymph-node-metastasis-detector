@@ -423,10 +423,19 @@ function CutawayLymphNode({
 
   const follicles = useMemo(() => {
     const pts: [number, number, number, number][] = []
-    for (let i = 0; i < follicleCount; i++) {
-      const a = (i / follicleCount) * Math.PI * 1.7 + 0.25
-      const r = 0.72 + (i % 3) * 0.04
-      pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.88, 0.18 + (i % 3) * 0.03, 0.085 + (i % 2) * 0.025])
+    // Upper + lower cortex arcs only — follicles on the horizontal equator
+    // read as a broken dashed line through the node center.
+    const upper = Math.ceil(follicleCount * 0.55)
+    const lower = follicleCount - upper
+    for (let i = 0; i < upper; i++) {
+      const a = 0.45 + (i / Math.max(1, upper - 1)) * (Math.PI - 0.9)
+      const r = 0.74 + (i % 3) * 0.035
+      pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.9, 0.2 + (i % 3) * 0.025, 0.09 + (i % 2) * 0.02])
+    }
+    for (let i = 0; i < lower; i++) {
+      const a = Math.PI + 0.45 + (i / Math.max(1, lower - 1)) * (Math.PI - 0.9)
+      const r = 0.74 + (i % 3) * 0.035
+      pts.push([Math.cos(a) * r, Math.sin(a) * r * 0.9, 0.2 + (i % 3) * 0.025, 0.085 + (i % 2) * 0.02])
     }
     return pts
   }, [follicleCount])
