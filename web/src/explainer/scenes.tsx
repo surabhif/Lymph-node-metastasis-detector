@@ -676,11 +676,13 @@ export function InsideNodeScene({
     group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.35) * 0.2
   })
 
+  const showDeposits = cutFaceAmt > 0.2
+
   return (
     <group ref={group} position={[0, 0.05, 0]}>
       <MacroNodeLight quality={quality} />
       <CutawayLymphNode quality={quality} hudVisible={hudVisible} cutFaceAmt={cutFaceAmt} />
-      <NodeDeposits mode={depositMode} />
+      {showDeposits && <NodeDeposits mode={depositMode} />}
     </group>
   )
 }

@@ -325,14 +325,14 @@ export function CinematicWorld({
     0,
     1,
   )
-  // Delay clip/cap until the camera is inside node scale — mid-dive sphere
-  // cross-sections otherwise read as a solid pink disc slicing the torso.
+  // Open the clip plane early so mid-dive never shows sphere cross-section discs.
+  // Flat cortex/cap rings still wait until the camera is inside (cutFaceAmt).
   const clipReveal = reducedMotion
-    ? intoNode > 0.72
+    ? intoNode > 0.35
       ? 1
       : 0
-    : THREE.MathUtils.smoothstep(intoNode, 0.78, 0.98) *
-      THREE.MathUtils.clamp(1 - outOfNode * 1.35, 0, 1)
+    : THREE.MathUtils.smoothstep(intoNode, 0.12, 0.38) *
+      THREE.MathUtils.clamp(1 - outOfNode * 1.2, 0, 1)
   // Flat cortex/cap discs only once fully inside (and fade on pull-out)
   const cutFaceAmt =
     THREE.MathUtils.smoothstep(intoNode, 0.82, 0.98) *
