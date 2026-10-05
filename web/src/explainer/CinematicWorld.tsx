@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useCallback, type ReactNode } from 'react'
+import { useMemo, useRef, useState, useCallback, useEffect, type ReactNode } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { AnatomyTorso, landmark } from './AnatomyTorso'
@@ -223,8 +223,9 @@ function sequentialFade(t: number): { out: number; inn: number } {
 }
 
 /**
- * Multiplies existing material opacities on a mounted subtree so torso / surgery
- * can fade without remounting or clipping. Captures each material's base opacity once.
+ * Multiplies material opacities for a fade without remounting. Stores each
+ * material's true base on userData so remounts after a fade-out cannot capture
+ * a near-zero opacity as the new base (which left the torso invisible).
  */
 function FadeGroup({
   opacity,
@@ -234,7 +235,6 @@ function FadeGroup({
   children: ReactNode
 }) {
   const ref = useRef<THREE.Group>(null)
-  const base = useRef(new WeakMap<THREE.Material, number>())
 
   useFrame(() => {
     const root = ref.current
@@ -247,15 +247,46 @@ function FadeGroup({
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       for (const m of mats) {
         if (!m) continue
-        const mat = m as THREE.Material & { opacity?: number; transparent?: boolean }
+        const mat = m as THREE.Material & {
+          opacity?: number
+          transparent?: boolean
+          userData: Record<string, unknown>
+        }
         if (typeof mat.opacity !== 'number') continue
-        if (!base.current.has(m)) base.current.set(m, mat.opacity)
-        const b = base.current.get(m) ?? 1
+        if (typeof mat.userData.fadeBase !== 'number') {
+          mat.userData.fadeBase = mat.opacity
+        }
+        const b = mat.userData.fadeBase as number
         mat.opacity = b * o
         mat.transparent = mat.opacity < 0.999
       }
     })
   })
+
+  useEffect(() => {
+    const root = ref.current
+    return () => {
+      if (!root) return
+      root.traverse((obj) => {
+        const mesh = obj as THREE.Mesh
+        if (!mesh.isMesh) return
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        for (const m of mats) {
+          if (!m) continue
+          const mat = m as THREE.Material & {
+            opacity?: number
+            transparent?: boolean
+            userData: Record<string, unknown>
+          }
+          if (typeof mat.userData.fadeBase === 'number' && typeof mat.opacity === 'number') {
+            mat.opacity = mat.userData.fadeBase
+            mat.transparent = mat.opacity < 0.999
+            delete mat.userData.fadeBase
+          }
+        }
+      })
+    }
+  }, [])
 
   return <group ref={ref}>{children}</group>
 }
