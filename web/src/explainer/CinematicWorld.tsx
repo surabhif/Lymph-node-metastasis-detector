@@ -286,7 +286,7 @@ export function CinematicWorld({
   const path = useMemo(() => axillaryPathCurve(), [])
   const [sentinelHot, setSentinelHot] = useState(0)
   const onArrive = useCallback((s: number) => setSentinelHot(s), [])
-  // Once a scene has been needed, keep it mounted so later revisits never Suspense-pop.
+  // Once a scene has been needed, keep meshes mounted (no remount pop) but gate Html via hudVisible.
   const [warmNode, setWarmNode] = useState(false)
   const [warmSurgery, setWarmSurgery] = useState(false)
   const [warmPatches, setWarmPatches] = useState(false)
@@ -414,7 +414,7 @@ export function CinematicWorld({
         </group>
       )}
 
-      {/* Warm-mounted so the dive never waits on a Suspense chunk */}
+      {/* Warm-mounted meshes; Html HUDs gated so portals cannot leak across steps */}
       {(warmNode || showNode) && (
         <group
           position={nodePos}
@@ -428,6 +428,7 @@ export function CinematicWorld({
               activeNode={null}
               onActiveNode={() => undefined}
               depositMode={depositMode}
+              hudVisible={showNode && nodeAmt > 0.35}
             />
           </NodeClipReveal>
         </group>
@@ -445,6 +446,7 @@ export function CinematicWorld({
             activeNode={null}
             onActiveNode={() => undefined}
             surgeryMode={surgeryMode}
+            hudVisible={showSurgery}
           />
         </group>
       )}
@@ -460,6 +462,7 @@ export function CinematicWorld({
             reducedMotion={reducedMotion}
             activeNode={null}
             onActiveNode={() => undefined}
+            hudVisible={showPatches && patchesAmt > 0.45}
           />
         </group>
       )}

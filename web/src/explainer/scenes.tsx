@@ -31,6 +31,11 @@ type SceneProps = {
   surgeryMode?: 'slnb' | 'alnd' | 'both'
   /** Step 3: which deposit size(s) to highlight. */
   depositMode?: DepositMode
+  /**
+   * When false, hide drei Html HUDs. Parent `visible={false}` does not hide Html portals,
+   * so cinematic blends must pass this explicitly.
+   */
+  hudVisible?: boolean
 }
 
 /** @deprecated Use CinematicLight — kept as a thin alias for any leftover imports. */
@@ -400,7 +405,13 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
 }
 
 /** Step 3 — clean educational cut-away (readable schematic inspired by HRA node topology). */
-function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
+function CutawayLymphNode({
+  quality,
+  hudVisible = true,
+}: {
+  quality: SceneQuality
+  hudVisible?: boolean
+}) {
   const segs = quality === 'high' ? 48 : 28
   const follicleCount = quality === 'high' ? 10 : 7
 
@@ -413,6 +424,12 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
     }
     return pts
   }, [follicleCount])
+
+  const hudStyle = {
+    pointerEvents: 'none' as const,
+    display: hudVisible ? 'block' : 'none',
+    opacity: hudVisible ? 1 : 0,
+  }
 
   return (
     <group>
@@ -528,19 +545,19 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       </mesh>
 
       {/* Labels — clear of top-left legend; Afferent/Cortex hide on narrow screens */}
-      <Html position={[0.25, 0.62, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[0.25, 0.62, 0.3]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Cortex / follicles</span>
       </Html>
-      <Html position={[0.42, 0.12, 0.4]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[0.42, 0.12, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno">Paracortex</span>
       </Html>
-      <Html position={[-0.28, -0.08, 0.45]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[-0.28, -0.08, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno soft">Medulla</span>
       </Html>
-      <Html position={[-0.85, -0.78, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[-0.85, -0.78, 0.25]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Afferent</span>
       </Html>
-      <Html position={[1.2, -0.68, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[1.2, -0.68, 0.25]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Efferent / hilum</span>
       </Html>
     </group>
@@ -612,6 +629,7 @@ export function InsideNodeScene({
   quality,
   reducedMotion,
   depositMode = 'all',
+  hudVisible = true,
 }: SceneProps & { depositMode?: DepositMode }) {
   const group = useRef<Group>(null)
 
@@ -623,7 +641,7 @@ export function InsideNodeScene({
   return (
     <group ref={group} position={[0, 0.05, 0]}>
       <MacroNodeLight quality={quality} />
-      <CutawayLymphNode quality={quality} />
+      <CutawayLymphNode quality={quality} hudVisible={hudVisible} />
       <NodeDeposits mode={depositMode} />
     </group>
   )
@@ -724,7 +742,7 @@ export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: S
  * Step 5 — real H&E PCam mosaic standing in for a whole-slide image.
  * Continuous mosaic plane + seam gutters so frames and the hot tile stay pixel-aligned.
  */
-export function PatchesScene({ reducedMotion }: SceneProps) {
+export function PatchesScene({ reducedMotion, hudVisible = true }: SceneProps) {
   const grid = PATCHES_LAYOUT.grid
   const TILE = PATCHES_LAYOUT.tile
   const GUTTER = PATCHES_LAYOUT.gutter
@@ -854,7 +872,9 @@ export function PatchesScene({ reducedMotion }: SceneProps) {
     })
 
     if (labelRef.current) {
-      if (typeof forced === 'number') {
+      if (!hudVisible) {
+        labelRef.current.style.opacity = '0'
+      } else if (typeof forced === 'number') {
         labelRef.current.style.opacity = z >= 0.85 ? '1' : '0'
       } else {
         const lo = zoom < 0.4 ? 0 : THREE.MathUtils.smoothstep((zoom - 0.4) / 0.35, 0, 1)
@@ -964,7 +984,11 @@ export function PatchesScene({ reducedMotion }: SceneProps) {
           <Html
             center
             distanceFactor={5.2}
-            style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
+            style={{
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+              display: hudVisible ? 'block' : 'none',
+            }}
             zIndexRange={[40, 0]}
           >
             <div ref={labelRef} className="patch-float-label" style={{ opacity: 0 }}>
