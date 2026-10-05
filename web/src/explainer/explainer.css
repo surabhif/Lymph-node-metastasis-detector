@@ -18,6 +18,26 @@
   width: 100%;
 }
 
+.explainer-scroll-track {
+  width: 100%;
+}
+
+.explainer-scroll-track.scroll-driven {
+  /* Tall scrub runway: ~1 viewport per step so snap feels deliberate */
+  height: 520vh;
+  position: relative;
+}
+
+.explainer-scroll-track.scroll-driven .explainer-stage-shell {
+  width: 100%;
+  position: sticky;
+  top: 0;
+  /* Keep shell in normal flow — avoid fixed pin reparenting the WebGL canvas */
+  z-index: 1;
+  padding-top: 0.25rem;
+  background: transparent;
+}
+
 .explainer-stage-shell:focus-visible {
   box-shadow: 0 0 0 3px rgba(11, 107, 84, 0.35);
 }
@@ -766,9 +786,14 @@
 }
 
 @media (max-width: 640px) {
+  .explainer-scroll-track.scroll-driven {
+    height: 420vh;
+  }
+
   .node-deposit-bar {
-    top: auto;
-    bottom: 2.35rem;
+    /* Keep deposit toggles at top — bottom collided with viewport hint */
+    top: 0.55rem;
+    bottom: auto;
     left: 0.45rem;
     right: 0.45rem;
     max-width: none;
@@ -782,9 +807,19 @@
   .node-scale-cue {
     left: 50%;
     transform: translateX(-50%);
-    bottom: 4.15rem;
+    /* Clear gap above multi-line viewport hint */
+    bottom: 4.35rem;
     max-width: calc(100% - 1rem);
     padding: 0.16rem 0.45rem;
+  }
+  .explainer-viewport-hint {
+    bottom: 0.35rem;
+    font-size: 0.64rem;
+    line-height: 1.3;
+    padding-top: 0.15rem;
+  }
+  .explainer-canvas-host {
+    padding-bottom: 0;
   }
   .node-anno {
     font-size: 0.58rem;

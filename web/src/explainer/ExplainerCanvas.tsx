@@ -1,12 +1,14 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { ContactShadows, OrbitControls } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
 import { SceneForStep, type DepositMode, type SceneQuality } from './scenes'
 import { cameraTargetFor, getTorsoBounds } from './cameraFit'
 import { PostFX } from './PostFX'
+import { buildCameraPaths } from './scrollPath'
+import { CinematicWorld } from './CinematicWorld'
 
 export type SurgeryMode = 'slnb' | 'alnd' | 'both'
 
@@ -18,6 +20,10 @@ type Props = {
   onActiveNode: (id: string | null) => void
   surgeryMode?: SurgeryMode
   depositMode?: DepositMode
+  /** 0–1 scroll scrub. When set with scrollDriven, drives continuous camera + world. */
+  progress?: number
+  /** Prefer scroll-cinematic path over discrete step scenes. */
+  scrollDriven?: boolean
 }
 
 function CameraRig({
@@ -53,7 +59,6 @@ function CameraRig({
     const cfg = cameraTargetFor(stepId, mobile, aspect, surgerySingle)
     desiredPos.current.set(...cfg.position)
     desiredLook.current.set(...cfg.lookAt)
-    // First mount only: place camera immediately. Later step changes tween via useFrame.
     if (!initialized.current || reducedMotion) {
       camera.position.copy(desiredPos.current)
       target.current.copy(desiredLook.current)
@@ -83,7 +88,6 @@ function CameraRig({
 
   useFrame((_, dt) => {
     if (reducedMotion) {
-      // Snap when motion is reduced so framing stays exact.
       camera.position.copy(desiredPos.current)
       target.current.copy(desiredLook.current)
       if (controlsRef.current) {
@@ -94,8 +98,81 @@ function CameraRig({
       }
       return
     }
-    // Smooth cinematic tween between steps (slower than the old snap).
     const k = 1 - Math.exp(-dt * 2.1)
+    camera.position.lerp(desiredPos.current, k)
+    target.current.lerp(desiredLook.current, k)
+    if (controlsRef.current) {
+      controlsRef.current.target.lerp(desiredLook.current, k)
+      controlsRef.current.update()
+    } else {
+      camera.lookAt(target.current)
+    }
+  })
+
+  return null
+}
+
+/** Scrubs camera along CatmullRom path from scroll progress. */
+function ScrollCameraRig({
+  progress,
+  reducedMotion,
+  mobile,
+  controlsRef,
+}: {
+  progress: number
+  reducedMotion: boolean
+  mobile: boolean
+  controlsRef: React.RefObject<OrbitControlsImpl | null>
+}) {
+  const { camera, size } = useThree()
+  const aspect = Math.max(size.width / Math.max(size.height, 1), 0.35)
+  const paths = useMemo(() => buildCameraPaths(mobile, aspect), [mobile, aspect])
+  const target = useRef(new THREE.Vector3())
+  const desiredPos = useRef(new THREE.Vector3())
+  const desiredLook = useRef(new THREE.Vector3())
+  const initialized = useRef(false)
+  const fov = mobile ? 40 : 38
+
+  useEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = fov
+      camera.updateProjectionMatrix()
+    }
+  }, [camera, fov])
+
+  useEffect(() => {
+    const cfg = paths.sample(progress)
+    desiredPos.current.set(...cfg.position)
+    desiredLook.current.set(...cfg.lookAt)
+    if (!initialized.current || reducedMotion) {
+      camera.position.copy(desiredPos.current)
+      target.current.copy(desiredLook.current)
+      camera.lookAt(target.current)
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(target.current)
+        controlsRef.current.update()
+      }
+      initialized.current = true
+    }
+  }, [progress, paths, camera, controlsRef, reducedMotion])
+
+  useFrame((_, dt) => {
+    const cfg = paths.sample(progress)
+    desiredPos.current.set(...cfg.position)
+    desiredLook.current.set(...cfg.lookAt)
+    if (reducedMotion) {
+      // Snap framing; world handles opacity cross-fades
+      camera.position.copy(desiredPos.current)
+      target.current.copy(desiredLook.current)
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(desiredLook.current)
+        controlsRef.current.update()
+      } else {
+        camera.lookAt(target.current)
+      }
+      return
+    }
+    const k = 1 - Math.exp(-dt * 10)
     camera.position.lerp(desiredPos.current, k)
     target.current.lerp(desiredLook.current, k)
     if (controlsRef.current) {
@@ -117,9 +194,11 @@ export default function ExplainerCanvas({
   onActiveNode,
   surgeryMode = 'both',
   depositMode = 'all',
+  progress = 0,
+  scrollDriven = false,
 }: Props) {
   const mobile = quality === 'low'
-  const dpr: [number, number] = quality === 'high' ? [1, 1.75] : [1, 1.2]
+  const dpr: [number, number] = quality === 'high' ? [1, 1.5] : [1, 1.15]
   const [mounted, setMounted] = useState(true)
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
   const surgerySingle = surgeryMode !== 'both'
@@ -129,6 +208,22 @@ export default function ExplainerCanvas({
     mobile ? 390 / 360 : 800 / 576,
     surgerySingle,
   )
+  // Dense stream: ~2k phones, ~10–15k desktop. Cap soft GPUs (SwiftShader) lower.
+  const softGpu =
+    typeof navigator !== 'undefined' &&
+    /swiftshader|llvmpipe|intel/i.test(
+      (() => {
+        try {
+          const c = document.createElement('canvas')
+          const gl = c.getContext('webgl')
+          const dbg = gl?.getExtension('WEBGL_debug_renderer_info')
+          return dbg && gl ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '') : ''
+        } catch {
+          return ''
+        }
+      })(),
+    )
+  const particleCount = quality === 'high' ? (softGpu ? 4500 : 14000) : 2000
 
   useEffect(() => {
     setMounted(true)
@@ -137,9 +232,8 @@ export default function ExplainerCanvas({
 
   if (!mounted) return null
 
-  const shadowY = getTorsoBounds().min.y - 0.08
   const isPatches = stepId === 'patches'
-  const isInside = stepId === 'inside'
+  const orbitEnabled = !scrollDriven || isPatches
 
   return (
     <Canvas
@@ -155,33 +249,58 @@ export default function ExplainerCanvas({
       aria-hidden="true"
     >
       <Suspense fallback={null}>
-        <CameraRig
-          stepId={stepId}
-          reducedMotion={reducedMotion}
-          mobile={mobile}
-          controlsRef={controlsRef}
-          surgeryMode={surgeryMode}
-        />
-        <SceneForStep
-          stepId={stepId}
-          quality={quality}
-          reducedMotion={reducedMotion}
-          activeNode={activeNode}
-          onActiveNode={onActiveNode}
-          surgeryMode={surgeryMode}
-          depositMode={depositMode}
-        />
-        {!isPatches && !isInside && (
-          <ContactShadows position={[0, shadowY, 0]} opacity={0.28} scale={12} blur={2.6} far={5} />
+        {scrollDriven ? (
+          <>
+            <ScrollCameraRig
+              progress={progress}
+              reducedMotion={reducedMotion}
+              mobile={mobile}
+              controlsRef={controlsRef}
+            />
+            <CinematicWorld
+              progress={progress}
+              quality={quality}
+              reducedMotion={reducedMotion}
+              activeNode={activeNode}
+              onActiveNode={onActiveNode}
+              surgeryMode={surgeryMode}
+              depositMode={depositMode}
+              particleCount={particleCount}
+            />
+          </>
+        ) : (
+          <>
+            <CameraRig
+              stepId={stepId}
+              reducedMotion={reducedMotion}
+              mobile={mobile}
+              controlsRef={controlsRef}
+              surgeryMode={surgeryMode}
+            />
+            <SceneForStep
+              stepId={stepId}
+              quality={quality}
+              reducedMotion={reducedMotion}
+              activeNode={activeNode}
+              onActiveNode={onActiveNode}
+              surgeryMode={surgeryMode}
+              depositMode={depositMode}
+            />
+          </>
         )}
         {!isPatches && (
-          <PostFX quality={quality} reducedMotion={reducedMotion} enabled />
+          <PostFX
+            quality={quality}
+            reducedMotion={reducedMotion}
+            enabled
+            focusAxilla={scrollDriven && (stepId === 'lymphatic' || stepId === 'spread' || stepId === 'surgery')}
+          />
         )}
         <OrbitControls
           ref={controlsRef}
           enablePan={false}
-          enableZoom={!isPatches}
-          enableRotate={!isPatches}
+          enableZoom={!isPatches && !scrollDriven}
+          enableRotate={orbitEnabled && !isPatches}
           minDistance={isPatches ? 4.5 : 1.6}
           maxDistance={12}
           maxPolarAngle={Math.PI * 0.78}
