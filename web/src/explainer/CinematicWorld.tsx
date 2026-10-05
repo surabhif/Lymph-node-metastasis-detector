@@ -356,6 +356,14 @@ export function CinematicWorld({
   const torsoScale = 1 - intoNode * 0.82 + outOfNode * 0.35 * (1 - toPatches)
   const torsoY = -intoNode * 0.42 + outOfNode * 0.12
   const nodeScale = 0.35 + intoNode * 1.35 - outOfNode * 0.55
+  // Keep the cut-away under the axilla camera through mid 2→3, then seat it
+  // at the origin for the step-3 macro frame.
+  const sent = landmark('sentinel')
+  const nodePos: [number, number, number] = [
+    sent[0] * (1 - intoNode),
+    sent[1] * (1 - intoNode) + 0.05 - (1 - nodeAmt) * 0.08,
+    sent[2] * (1 - intoNode) + intoNode * 0.12,
+  ]
 
   return (
     <group>
@@ -397,10 +405,7 @@ export function CinematicWorld({
       )}
 
       {showNode && (
-        <group
-          position={[0, 0.05 - (1 - nodeAmt) * 0.08, intoNode * 0.15]}
-          scale={Math.max(0.35, nodeScale)}
-        >
+        <group position={nodePos} scale={Math.max(0.35, nodeScale)}>
           <Suspense fallback={null}>
             <NodeClipReveal reveal={clipReveal}>
               <InsideNodeScene
