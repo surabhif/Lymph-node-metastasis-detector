@@ -97,6 +97,30 @@ Pushing to `main` runs `.github/workflows/deploy-pages.yml`, which builds `web/`
 
 and deploys the `web/dist` artifact.
 
+After the Vite build, `web/scripts/spa-gh-pages-fallback.mjs` copies the built
+`index.html` to:
+
+- `404.html` — GitHub Pages SPA catch-all for unknown client paths
+- `results/index.html`, `about/index.html`, `demo/index.html`, `model-card/index.html` —
+  so refresh / shared deep links under those routes return **HTTP 200** with the app shell
+  (not GitHub’s default 404). Existing files under `public/results/` (metrics, mistakes) are kept.
+
+**Verify after deploy (or locally):**
+
+```bash
+cd web
+VITE_BASE=/Lymph-node-metastasis-detector/ npm run build
+python3 -m http.server 8765 --directory dist
+# In another terminal:
+curl -s -o /tmp/results.html -w '%{http_code}\n' http://127.0.0.1:8765/results/
+curl -s -o /tmp/about.html -w '%{http_code}\n' http://127.0.0.1:8765/about/
+grep -q 'id="root"' /tmp/results.html && echo 'results: SPA shell OK'
+grep -q 'id="root"' /tmp/about.html && echo 'about: SPA shell OK'
+```
+
+On the live site, the same checks apply to  
+`https://surabhif.github.io/Lymph-node-metastasis-detector/results/` and `/about/`.
+
 **One-time repo settings (Salil / repo admin):**
 
 1. Repo → **Settings** → **Pages**
