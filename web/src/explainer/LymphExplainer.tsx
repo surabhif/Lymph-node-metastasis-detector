@@ -12,6 +12,7 @@ import {
 import { Link } from 'react-router-dom'
 import { EXPLAINER_SOURCES, EXPLAINER_STEPS } from './steps'
 import ExplainerFallback from './ExplainerFallback'
+import { detectWebGLSupport } from './gpuDetect'
 import patchesMeta from './patchesMeta.json'
 import type { DepositMode } from './scenes'
 import { STEP_SNAP, stepIndexFromProgress } from './scrollSteps'
@@ -27,15 +28,6 @@ async function loadScrollTrigger() {
   ])
   gsap.registerPlugin(ScrollTrigger)
   return { gsap, ScrollTrigger }
-}
-
-function detectWebGL(): boolean {
-  try {
-    const canvas = document.createElement('canvas')
-    return Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'))
-  } catch {
-    return false
-  }
 }
 
 function useMediaFlag(query: string): boolean {
@@ -194,7 +186,7 @@ export default function LymphExplainer() {
   }, [progress])
 
   useEffect(() => {
-    setWebgl(detectWebGL())
+    setWebgl(detectWebGLSupport())
   }, [])
 
   useEffect(() => {

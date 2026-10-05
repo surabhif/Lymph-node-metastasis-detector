@@ -211,14 +211,14 @@ function AxillaNodes({
 }
 
 /**
- * Handoff: outgoing clears in the first ~40% of the blend, incoming rises from
- * ~25% onward so mid-scroll already shows the destination (no black void) and
- * the two scenes are never both meaningfully opaque.
+ * Strict fade-through-dark handoff: outgoing clears before mid-blend, incoming
+ * rises after. Midpoint is intentionally dark so 2→3 / 3→4 never jump torso→node.
+ * Sidebar text switches at the same midpoint via stepIndexFromProgress.
  */
 function sequentialFade(t: number): { out: number; inn: number } {
   const c = THREE.MathUtils.clamp(t, 0, 1)
-  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 0.4)
-  const inn = THREE.MathUtils.smoothstep(c, 0.25, 0.85)
+  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 0.48)
+  const inn = THREE.MathUtils.smoothstep(c, 0.52, 1.0)
   return { out, inn }
 }
 
