@@ -212,6 +212,7 @@ export default function LymphExplainer() {
       const gen = (w.__explainerHoldGen = (w.__explainerHoldGen ?? 0) + 1)
       scrollingToRef.current = true
       tweenRef.current?.kill()
+      progressRef.current = clamped
       setProgress(clamped)
       setStepIndex(stepIndexFromProgress(clamped))
       if (holdMs <= 0) {
