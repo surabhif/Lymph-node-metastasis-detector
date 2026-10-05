@@ -439,22 +439,22 @@ function CutawayLymphNode({
         <meshStandardMaterial
           color="#1e4548"
           transparent
-          opacity={0.1}
+          opacity={0.08}
           roughness={0.42}
           depthWrite={false}
           side={THREE.FrontSide}
         />
       </mesh>
-      {/* Capsule rim — thin translucent edge, not a filled cut disc */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
-        <torusGeometry args={[1.05, 0.012, 6, Math.max(32, segs)]} />
-        <meshStandardMaterial
-          color="#9fd8d2"
-          roughness={0.4}
+      {/* Open cut edge — faint cool ring only (no filled disc / torus plane) */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.01]} renderOrder={2}>
+        <ringGeometry args={[1.02, 1.055, Math.max(32, segs)]} />
+        <meshBasicMaterial
+          color="#7eb8b2"
           transparent
-          opacity={0.28}
+          opacity={0.18}
           depthWrite={false}
           toneMapped={false}
+          side={THREE.DoubleSide}
         />
       </mesh>
 

@@ -158,12 +158,17 @@ const browser = await chromium.launch({
   const page = await context.newPage()
   await gotoExplainer(page)
 
-  // Start at top of explainer; warm scenes so mid-dives are continuous
-  await holdProgress(page, 0, 1800)
-  await holdProgress(page, 0.5, 2200)
-  await holdProgress(page, 1, 1800)
-  await holdProgress(page, 0, 2000)
-  await page.waitForTimeout(1200)
+  // Start at top of explainer; warm scenes then fully release the hold lock
+  await holdProgress(page, 0, 1200)
+  await holdProgress(page, 0.5, 1800)
+  await holdProgress(page, 1, 1500)
+  await holdProgress(page, 0, 1200)
+  // Ensure overlapping hold locks are cleared before real scroll
+  await page.evaluate(() => {
+    const w = window
+    w.__explainerHoldGen = (w.__explainerHoldGen ?? 0) + 1
+  })
+  await page.waitForTimeout(400)
 
   // Segment durations: ~10–12s linear travel + ~3s pause at each snap (~50–55s scrub)
   const snaps = [0, 0.25, 0.5, 0.75, 1]

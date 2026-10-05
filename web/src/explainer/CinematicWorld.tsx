@@ -294,7 +294,8 @@ export function CinematicWorld({
   // Blend weights across the five snaps (0, 0.25, 0.5, 0.75, 1).
   // Front-load destination blends so mid-scroll (and stepIndex midpoints) already show the dive/crossfade.
   const toSpread = blendBetween(progress, 0, 1) // 1→2
-  const intoNode = easeOutBlend(blendBetween(progress, 1, 2), 1.65) // 2→3 dive
+  // Stronger front-load so mid-scroll (0.375) already frames the open cut-away.
+  const intoNode = easeOutBlend(blendBetween(progress, 1, 2), 2.1) // 2→3 dive
   const outOfNode = easeOutBlend(blendBetween(progress, 2, 3), 1.45) // 3→4 pull-back
   const toPatches = easeOutBlend(blendBetween(progress, 3, 4), 1.5) // 4→5 cross-fade
 
@@ -304,11 +305,8 @@ export function CinematicWorld({
     if (progress > 0.62 || toPatches > 0.02) setWarmPatches(true)
   }, [progress, intoNode, outOfNode, toPatches])
 
-  // Torso cross-fades with the dive; returns for surgery before patches.
-  const torsoFade = Math.max(
-    0,
-    1 - intoNode * 0.95 - Math.max(0, intoNode - 0.75) * 2.2,
-  ) * (1 - toPatches)
+  // Torso yields quickly once the dive starts; returns for surgery before patches.
+  const torsoFade = Math.max(0, 1 - intoNode * 1.15) * (1 - toPatches)
   const torsoReturn = outOfNode * (1 - toPatches) * (1 - Math.min(1, intoNode * 1.05))
   const torsoAmt = THREE.MathUtils.clamp(Math.max(torsoFade, torsoReturn * 0.95), 0, 1)
 
@@ -359,16 +357,16 @@ export function CinematicWorld({
   const showPatches = patchesAmt > 0.02
 
   // Soft scale/position for the dive into the node
-  const torsoScale = 1 - intoNode * 0.58 + outOfNode * 0.35 * (1 - toPatches)
-  const torsoY = -intoNode * 0.3 + outOfNode * 0.12
-  const nodeScale = 0.38 + intoNode * 1.12 - outOfNode * 0.55
-  // Keep the cut-away under the axilla camera through mid 2→3, then seat it
-  // at the origin for the step-3 macro frame.
+  const torsoScale = 1 - intoNode * 0.7 + outOfNode * 0.35 * (1 - toPatches)
+  const torsoY = -intoNode * 0.35 + outOfNode * 0.12
+  const nodeScale = 0.42 + intoNode * 1.2 - outOfNode * 0.55
+  // Pull the cut-away out of the axilla toward origin early so mid-scroll frames it.
   const sent = landmark('sentinel')
+  const seat = Math.pow(1 - intoNode, 1.55)
   const nodePos: [number, number, number] = [
-    sent[0] * (1 - intoNode),
-    sent[1] * (1 - intoNode) + 0.05 - (1 - nodeAmt) * 0.08,
-    sent[2] * (1 - intoNode) + intoNode * 0.12,
+    sent[0] * seat,
+    sent[1] * seat + 0.05 - (1 - nodeAmt) * 0.08,
+    sent[2] * seat + intoNode * 0.18,
   ]
 
   return (
