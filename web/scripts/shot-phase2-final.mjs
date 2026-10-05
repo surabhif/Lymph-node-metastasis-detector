@@ -95,15 +95,22 @@ const fpsReport = { desktop: {}, phone: {}, notes: [] }
   const page = await context.newPage()
   await gotoExplainer(page)
 
-  // Mid-transition frames FIRST (before tab snaps) so GSAP/lazy state stay clean
-  await holdProgress(page, 0.375)
+  // Warm lazy step scenes so mid-frame holds are not racing code-split chunks
+  await clickStep(page, 2)
+  await clickStep(page, 4)
+  await page.waitForTimeout(1500)
+
+  // Mid-transition frames with held scrub (bypasses GSAP snap)
+  await holdProgress(page, 0.375, 5000)
   const mid23Progress = await page.getAttribute('[data-progress]', 'data-progress')
   console.log('mid 2→3 data-progress', mid23Progress)
+  await page.waitForTimeout(1200)
   await shotViewport(page, 'p2_desktop_mid_2_3.png')
 
-  await holdProgress(page, 0.875)
+  await holdProgress(page, 0.875, 5000)
   const mid45Progress = await page.getAttribute('[data-progress]', 'data-progress')
   console.log('mid 4→5 data-progress', mid45Progress)
+  await page.waitForTimeout(1200)
   await shotViewport(page, 'p2_desktop_mid_4_5.png')
 
   for (let i = 0; i < 5; i++) {

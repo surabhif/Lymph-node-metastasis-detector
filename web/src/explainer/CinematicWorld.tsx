@@ -9,6 +9,7 @@ import {
   axillaryPathCurve,
   blendBetween,
   stepWeight,
+  STEP_SNAP,
 } from './scrollPath'
 import type { DepositMode, SceneQuality } from './scenes'
 
@@ -282,14 +283,20 @@ export function CinematicWorld({
 
   // Blend weights across the five snaps (0, 0.25, 0.5, 0.75, 1)
   const toSpread = blendBetween(progress, 0, 1) // 1→2
-  const intoNode = blendBetween(progress, 1, 2) // 2→3
+  // Bias the dive so mid 2→3 already reads as a clip-plane zoom, not a late pop
+  const intoNodeLin = THREE.MathUtils.clamp(
+    (progress - STEP_SNAP[1]!) / Math.max(1e-6, STEP_SNAP[2]! - STEP_SNAP[1]!),
+    0,
+    1,
+  )
+  const intoNode = Math.pow(intoNodeLin, 0.55)
   const outOfNode = blendBetween(progress, 2, 3) // 3→4
   const toPatches = blendBetween(progress, 3, 4) // 4→5
 
   // Torso lives through steps 1–4; fades hard as we dive into the node
   const torsoFade = Math.max(
     0,
-    1 - intoNode * 1.15 - Math.max(0, intoNode - 0.7) * 2,
+    1 - intoNode * 1.35 - Math.max(0, intoNode - 0.55) * 2.5,
   ) * (1 - toPatches)
   // After leaving the node, torso returns for surgery before patches
   const torsoReturn = outOfNode * (1 - toPatches) * (1 - Math.min(1, intoNode * 1.1))
@@ -297,14 +304,18 @@ export function CinematicWorld({
 
   const nodeAmt = THREE.MathUtils.clamp(
     // Bring the cut-away up early so mid 2→3 already reads as a dive
-    THREE.MathUtils.smoothstep(intoNode, 0.08, 0.85) *
+    THREE.MathUtils.smoothstep(intoNode, 0.04, 0.72) *
       (1 - outOfNode * 0.95) *
       (1 - toPatches),
     0,
     1,
   )
   // Clip opens with dive; reduced-motion snaps open via cross-fade only
-  const clipReveal = reducedMotion ? (intoNode > 0.45 ? 1 : 0) : THREE.MathUtils.smoothstep(intoNode, 0.05, 0.9)
+  const clipReveal = reducedMotion
+    ? intoNode > 0.45
+      ? 1
+      : 0
+    : THREE.MathUtils.smoothstep(intoNode, 0.02, 0.82)
 
   const surgeryAmt = THREE.MathUtils.clamp(
     outOfNode * (1 - toPatches) * (intoNode > 0.5 ? 1 : outOfNode),
@@ -341,9 +352,9 @@ export function CinematicWorld({
   const showPatches = patchesAmt > 0.06
 
   // Soft scale/position for the dive into the node — bias node larger mid-blend
-  const torsoScale = 1 - intoNode * 0.72 + outOfNode * 0.35 * (1 - toPatches)
-  const torsoY = -intoNode * 0.35 + outOfNode * 0.12
-  const nodeScale = 0.4 + intoNode * 1.15 - outOfNode * 0.55
+  const torsoScale = 1 - intoNode * 0.82 + outOfNode * 0.35 * (1 - toPatches)
+  const torsoY = -intoNode * 0.42 + outOfNode * 0.12
+  const nodeScale = 0.35 + intoNode * 1.35 - outOfNode * 0.55
 
   return (
     <group>
