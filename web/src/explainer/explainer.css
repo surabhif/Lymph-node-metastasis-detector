@@ -179,8 +179,25 @@
 .explainer-canvas-host {
   position: relative;
   flex: 1 1 auto;
-  min-height: 0;
+  /* Reserve layout from first paint so sticky/WebGL mount does not reflow the page */
+  min-height: 520px;
+  height: 100%;
   width: 100%;
+  background:
+    radial-gradient(680px 320px at 28% 22%, rgba(46, 120, 130, 0.32), transparent 58%),
+    radial-gradient(520px 280px at 78% 70%, rgba(18, 60, 90, 0.4), transparent 55%),
+    linear-gradient(165deg, #0a1a24 0%, #071018 50%, #0c2a2e 100%);
+}
+
+.explainer-canvas-host.ready-3d::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  background: inherit;
 }
 
 .explainer-canvas {
@@ -188,14 +205,24 @@
   height: 100% !important;
   touch-action: none;
   display: block;
+  opacity: 0;
+  transition: opacity 0.55s ease;
 }
 
-.explainer-loading {
+.explainer-canvas.is-ready {
+  opacity: 1;
+}
+
+.explainer-loading,
+.explainer-poster {
   display: grid;
   place-items: center;
   height: 100%;
   min-height: 520px;
-  color: var(--muted);
+  color: rgba(190, 220, 215, 0.75);
+  position: absolute;
+  inset: 0;
+  z-index: 2;
 }
 
 .explainer-viewport-hint {
@@ -586,12 +613,20 @@
   padding-top: 0.35rem;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.55rem;
 }
 
 .explainer-cta-block .btn {
   align-self: flex-start;
   text-align: center;
+  display: inline-flex;
+  visibility: visible;
+  opacity: 1;
+  z-index: 2;
+}
+
+.explainer-cta-block .muted.tiny {
+  color: rgba(50, 70, 65, 0.72);
 }
 
 @media (max-width: 980px) {

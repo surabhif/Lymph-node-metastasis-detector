@@ -9,7 +9,6 @@ import {
   axillaryPathCurve,
   blendBetween,
   stepWeight,
-  STEP_SNAP,
 } from './scrollPath'
 import type { DepositMode, SceneQuality } from './scenes'
 
@@ -256,7 +255,7 @@ function NodeClipReveal({
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       for (const m of mats) {
         if (!m) continue
-        m.clippingPlanes = reveal >= 0.98 ? [] : [plane]
+        m.clippingPlanes = reveal >= 0.85 ? [] : [plane]
         m.clipShadows = false
         m.needsUpdate = true
       }
@@ -285,55 +284,45 @@ export function CinematicWorld({
   const [sentinelHot, setSentinelHot] = useState(0)
   const onArrive = useCallback((s: number) => setSentinelHot(s), [])
 
-  // Blend weights across the five snaps (0, 0.25, 0.5, 0.75, 1)
+  // Blend weights across the five snaps (0, 0.25, 0.5, 0.75, 1).
+  // Use the same smoothstep windows as stepIndex midpoints so UI + 3D stay aligned.
   const toSpread = blendBetween(progress, 0, 1) // 1→2
-  // Bias the dive so mid 2→3 already reads as a clip-plane zoom, not a late pop
-  const intoNodeLin = THREE.MathUtils.clamp(
-    (progress - STEP_SNAP[1]!) / Math.max(1e-6, STEP_SNAP[2]! - STEP_SNAP[1]!),
-    0,
-    1,
-  )
-  const intoNode = Math.pow(intoNodeLin, 0.55)
-  const outOfNode = blendBetween(progress, 2, 3) // 3→4
-  const toPatches = blendBetween(progress, 3, 4) // 4→5
+  const intoNode = blendBetween(progress, 1, 2) // 2→3 dive
+  const outOfNode = blendBetween(progress, 2, 3) // 3→4 pull-back
+  const toPatches = blendBetween(progress, 3, 4) // 4→5 cross-fade
 
-  // Torso stays readable through mid 2→3 so the dive is a cross-fade, not a black gap.
+  // Torso cross-fades with the dive; returns for surgery before patches.
   const torsoFade = Math.max(
     0,
-    1 - intoNode * 0.55 - Math.max(0, intoNode - 0.82) * 3,
+    1 - intoNode * 0.88 - Math.max(0, intoNode - 0.85) * 2,
   ) * (1 - toPatches)
-  // After leaving the node, torso returns for surgery before patches
-  const torsoReturn = outOfNode * (1 - toPatches) * (1 - Math.min(1, intoNode * 1.1))
+  const torsoReturn = outOfNode * (1 - toPatches) * (1 - Math.min(1, intoNode * 1.05))
   const torsoAmt = THREE.MathUtils.clamp(Math.max(torsoFade, torsoReturn * 0.95), 0, 1)
 
   const nodeAmt = THREE.MathUtils.clamp(
-    // Bring the cut-away up early so mid 2→3 already reads as a dive
-    THREE.MathUtils.smoothstep(intoNode, 0.04, 0.72) *
-      (1 - outOfNode * 0.95) *
-      (1 - toPatches),
+    intoNode * (1 - outOfNode * 0.92) * (1 - toPatches),
     0,
     1,
   )
   // Clip opens with dive; reduced-motion snaps open via cross-fade only
   const clipReveal = reducedMotion
-    ? intoNode > 0.45
+    ? intoNode > 0.5
       ? 1
       : 0
-    : THREE.MathUtils.smoothstep(intoNode, 0.02, 0.82)
+    : intoNode
 
   const surgeryAmt = THREE.MathUtils.clamp(
-    outOfNode * (1 - toPatches) * (intoNode > 0.5 ? 1 : outOfNode),
+    outOfNode * (1 - toPatches),
     0,
     1,
   )
-  // Prefer dual surgery panels once we've pulled back from the node;
-  // fade them out faster as patches take over so mid 4→5 reads as a blend.
+  // Dual surgery panels after leaving the node; fade as patches take over.
   const surgeryPanelAmt =
-    THREE.MathUtils.clamp((outOfNode - 0.28) / 0.55, 0, 1) *
-    THREE.MathUtils.clamp(1 - toPatches * 1.55, 0, 1)
+    THREE.MathUtils.smoothstep(outOfNode, 0.2, 0.85) *
+    THREE.MathUtils.clamp(1 - toPatches * 1.4, 0, 1)
 
-  // Soft bring-up of patches earlier so mid 4→5 is visibly blended
-  const patchesAmt = THREE.MathUtils.smoothstep(toPatches, 0.02, 0.72)
+  // Patches rise across the 4→5 window so mid scrub is a real cross-fade.
+  const patchesAmt = THREE.MathUtils.smoothstep(toPatches, 0.05, 0.9)
 
   const cellIntensity = THREE.MathUtils.clamp(
     toSpread * 0.55 +
@@ -350,15 +339,16 @@ export function CinematicWorld({
       stepWeight(progress, 3) * 0.45,
   ) * (1 - intoNode * 0.85) * (1 - toPatches)
 
-  const showTorso = torsoAmt > 0.04 && surgeryPanelAmt < 0.92
-  const showNode = nodeAmt > 0.06
-  const showSurgery = surgeryPanelAmt > 0.08
-  const showPatches = patchesAmt > 0.06
+  // Keep layers mounted once unlocked so blends never hard-cut on remount.
+  const showTorso = torsoAmt > 0.02
+  const showNode = nodeAmt > 0.02
+  const showSurgery = surgeryPanelAmt > 0.02
+  const showPatches = patchesAmt > 0.02
 
-  // Soft scale/position for the dive into the node — bias node larger mid-blend
-  const torsoScale = 1 - intoNode * 0.82 + outOfNode * 0.35 * (1 - toPatches)
-  const torsoY = -intoNode * 0.42 + outOfNode * 0.12
-  const nodeScale = 0.35 + intoNode * 1.35 - outOfNode * 0.55
+  // Soft scale/position for the dive into the node
+  const torsoScale = 1 - intoNode * 0.55 + outOfNode * 0.35 * (1 - toPatches)
+  const torsoY = -intoNode * 0.28 + outOfNode * 0.12
+  const nodeScale = 0.45 + intoNode * 1.05 - outOfNode * 0.55
   // Keep the cut-away under the axilla camera through mid 2→3, then seat it
   // at the origin for the step-3 macro frame.
   const sent = landmark('sentinel')
@@ -371,7 +361,11 @@ export function CinematicWorld({
   return (
     <group>
       {showTorso && (
-        <group scale={Math.max(0.35, torsoScale)} position={[0, torsoY, 0]}>
+        <group
+          scale={Math.max(0.35, torsoScale)}
+          position={[0, torsoY, 0]}
+          visible={torsoAmt > 0.04}
+        >
           <CinematicLight quality={quality} />
           <AnatomyTorso
             quality={quality}
@@ -408,7 +402,11 @@ export function CinematicWorld({
       )}
 
       {showNode && (
-        <group position={nodePos} scale={Math.max(0.35, nodeScale)}>
+        <group
+          position={nodePos}
+          scale={Math.max(0.35, nodeScale)}
+          visible={nodeAmt > 0.04}
+        >
           <Suspense fallback={null}>
             <NodeClipReveal reveal={clipReveal}>
               <InsideNodeScene
@@ -426,8 +424,8 @@ export function CinematicWorld({
       {showSurgery && (
         <group
           scale={0.75 + surgeryPanelAmt * 0.28}
-          // Soft bring-up of dual panels as we leave the node
           position={[0, (1 - surgeryPanelAmt) * 0.15, 0]}
+          visible={surgeryPanelAmt > 0.04}
         >
           <Suspense fallback={null}>
             <SurgeryScene
@@ -442,7 +440,11 @@ export function CinematicWorld({
       )}
 
       {showPatches && (
-        <group scale={0.82 + patchesAmt * 0.22} position={[0, (1 - patchesAmt) * -0.2, 0]}>
+        <group
+          scale={0.82 + patchesAmt * 0.22}
+          position={[0, (1 - patchesAmt) * -0.2, 0]}
+          visible={patchesAmt > 0.04}
+        >
           <Suspense fallback={null}>
             <PatchesScene
               quality={quality}

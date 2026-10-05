@@ -174,6 +174,9 @@ export default function LymphExplainer() {
     kill: () => void
   } | null>(null)
   const scrollingToRef = useRef(false)
+  const progressRef = useRef(0)
+  const gsapRef = useRef<typeof import('gsap').default | null>(null)
+  const tweenRef = useRef<{ kill: () => void } | null>(null)
 
   const reducedMotion = useMediaFlag('(prefers-reduced-motion: reduce)')
   const isMobile = useMediaFlag('(max-width: 720px)')
@@ -182,6 +185,10 @@ export default function LymphExplainer() {
   const use3d = webgl && !forceStatic && !reducedMotion
   const scrollDriven = use3d
   const surgeryMode = step.id === 'surgery' ? (isMobile ? surgeryPanel : 'both') : 'both'
+
+  useEffect(() => {
+    progressRef.current = progress
+  }, [progress])
 
   useEffect(() => {
     setWebgl(detectWebGL())
@@ -206,6 +213,7 @@ export default function LymphExplainer() {
     w.__setExplainerProgress = (p: number, holdMs = 4000) => {
       const clamped = Math.min(1, Math.max(0, p))
       scrollingToRef.current = true
+      tweenRef.current?.kill()
       setProgress(clamped)
       setStepIndex(stepIndexFromProgress(clamped))
       window.setTimeout(() => {
@@ -231,12 +239,14 @@ export default function LymphExplainer() {
 
     void loadScrollTrigger().then(({ gsap, ScrollTrigger }) => {
       if (cancelled || !trackRef.current) return
+      gsapRef.current = gsap
       const ctx = gsap.context(() => {
         const st = ScrollTrigger.create({
           trigger: trackRef.current,
           start: 'top top',
           end: 'bottom bottom',
-          scrub: isMobile ? 0.85 : 0.55,
+          // Slight scrub lag so wheel motion eases through blends
+          scrub: isMobile ? 0.9 : 0.65,
           invalidateOnRefresh: true,
           snap: {
             snapTo: (value: number) => {
@@ -251,9 +261,10 @@ export default function LymphExplainer() {
               }
               return best
             },
-            duration: { min: 0.12, max: 0.4 },
-            ease: 'power1.inOut',
-            delay: 0.04,
+            // Ease through the transition (~0.8–1.2s) instead of a hard cut
+            duration: { min: 0.85, max: 1.2 },
+            ease: 'power2.inOut',
+            delay: 0.06,
           },
           onUpdate: (self: { progress: number }) => {
             if (scrollingToRef.current) return
@@ -273,6 +284,7 @@ export default function LymphExplainer() {
 
     return () => {
       cancelled = true
+      tweenRef.current?.kill()
       cleanup?.()
       triggerRef.current = null
     }
@@ -280,26 +292,47 @@ export default function LymphExplainer() {
 
   const scrollToStep = useCallback((index: number) => {
     const next = Math.max(0, Math.min(EXPLAINER_STEPS.length - 1, index))
-    const p = STEP_SNAP[next] ?? 0
-    // Drive 3D from the snap immediately so canvas never lags the tab/legend.
-    setStepIndex(next)
-    setProgress(p)
-
+    const target = STEP_SNAP[next] ?? 0
+    const from = progressRef.current
     const st = triggerRef.current
-    if (scrollDriven && st) {
-      scrollingToRef.current = true
-      const y = st.start + (st.end - st.start) * p
-      window.scrollTo(0, y)
-      st.scroll(y)
-      window.setTimeout(() => {
-        // Keep the explicit snap progress — do not trust a lagging st.progress
-        setProgress(p)
-        setStepIndex(next)
-        scrollingToRef.current = false
-      }, 180)
+    const gsap = gsapRef.current
+
+    tweenRef.current?.kill()
+    scrollingToRef.current = true
+
+    const apply = (p: number) => {
+      setProgress(p)
+      setStepIndex(stepIndexFromProgress(p))
+      if (st) {
+        const y = st.start + (st.end - st.start) * p
+        window.scrollTo(0, y)
+        st.scroll(y)
+      }
+    }
+
+    // Reduced-motion / no GSAP yet: snap immediately
+    if (reducedMotion || !gsap || !scrollDriven || !st) {
+      apply(target)
+      setStepIndex(next)
+      scrollingToRef.current = false
       return
     }
-  }, [scrollDriven])
+
+    const dur = Math.min(1.2, Math.max(0.85, Math.abs(target - from) * 3.2))
+    const proxy = { p: from }
+    tweenRef.current = gsap.to(proxy, {
+      p: target,
+      duration: dur,
+      ease: 'power2.inOut',
+      onUpdate: () => apply(proxy.p),
+      onComplete: () => {
+        apply(target)
+        setStepIndex(next)
+        scrollingToRef.current = false
+        tweenRef.current = null
+      },
+    })
+  }, [scrollDriven, reducedMotion])
 
   const go = useCallback(
     (next: number) => {
@@ -411,11 +444,11 @@ export default function LymphExplainer() {
             data-progress={progress.toFixed(3)}
             data-step={step.id}
           >
-            <div className="explainer-canvas-host">
+            <div className={`explainer-canvas-host${use3d ? ' ready-3d' : ''}`}>
               {use3d ? (
                 <Suspense
                   fallback={
-                    <div className="explainer-loading" role="status">
+                    <div className="explainer-loading explainer-poster" role="status">
                       Loading 3D scene…
                     </div>
                   }
@@ -498,23 +531,25 @@ export default function LymphExplainer() {
                 </div>
               )}
               <p className="sr-only">{step.alt}</p>
-              <div className="explainer-viewport-hint muted tiny">
-                {use3d
-                  ? scrollDriven
-                    ? 'Scroll to travel · drag to glance · Tab to step controls · arrow keys snap steps'
-                    : 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
-                  : reducedMotion
-                    ? 'Motion reduced — showing a static illustration'
-                    : '3D unavailable — showing a static illustration'}
-                {webgl && !reducedMotion && (
-                  <>
-                    {' · '}
-                    <button type="button" className="text-button" onClick={() => setForceStatic((v) => !v)}>
-                      {forceStatic ? 'Use 3D view' : 'Use static view'}
-                    </button>
-                  </>
-                )}
-              </div>
+              {step.id !== 'patches' && (
+                <div className="explainer-viewport-hint muted tiny">
+                  {use3d
+                    ? scrollDriven
+                      ? 'Scroll to travel · drag to glance · Tab to step controls · arrow keys snap steps'
+                      : 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
+                    : reducedMotion
+                      ? 'Motion reduced — showing a static illustration'
+                      : '3D unavailable — showing a static illustration'}
+                  {webgl && !reducedMotion && (
+                    <>
+                      {' · '}
+                      <button type="button" className="text-button" onClick={() => setForceStatic((v) => !v)}>
+                        {forceStatic ? 'Use 3D view' : 'Use static view'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             {step.id === 'patches' && (
               <p className="patch-mosaic-caption under-canvas">{patchesMeta.label}</p>

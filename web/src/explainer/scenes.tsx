@@ -420,30 +420,51 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       <mesh rotation={[0, 0, 0]} renderOrder={1}>
         <sphereGeometry args={[1.05, segs, segs, 0, Math.PI * 2, 0, Math.PI * 0.72]} />
         <meshPhysicalMaterial
-          color={COLORS.nodeCapsule}
+          color="#2a6a68"
+          transparent
+          opacity={0.14}
+          roughness={0.35}
+          transmission={0.55}
+          thickness={0.15}
+          depthWrite={false}
+          side={THREE.FrontSide}
+        />
+      </mesh>
+      {/* Capsule rim — thin edge only, not a filled disc */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
+        <torusGeometry args={[1.05, 0.018, 8, Math.max(32, segs)]} />
+        <meshStandardMaterial
+          color="#3a9a92"
+          emissive={COLORS.vesselGlow}
+          emissiveIntensity={0.28}
+          roughness={0.4}
+          transparent
+          opacity={0.85}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Cut face — subtle translucent plane, not a solid green/teal disc */}
+      <mesh position={[0, 0, 0.01]} renderOrder={0}>
+        <ringGeometry args={[0.92, 1.02, segs]} />
+        <meshStandardMaterial
+          color="#1a3038"
+          transparent
+          opacity={0.35}
+          roughness={0.9}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+      <mesh position={[0, 0, 0]} renderOrder={0}>
+        <circleGeometry args={[0.98, segs]} />
+        <meshStandardMaterial
+          color="#0c1418"
           transparent
           opacity={0.22}
-          roughness={0.25}
-          transmission={0.35}
-          thickness={0.2}
+          roughness={0.95}
+          side={THREE.FrontSide}
           depthWrite={false}
-          side={THREE.DoubleSide}
         />
-      </mesh>
-      {/* Capsule rim */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
-        <torusGeometry args={[1.05, 0.028, 10, Math.max(32, segs)]} />
-        <meshStandardMaterial
-          color={COLORS.nodeCapsule}
-          emissive={COLORS.vesselGlow}
-          emissiveIntensity={0.35}
-          roughness={0.35}
-        />
-      </mesh>
-      {/* Cut face */}
-      <mesh position={[0, 0, 0]} rotation={[0, 0, 0]} renderOrder={0}>
-        <circleGeometry args={[1.02, segs]} />
-        <meshStandardMaterial color="#152028" roughness={0.95} side={THREE.DoubleSide} />
       </mesh>
 
       {/* Cortex band (outer ring of tissue) */}

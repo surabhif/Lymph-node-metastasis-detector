@@ -178,7 +178,8 @@ function ScrollCameraRig({
       }
       return
     }
-    const k = 1 - Math.exp(-dt * 10)
+    // Track scrub tightly so wheel/snap eases map 1:1 onto the path (no laggy hard cuts)
+    const k = 1 - Math.exp(-dt * 18)
     camera.position.lerp(desiredPos.current, k)
     target.current.lerp(desiredLook.current, k)
     if (controlsRef.current) {
@@ -206,6 +207,7 @@ export default function ExplainerCanvas({
   const mobile = quality === 'low'
   const dpr: [number, number] = quality === 'high' ? [1, 1.5] : [1, 1.15]
   const [mounted, setMounted] = useState(true)
+  const [canvasReady, setCanvasReady] = useState(false)
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
   const surgerySingle = surgeryMode !== 'both'
   const start = cameraTargetFor(
@@ -243,7 +245,7 @@ export default function ExplainerCanvas({
 
   return (
     <Canvas
-      className="explainer-canvas"
+      className={`explainer-canvas${canvasReady ? ' is-ready' : ''}`}
       dpr={dpr}
       camera={{ position: start.position, fov: mobile ? 40 : 38, near: 0.1, far: 60 }}
       gl={{ antialias: true, powerPreference: 'default', alpha: true }}
@@ -251,6 +253,8 @@ export default function ExplainerCanvas({
         gl.setClearColor(0x000000, 0)
         gl.toneMapping = THREE.ACESFilmicToneMapping
         gl.toneMappingExposure = 1.28
+        // Fade in after first WebGL frame so we never flash a black void
+        requestAnimationFrame(() => setCanvasReady(true))
       }}
       aria-hidden="true"
     >
