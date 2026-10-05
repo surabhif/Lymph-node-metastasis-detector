@@ -323,29 +323,52 @@ export default function LymphExplainer() {
       }
     }
 
-    // Reduced-motion / no GSAP yet: snap immediately
-    if (reducedMotion || !gsap || !scrollDriven || !st) {
+    // Reduced-motion: snap immediately. Otherwise always ease ~1s through the flight.
+    if (reducedMotion) {
       apply(target)
       setStepIndex(next)
       scrollingToRef.current = false
       return
     }
 
-    const dur = Math.min(1.2, Math.max(0.85, Math.abs(target - from) * 3.2))
-    const proxy = { p: from }
-    tweenRef.current = gsap.to(proxy, {
-      p: target,
-      duration: dur,
-      ease: 'power2.inOut',
-      onUpdate: () => apply(proxy.p),
-      onComplete: () => {
+    // ~1s eased flight so pills / Prev-Next / arrows match the scroll path
+    const stepSpan = Math.max(1, Math.round(Math.abs(next - stepIndex) || 1))
+    const dur = Math.min(1.15, Math.max(0.95, 0.95 + (stepSpan - 1) * 0.12))
+
+    if (gsap && scrollDriven) {
+      const proxy = { p: from }
+      tweenRef.current = gsap.to(proxy, {
+        p: target,
+        duration: dur,
+        ease: 'power2.inOut',
+        onUpdate: () => apply(proxy.p),
+        onComplete: () => {
+          apply(target)
+          setStepIndex(next)
+          scrollingToRef.current = false
+          tweenRef.current = null
+        },
+      })
+      return
+    }
+
+    // GSAP not ready yet — rAF ease so we still show the flight
+    const t0 = performance.now()
+    const ms = dur * 1000
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - t0) / ms)
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+      apply(from + (target - from) * e)
+      if (t < 1) {
+        requestAnimationFrame(tick)
+      } else {
         apply(target)
         setStepIndex(next)
         scrollingToRef.current = false
-        tweenRef.current = null
-      },
-    })
-  }, [scrollDriven, reducedMotion])
+      }
+    }
+    requestAnimationFrame(tick)
+  }, [scrollDriven, reducedMotion, stepIndex])
 
   const go = useCallback(
     (next: number) => {

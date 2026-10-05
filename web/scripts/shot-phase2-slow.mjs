@@ -181,6 +181,17 @@ const browser = await chromium.launch({
     await wheelScrollToProgress(page, a, b, 11000)
     await page.waitForTimeout(3000) // pause at snap
   }
+  await page.waitForTimeout(800)
+
+  // —— Pill-click segment: same eased ~1s flight as scroll ——
+  await page.evaluate(() => window.__releaseExplainerScroll?.())
+  await page.locator('.step-tab').nth(0).click()
+  await page.waitForTimeout(1400)
+  console.log('pill click tour')
+  for (let i = 1; i < 5; i++) {
+    await page.locator('.step-tab').nth(i).click()
+    await page.waitForTimeout(1600) // ~1s ease + settle
+  }
   await page.waitForTimeout(1200)
 
   const video = page.video()

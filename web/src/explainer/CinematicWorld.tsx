@@ -255,6 +255,16 @@ function NodeClipReveal({
     root.traverse((obj) => {
       const mesh = obj as THREE.Mesh
       if (!mesh.isMesh) return
+      // Flat cut-face rings / vessels ahead of the cut skip clipping to avoid dashed z-fight
+      if (mesh.userData?.skipClip) {
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        for (const m of mats) {
+          if (!m) continue
+          m.clippingPlanes = []
+          m.needsUpdate = true
+        }
+        return
+      }
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       for (const m of mats) {
         if (!m) continue
@@ -321,6 +331,10 @@ export function CinematicWorld({
       ? 1
       : 0
     : intoNode
+  // Flat cortex/cap discs only once the camera is inside node scale (not mid-torso dive)
+  const cutFaceAmt =
+    THREE.MathUtils.smoothstep(intoNode, 0.62, 0.92) *
+    THREE.MathUtils.clamp(1 - outOfNode * 1.1, 0, 1)
 
   const surgeryAmt = THREE.MathUtils.clamp(
     outOfNode * (1 - toPatches),
@@ -356,10 +370,10 @@ export function CinematicWorld({
   const showSurgery = surgeryPanelAmt > 0.02 && patchesAmt < 0.9
   const showPatches = patchesAmt > 0.02
 
-  // Soft scale/position for the dive into the node
+  // Soft scale/position for the dive into the node — rest scale must be 1 (camera is fitted to unit node)
   const torsoScale = 1 - intoNode * 0.7 + outOfNode * 0.35 * (1 - toPatches)
   const torsoY = -intoNode * 0.35 + outOfNode * 0.12
-  const nodeScale = 0.42 + intoNode * 1.2 - outOfNode * 0.55
+  const nodeScale = THREE.MathUtils.lerp(0.38, 1.0, intoNode) * (1 - outOfNode * 0.42)
   // Pull the cut-away out of the axilla toward origin early so mid-scroll frames it.
   const sent = landmark('sentinel')
   const seat = Math.pow(1 - intoNode, 1.55)
@@ -427,6 +441,7 @@ export function CinematicWorld({
               onActiveNode={() => undefined}
               depositMode={depositMode}
               hudVisible={showNode && nodeAmt > 0.35}
+              cutFaceAmt={cutFaceAmt}
             />
           </NodeClipReveal>
         </group>

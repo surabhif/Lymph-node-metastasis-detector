@@ -122,9 +122,10 @@ export const SURGERY_PANEL_SCALE = 0.74
  * Fitted with ≥8% margin on the limiting axis.
  */
 export function insideNodeFocusBox(): THREE.Box3 {
+  // Include afferent/efferent stubs + label clearance above cortex / below vessels
   return new THREE.Box3(
-    new THREE.Vector3(-1.35, -1.05, -0.35),
-    new THREE.Vector3(1.4, 0.95, 0.55),
+    new THREE.Vector3(-1.55, -1.15, -0.35),
+    new THREE.Vector3(1.6, 1.15, 0.55),
   )
 }
 
@@ -137,20 +138,20 @@ export function insideNodeCameraTarget(
   const box = insideNodeFocusBox()
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
-  // 1.19 ≈ 8% margin each side; extra slack clears labels + mobile chrome
-  const margin = mobile ? 1.68 : 1.42
+  // Pull back vs prior over-zoom so cortex label + afferent/efferent clear the frame
+  const margin = mobile ? 1.78 : 1.72
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
   const dist = Math.max(
     (size.y * margin) / (2 * Math.tan(vFov / 2)),
     (size.x * margin) / (2 * Math.tan(hFov / 2)),
-    3.8,
+    4.4,
   )
-  // Mobile: bias look-at up so the node sits above bottom UI chrome
-  const lookY = center.y + (mobile ? 0.28 : 0.08)
+  // Bias look-at slightly up so Afferent clears the bottom hint; mobile adds more
+  const lookY = center.y + (mobile ? 0.22 : 0.12)
   return {
-    position: [center.x * 0.12, lookY + 0.06, center.z + dist],
-    lookAt: [center.x * 0.08, lookY, center.z],
+    position: [center.x * 0.1, lookY + 0.04, center.z + dist],
+    lookAt: [center.x * 0.06, lookY, center.z],
   }
 }
 

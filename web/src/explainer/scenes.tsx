@@ -408,9 +408,12 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
 function CutawayLymphNode({
   quality,
   hudVisible = true,
+  /** 0→1: fade flat cut-face discs once the camera is inside the node (not during torso dive). */
+  cutFaceAmt = 1,
 }: {
   quality: SceneQuality
   hudVisible?: boolean
+  cutFaceAmt?: number
 }) {
   const segs = quality === 'high' ? 48 : 28
   const follicleCount = quality === 'high' ? 10 : 7
@@ -430,6 +433,8 @@ function CutawayLymphNode({
     display: hudVisible ? 'block' : 'none',
     opacity: hudVisible ? 1 : 0,
   }
+  const face = THREE.MathUtils.clamp(cutFaceAmt, 0, 1)
+  const showFace = face > 0.04
 
   return (
     <group>
@@ -439,39 +444,55 @@ function CutawayLymphNode({
         <meshStandardMaterial
           color="#1e4548"
           transparent
-          opacity={0.08}
+          opacity={0.08 * Math.max(face, 0.35)}
           roughness={0.42}
           depthWrite={false}
           side={THREE.FrontSide}
         />
       </mesh>
-      {/* Open cut edge — faint cool ring only (no filled disc / torus plane) */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.01]} renderOrder={2}>
-        <ringGeometry args={[1.02, 1.055, Math.max(32, segs)]} />
-        <meshBasicMaterial
-          color="#7eb8b2"
-          transparent
-          opacity={0.18}
-          depthWrite={false}
-          toneMapped={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+      {/* Open cut edge — only once inside; keep it a thin ring (not a filled disc) */}
+      {showFace && (
+        <mesh
+          rotation={[Math.PI / 2, 0, 0]}
+          position={[0, 0, 0.02]}
+          renderOrder={2}
+          userData={{ skipClip: true }}
+        >
+          <torusGeometry args={[1.035, 0.014, 8, Math.max(48, segs)]} />
+          <meshBasicMaterial
+            color="#8ec4be"
+            transparent
+            opacity={0.22 * face}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      )}
 
-      {/* Cortex band (outer ring of tissue) */}
-      <mesh position={[0, 0, 0.04]} renderOrder={3}>
-        <ringGeometry args={[0.62, 0.95, segs]} />
-        <meshStandardMaterial
-          color={COLORS.cortex}
-          emissive={COLORS.follicleGlow}
-          emissiveIntensity={0.22}
-          transparent
-          opacity={0.62}
-          roughness={0.8}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-        />
-      </mesh>
+      {/* Cortex band — fade in only at node-scale so it never becomes a torso-slicing disc */}
+      {showFace && (
+        <mesh
+          position={[0, 0, 0.05]}
+          renderOrder={3}
+          userData={{ skipClip: true }}
+          scale={[1, 1, 1]}
+        >
+          <ringGeometry args={[0.62, 0.95, segs]} />
+          <meshStandardMaterial
+            color={COLORS.cortex}
+            emissive={COLORS.follicleGlow}
+            emissiveIntensity={0.18 * face}
+            transparent
+            opacity={0.55 * face}
+            roughness={0.8}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+            polygonOffset
+            polygonOffsetFactor={-1}
+            polygonOffsetUnits={-1}
+          />
+        </mesh>
+      )}
 
       {/* Follicles — soft translucent lymphoid pink-purple (not grey) */}
       {follicles.map((f, i) => (
@@ -514,38 +535,51 @@ function CutawayLymphNode({
         />
       </mesh>
 
-      {/* Afferent vessels entering capsule (left / top) — kept short of top-left legend */}
+      {/* Afferent vessels — fully in front of the cut (no clip dashes) */}
       {[
-        { pos: [-1.15, 0.28, 0.15] as const, rot: [0, 0, 0.35] as const },
-        { pos: [-1.1, -0.2, 0.1] as const, rot: [0, 0, -0.3] as const },
-        { pos: [-1.0, 0.55, 0.12] as const, rot: [0, 0, 0.7] as const },
+        { pos: [-1.15, 0.28, 0.22] as const, rot: [0, 0, 0.35] as const },
+        { pos: [-1.1, -0.2, 0.2] as const, rot: [0, 0, -0.3] as const },
+        { pos: [-1.0, 0.55, 0.2] as const, rot: [0, 0, 0.7] as const },
       ].map((v, i) => (
-        <mesh key={`aff-${i}`} position={v.pos} rotation={v.rot} renderOrder={5}>
-          <capsuleGeometry args={[0.035, 0.22, 4, 10]} />
+        <mesh
+          key={`aff-${i}`}
+          position={v.pos}
+          rotation={v.rot}
+          renderOrder={5}
+          userData={{ skipClip: true }}
+        >
+          <capsuleGeometry args={[0.038, 0.22, 6, 12]} />
           <meshStandardMaterial
             color={COLORS.vessel}
             emissive={COLORS.vesselGlow}
-            emissiveIntensity={0.35}
+            emissiveIntensity={0.4}
             toneMapped={false}
-            roughness={0.45}
+            roughness={0.4}
+            depthWrite={false}
           />
         </mesh>
       ))}
 
-      {/* Efferent vessel at hilum (right) */}
-      <mesh position={[1.25, -0.05, 0.1]} rotation={[0, 0, Math.PI / 2]} renderOrder={5}>
-        <capsuleGeometry args={[0.04, 0.32, 4, 10]} />
+      {/* Efferent vessel at hilum — solid tube, ahead of the cut plane */}
+      <mesh
+        position={[1.25, -0.05, 0.22]}
+        rotation={[0, 0, Math.PI / 2]}
+        renderOrder={5}
+        userData={{ skipClip: true }}
+      >
+        <capsuleGeometry args={[0.042, 0.32, 6, 12]} />
         <meshStandardMaterial
           color={COLORS.vessel}
           emissive={COLORS.vesselGlow}
-          emissiveIntensity={0.4}
+          emissiveIntensity={0.45}
           toneMapped={false}
-          roughness={0.4}
+          roughness={0.38}
+          depthWrite={false}
         />
       </mesh>
 
-      {/* Labels — clear of top-left legend; Afferent/Cortex hide on narrow screens */}
-      <Html position={[0.25, 0.62, 0.3]} center style={hudStyle} zIndexRange={[20, 0]}>
+      {/* Labels — Afferent raised clear of the bottom hint */}
+      <Html position={[0.2, 0.78, 0.3]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Cortex / follicles</span>
       </Html>
       <Html position={[0.42, 0.12, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
@@ -554,10 +588,10 @@ function CutawayLymphNode({
       <Html position={[-0.28, -0.08, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno soft">Medulla</span>
       </Html>
-      <Html position={[-0.85, -0.78, 0.25]} center style={hudStyle} zIndexRange={[20, 0]}>
+      <Html position={[-1.05, -0.55, 0.28]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Afferent</span>
       </Html>
-      <Html position={[1.2, -0.68, 0.25]} center style={hudStyle} zIndexRange={[20, 0]}>
+      <Html position={[1.25, -0.55, 0.28]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Efferent / hilum</span>
       </Html>
     </group>
@@ -630,7 +664,8 @@ export function InsideNodeScene({
   reducedMotion,
   depositMode = 'all',
   hudVisible = true,
-}: SceneProps & { depositMode?: DepositMode }) {
+  cutFaceAmt = 1,
+}: SceneProps & { depositMode?: DepositMode; cutFaceAmt?: number }) {
   const group = useRef<Group>(null)
 
   useFrame(({ clock }) => {
@@ -641,7 +676,7 @@ export function InsideNodeScene({
   return (
     <group ref={group} position={[0, 0.05, 0]}>
       <MacroNodeLight quality={quality} />
-      <CutawayLymphNode quality={quality} hudVisible={hudVisible} />
+      <CutawayLymphNode quality={quality} hudVisible={hudVisible} cutFaceAmt={cutFaceAmt} />
       <NodeDeposits mode={depositMode} />
     </group>
   )
