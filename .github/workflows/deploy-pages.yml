@@ -38,6 +38,8 @@ jobs:
         env:
           # Project Pages URL: https://<user>.github.io/<repo>/
           VITE_BASE: /Lymph-node-metastasis-detector/
+        # npm run build also copies index.html → 404.html and route indexes
+        # (results/, about/, demo/, model-card/) so deep links return 200 on Pages.
         run: npm run build
 
       - name: Upload Pages artifact
