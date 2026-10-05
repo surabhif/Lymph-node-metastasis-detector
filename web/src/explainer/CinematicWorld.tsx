@@ -297,11 +297,10 @@ export function CinematicWorld({
   const outOfNode = blendBetween(progress, 2, 3) // 3→4
   const toPatches = blendBetween(progress, 3, 4) // 4→5
 
-  // Torso lives through steps 1–4; cross-fades with the node dive (keep some
-  // axilla silhouette mid-blend so 2→3 reads as continuous, not a hard cut).
+  // Torso stays readable through mid 2→3 so the dive is a cross-fade, not a black gap.
   const torsoFade = Math.max(
     0,
-    1 - intoNode * 0.95 - Math.max(0, intoNode - 0.75) * 2,
+    1 - intoNode * 0.55 - Math.max(0, intoNode - 0.82) * 3,
   ) * (1 - toPatches)
   // After leaving the node, torso returns for surgery before patches
   const torsoReturn = outOfNode * (1 - toPatches) * (1 - Math.min(1, intoNode * 1.1))

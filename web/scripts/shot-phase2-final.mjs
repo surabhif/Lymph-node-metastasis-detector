@@ -57,7 +57,7 @@ async function scrollToProgress(page, progress) {
 }
 
 /** Hold an exact mid-transition scrub (bypasses GSAP snap). */
-async function holdProgress(page, progress, holdMs = 3500) {
+async function holdProgress(page, progress, holdMs = 5000) {
   await page.evaluate(
     ({ p, ms }) => {
       if (typeof window.__setExplainerProgress === 'function') {
@@ -75,7 +75,7 @@ async function holdProgress(page, progress, holdMs = 3500) {
     const height = track.offsetHeight - window.innerHeight
     window.scrollTo(0, top + Math.max(0, height) * p)
   }, progress)
-  await page.waitForTimeout(2600)
+  await page.waitForTimeout(Math.min(holdMs - 400, 4200))
 }
 
 const browser = await chromium.launch({
@@ -100,17 +100,19 @@ const fpsReport = { desktop: {}, phone: {}, notes: [] }
   await clickStep(page, 4)
   await page.waitForTimeout(1500)
 
-  // Mid-transition frames with held scrub (bypasses GSAP snap)
-  await holdProgress(page, 0.375, 5000)
+  // Mid-transition frames with held scrub (bypasses GSAP snap).
+  // 0.42 is the first scrub where the cut-away is camera-framed mid-dive;
+  // 0.375 is geometric halfway but still axilla-dominant with the CatmullRom path.
+  await holdProgress(page, 0.42, 6000)
   const mid23Progress = await page.getAttribute('[data-progress]', 'data-progress')
   console.log('mid 2→3 data-progress', mid23Progress)
-  await page.waitForTimeout(1200)
+  await page.waitForTimeout(800)
   await shotViewport(page, 'p2_desktop_mid_2_3.png')
 
-  await holdProgress(page, 0.875, 5000)
+  await holdProgress(page, 0.875, 6000)
   const mid45Progress = await page.getAttribute('[data-progress]', 'data-progress')
   console.log('mid 4→5 data-progress', mid45Progress)
-  await page.waitForTimeout(1200)
+  await page.waitForTimeout(800)
   await shotViewport(page, 'p2_desktop_mid_4_5.png')
 
   for (let i = 0; i < 5; i++) {
