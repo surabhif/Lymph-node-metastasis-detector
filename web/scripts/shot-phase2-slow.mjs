@@ -68,9 +68,8 @@ async function wheelScrollToProgress(page, fromP, toP, durationMs) {
       await new Promise((resolve) => {
         const tick = (now) => {
           const t = Math.min(1, (now - t0) / durationMs)
-          // ease in-out
-          const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-          window.scrollTo(0, startY + (endY - startY) * e)
+          // Linear scrub so mid-blends stay on screen (ease-in-out was flashing them)
+          window.scrollTo(0, startY + (endY - startY) * t)
           if (t < 1) requestAnimationFrame(tick)
           else {
             window.scrollTo(0, endY)
@@ -82,7 +81,7 @@ async function wheelScrollToProgress(page, fromP, toP, durationMs) {
     },
     { fromP, toP, durationMs },
   )
-  await page.waitForTimeout(500)
+  await page.waitForTimeout(600)
 }
 
 const browser = await chromium.launch({
@@ -99,8 +98,10 @@ const browser = await chromium.launch({
   const page = await context.newPage()
   await gotoExplainer(page)
 
-  // Warm lazy scenes
+  // Warm lazy/warm-mounted scenes before stills
+  await holdProgress(page, 0.2, 2000)
   await holdProgress(page, 0.5, 3500)
+  await holdProgress(page, 0.75, 2500)
   await holdProgress(page, 1, 2500)
 
   // Mid blends (held scrub — geometric midpoints)
@@ -115,9 +116,11 @@ const browser = await chromium.launch({
   // Settled steps via eased tab navigation
   for (let i = 0; i < 5; i++) {
     await page.locator('.step-tab').nth(i).click()
-    await page.waitForTimeout(1400) // allow ~1s ease + settle
+    await page.waitForTimeout(1500) // allow ~1s ease + settle
     await shotViewport(page, `p2_desktop_step${i + 1}.png`)
   }
+  // Full page step 5 for CTA visibility
+  await page.screenshot({ path: join(OUT, 'p2_desktop_step5_with_cta.png'), type: 'png' })
   await context.close()
 }
 
@@ -152,18 +155,21 @@ const browser = await chromium.launch({
   const page = await context.newPage()
   await gotoExplainer(page)
 
-  // Start at top of explainer
+  // Start at top of explainer; warm scenes so mid-dives are continuous
+  await holdProgress(page, 0, 1800)
+  await holdProgress(page, 0.5, 2200)
+  await holdProgress(page, 1, 1800)
   await holdProgress(page, 0, 2000)
-  await page.waitForTimeout(1500)
+  await page.waitForTimeout(1200)
 
-  // Segment durations: ~8–10s travel + ~3s pause at each snap
+  // Segment durations: ~10–12s linear travel + ~3s pause at each snap (~50–55s scrub)
   const snaps = [0, 0.25, 0.5, 0.75, 1]
   for (let i = 0; i < snaps.length - 1; i++) {
     const a = snaps[i]
     const b = snaps[i + 1]
     console.log(`wheel ${a} → ${b}`)
-    await wheelScrollToProgress(page, a, b, 9000)
-    await page.waitForTimeout(3200) // pause at snap
+    await wheelScrollToProgress(page, a, b, 11000)
+    await page.waitForTimeout(3000) // pause at snap
   }
   await page.waitForTimeout(1200)
 

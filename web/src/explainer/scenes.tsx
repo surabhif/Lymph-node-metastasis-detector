@@ -416,41 +416,28 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
 
   return (
     <group>
-      {/* Semi-transparent capsule shell — open cut-away toward camera (+Z) */}
+      {/* Capsule shell — alpha only (transmission reads as a solid green disc on SwiftShader) */}
       <mesh rotation={[0, 0, 0]} renderOrder={1}>
         <sphereGeometry args={[1.05, segs, segs, 0, Math.PI * 2, 0, Math.PI * 0.72]} />
-        <meshPhysicalMaterial
-          color="#2a6a68"
+        <meshStandardMaterial
+          color="#1e4548"
           transparent
-          opacity={0.14}
-          roughness={0.35}
-          transmission={0.55}
-          thickness={0.15}
+          opacity={0.1}
+          roughness={0.42}
           depthWrite={false}
           side={THREE.FrontSide}
         />
       </mesh>
-      {/* Capsule rim — thin dark edge only (no emissive disc/bloom bar) */}
+      {/* Capsule rim — thin translucent edge, not a filled cut disc */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
-        <torusGeometry args={[1.05, 0.01, 6, Math.max(32, segs)]} />
+        <torusGeometry args={[1.05, 0.012, 6, Math.max(32, segs)]} />
         <meshStandardMaterial
-          color="#1a3034"
-          roughness={0.55}
+          color="#9fd8d2"
+          roughness={0.4}
           transparent
-          opacity={0.45}
+          opacity={0.28}
           depthWrite={false}
-        />
-      </mesh>
-      {/* Cut face — very soft fill only (avoid coplanar ring z-fight seam) */}
-      <mesh position={[0, 0, 0]} renderOrder={0}>
-        <circleGeometry args={[0.98, segs]} />
-        <meshStandardMaterial
-          color="#0a1014"
-          transparent
-          opacity={0.12}
-          roughness={0.95}
-          side={THREE.FrontSide}
-          depthWrite={false}
+          toneMapped={false}
         />
       </mesh>
 

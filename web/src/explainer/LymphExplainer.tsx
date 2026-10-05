@@ -245,8 +245,8 @@ export default function LymphExplainer() {
           trigger: trackRef.current,
           start: 'top top',
           end: 'bottom bottom',
-          // Slight scrub lag so wheel motion eases through blends
-          scrub: isMobile ? 0.9 : 0.65,
+          // Tighter scrub so continuous blends track the wheel / snap ease
+          scrub: isMobile ? 0.55 : 0.28,
           invalidateOnRefresh: true,
           snap: {
             snapTo: (value: number) => {
@@ -261,10 +261,10 @@ export default function LymphExplainer() {
               }
               return best
             },
-            // Ease through the transition (~0.8–1.2s) instead of a hard cut
-            duration: { min: 0.85, max: 1.2 },
+            // Ease through the transition (~0.9–1.2s) instead of a hard cut
+            duration: { min: 0.9, max: 1.2 },
             ease: 'power2.inOut',
-            delay: 0.06,
+            delay: 0.04,
           },
           onUpdate: (self: { progress: number }) => {
             if (scrollingToRef.current) return
@@ -440,7 +440,9 @@ export default function LymphExplainer() {
 
         <div className="explainer-grid" role="tabpanel" id={panelId} aria-label={step.title}>
           <div
-            className={`explainer-viewport panel cinematic${step.id === 'patches' ? ' light-panel' : ''}`}
+            className={`explainer-viewport panel cinematic${
+              step.id === 'patches' && progress >= 0.9 ? ' light-panel' : ''
+            }`}
             data-progress={progress.toFixed(3)}
             data-step={step.id}
           >

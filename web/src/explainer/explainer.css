@@ -626,7 +626,8 @@
 }
 
 .explainer-cta-block .muted.tiny {
-  color: rgba(50, 70, 65, 0.72);
+  color: rgba(35, 55, 50, 0.88);
+  font-weight: 500;
 }
 
 @media (max-width: 980px) {

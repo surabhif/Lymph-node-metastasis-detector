@@ -178,8 +178,8 @@ function ScrollCameraRig({
       }
       return
     }
-    // Track scrub tightly so wheel/snap eases map 1:1 onto the path (no laggy hard cuts)
-    const k = 1 - Math.exp(-dt * 18)
+    // Track scrub 1:1 — any lag here reads as a hard cut when snap eases
+    const k = 1 - Math.exp(-dt * 32)
     camera.position.lerp(desiredPos.current, k)
     target.current.lerp(desiredLook.current, k)
     if (controlsRef.current) {

@@ -79,20 +79,20 @@ function makeSkinMaterial(baseOpacity: number) {
     thickness: 0,
     ior: 1.2,
     transparent: true,
-    opacity: Math.min(0.18, baseOpacity + 0.04),
+    opacity: Math.min(0.12, baseOpacity),
     depthWrite: false,
     side: THREE.FrontSide,
-    sheen: 0.7,
-    sheenRoughness: 0.35,
+    sheen: 0.85,
+    sheenRoughness: 0.28,
     sheenColor: new THREE.Color(COLORS.skinRim),
-    clearcoat: 0.5,
-    clearcoatRoughness: 0.2,
-    envMapIntensity: 1.15,
+    clearcoat: 0.62,
+    clearcoatRoughness: 0.16,
+    envMapIntensity: 1.35,
   })
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uNeckStart = { value: NECK_FADE_START }
     shader.uniforms.uNeckEnd = { value: NECK_FADE_END }
-    shader.uniforms.uBaseOpacity = { value: Math.min(0.18, baseOpacity + 0.04) }
+    shader.uniforms.uBaseOpacity = { value: Math.min(0.12, baseOpacity) }
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -127,9 +127,9 @@ function makeSkinMaterial(baseOpacity: number) {
         '#include <opaque_fragment>',
         `#include <opaque_fragment>
         float ndv = saturate(dot(normalize(vGlassViewN), normalize(vGlassViewP)));
-        float fres = pow(1.0 - ndv, 2.4);
+        float fres = pow(1.0 - ndv, 2.15);
         // Strong cool rim so the shell reads as glass, not plastic
-        gl_FragColor.rgb += vec3(0.48, 0.96, 0.94) * fres * 1.45;
+        gl_FragColor.rgb += vec3(0.55, 1.0, 0.98) * fres * 1.7;
         // Strip residual warm/brown channel from fold absorption
         float warm = max(0.0, gl_FragColor.r - max(gl_FragColor.g, gl_FragColor.b) * 1.02);
         gl_FragColor.r -= warm;
@@ -138,16 +138,17 @@ function makeSkinMaterial(baseOpacity: number) {
         // Lift dark fold valleys toward a cool glass fill (kills pec/clavicle smudges)
         float lum = dot(gl_FragColor.rgb, vec3(0.3, 0.55, 0.15));
         float valley = 1.0 - smoothstep(0.02, 0.14, lum);
-        vec3 coolFill = vec3(0.04, 0.09, 0.105);
+        vec3 coolFill = vec3(0.035, 0.08, 0.1);
         gl_FragColor.rgb = mix(gl_FragColor.rgb, max(gl_FragColor.rgb, coolFill), valley * 0.55);
-        float faceAlpha = mix(uBaseOpacity * 0.08, min(0.38, uBaseOpacity + fres * 0.85), fres);
+        // Near-clear faces, bright rim — Phase-1 glass read without transmission
+        float faceAlpha = mix(uBaseOpacity * 0.045, min(0.42, uBaseOpacity + fres * 0.95), fres);
         float neckFade = 1.0 - smoothstep(uNeckStart, uNeckEnd, vGlassWorldPos.y);
         if (neckFade <= 0.01) discard;
         gl_FragColor.a = faceAlpha * neckFade;
         `,
       )
   }
-  mat.customProgramCacheKey = () => `hra-glass-skin-v11-alpha-${baseOpacity.toFixed(2)}`
+  mat.customProgramCacheKey = () => `hra-glass-skin-v12-alpha-${baseOpacity.toFixed(2)}`
   return mat
 }
 
