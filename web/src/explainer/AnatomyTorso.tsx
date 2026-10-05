@@ -73,28 +73,26 @@ function makeSkinMaterial(baseOpacity: number) {
     color: new THREE.Color(COLORS.skinTranslucent).multiplyScalar(1.08),
     roughness: 0.28,
     metalness: 0.0,
-    // See-through glass — cool/thin so pec folds do not muddy (smudge fix).
-    // Transmission helps real GPUs; custom fresnel alpha carries SwiftShader.
-    transmission: 0.55,
-    thickness: 0.22,
+    // Transmission is unreliable on SwiftShader (reads as plastic). Drive
+    // see-through with fresnel alpha; keep cool fold lift for the smudge fix.
+    transmission: 0,
+    thickness: 0,
     ior: 1.2,
     transparent: true,
-    opacity: Math.min(0.16, baseOpacity + 0.02),
+    opacity: Math.min(0.18, baseOpacity + 0.04),
     depthWrite: false,
     side: THREE.FrontSide,
-    sheen: 0.65,
-    sheenRoughness: 0.38,
+    sheen: 0.7,
+    sheenRoughness: 0.35,
     sheenColor: new THREE.Color(COLORS.skinRim),
-    clearcoat: 0.55,
-    clearcoatRoughness: 0.18,
-    envMapIntensity: 1.2,
-    attenuationColor: new THREE.Color('#b0ddd8'),
-    attenuationDistance: 1.1,
+    clearcoat: 0.5,
+    clearcoatRoughness: 0.2,
+    envMapIntensity: 1.15,
   })
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uNeckStart = { value: NECK_FADE_START }
     shader.uniforms.uNeckEnd = { value: NECK_FADE_END }
-    shader.uniforms.uBaseOpacity = { value: Math.min(0.16, baseOpacity + 0.02) }
+    shader.uniforms.uBaseOpacity = { value: Math.min(0.18, baseOpacity + 0.04) }
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -142,14 +140,14 @@ function makeSkinMaterial(baseOpacity: number) {
         float valley = 1.0 - smoothstep(0.02, 0.14, lum);
         vec3 coolFill = vec3(0.04, 0.09, 0.105);
         gl_FragColor.rgb = mix(gl_FragColor.rgb, max(gl_FragColor.rgb, coolFill), valley * 0.55);
-        float faceAlpha = mix(uBaseOpacity * 0.12, min(0.42, uBaseOpacity + fres * 0.72), fres);
+        float faceAlpha = mix(uBaseOpacity * 0.08, min(0.38, uBaseOpacity + fres * 0.85), fres);
         float neckFade = 1.0 - smoothstep(uNeckStart, uNeckEnd, vGlassWorldPos.y);
         if (neckFade <= 0.01) discard;
         gl_FragColor.a = faceAlpha * neckFade;
         `,
       )
   }
-  mat.customProgramCacheKey = () => `hra-glass-skin-v10-see-${baseOpacity.toFixed(2)}`
+  mat.customProgramCacheKey = () => `hra-glass-skin-v11-alpha-${baseOpacity.toFixed(2)}`
   return mat
 }
 
