@@ -211,14 +211,14 @@ function AxillaNodes({
 }
 
 /**
- * Complementary crossfade: outgoing + incoming share the blend window so the
- * canvas never goes empty, but neither side is fully opaque while the other
- * is still visible (at mid both ≈0.5).
+ * Handoff: outgoing clears in the first ~40% of the blend, incoming rises from
+ * ~25% onward so mid-scroll already shows the destination (no black void) and
+ * the two scenes are never both meaningfully opaque.
  */
 function sequentialFade(t: number): { out: number; inn: number } {
   const c = THREE.MathUtils.clamp(t, 0, 1)
-  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 1.0)
-  const inn = THREE.MathUtils.smoothstep(c, 0.0, 1.0)
+  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 0.4)
+  const inn = THREE.MathUtils.smoothstep(c, 0.25, 0.85)
   return { out, inn }
 }
 
