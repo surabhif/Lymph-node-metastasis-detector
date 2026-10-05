@@ -52,47 +52,37 @@ async function holdProgress(page, progress, holdMs = 4500) {
   await page.waitForTimeout(Math.min(holdMs - 500, 3800))
 }
 
-/** Emit many small wheel ticks so ScrollTrigger scrub eases through blends. */
+/** Smoothly animate window scroll so ScrollTrigger scrub eases through blends. */
 async function wheelScrollToProgress(page, fromP, toP, durationMs) {
-  const steps = Math.max(24, Math.round(durationMs / 80))
-  const track = page.locator('#explainer-stages')
-  const box = await track.boundingBox()
-  if (!box) return
-  // Aim wheel at the sticky stage center
-  const x = box.x + box.width * 0.4
-  const y = Math.min(box.y + 120, box.y + box.height * 0.15)
-
-  const startY = await page.evaluate((p) => {
-    const track = document.querySelector('#explainer-stages')
-    if (!track) return window.scrollY
-    const rect = track.getBoundingClientRect()
-    const top = window.scrollY + rect.top
-    const height = track.offsetHeight - window.innerHeight
-    return top + Math.max(0, height) * p
-  }, fromP)
-  const endY = await page.evaluate((p) => {
-    const track = document.querySelector('#explainer-stages')
-    if (!track) return window.scrollY
-    const rect = track.getBoundingClientRect()
-    const top = window.scrollY + rect.top
-    const height = track.offsetHeight - window.innerHeight
-    return top + Math.max(0, height) * p
-  }, toP)
-
-  // Seed start
-  await page.evaluate((y) => window.scrollTo(0, y), startY)
-  await page.waitForTimeout(200)
-
-  const deltaTotal = endY - startY
-  const perTick = deltaTotal / steps
-  for (let i = 0; i < steps; i++) {
-    await page.mouse.move(x, y)
-    await page.mouse.wheel(0, perTick)
-    await page.waitForTimeout(durationMs / steps)
-  }
-  // Settle exactly
-  await page.evaluate((y) => window.scrollTo(0, y), endY)
-  await page.waitForTimeout(400)
+  await page.evaluate(
+    async ({ fromP, toP, durationMs }) => {
+      const track = document.querySelector('#explainer-stages')
+      if (!track) return
+      const rect = track.getBoundingClientRect()
+      const top = window.scrollY + rect.top
+      const height = Math.max(1, track.offsetHeight - window.innerHeight)
+      const startY = top + height * fromP
+      const endY = top + height * toP
+      window.scrollTo(0, startY)
+      const t0 = performance.now()
+      await new Promise((resolve) => {
+        const tick = (now) => {
+          const t = Math.min(1, (now - t0) / durationMs)
+          // ease in-out
+          const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+          window.scrollTo(0, startY + (endY - startY) * e)
+          if (t < 1) requestAnimationFrame(tick)
+          else {
+            window.scrollTo(0, endY)
+            resolve()
+          }
+        }
+        requestAnimationFrame(tick)
+      })
+    },
+    { fromP, toP, durationMs },
+  )
+  await page.waitForTimeout(500)
 }
 
 const browser = await chromium.launch({
