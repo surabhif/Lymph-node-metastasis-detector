@@ -211,13 +211,14 @@ function AxillaNodes({
 }
 
 /**
- * Strict sequential handoff: outgoing fully clears before incoming rises.
- * Brief dark gap at mid-blend is intentional so scenes never stack opaque.
+ * Complementary crossfade: outgoing + incoming share the blend window so the
+ * canvas never goes empty, but neither side is fully opaque while the other
+ * is still visible (at mid both ≈0.5).
  */
 function sequentialFade(t: number): { out: number; inn: number } {
   const c = THREE.MathUtils.clamp(t, 0, 1)
-  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 0.42)
-  const inn = THREE.MathUtils.smoothstep(c, 0.55, 1.0)
+  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 1.0)
+  const inn = THREE.MathUtils.smoothstep(c, 0.0, 1.0)
   return { out, inn }
 }
 
