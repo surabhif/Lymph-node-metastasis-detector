@@ -31,11 +31,12 @@ DATA_ROOT = REPO / "pcam_data"
 CKPT = REPO / "export" / "best_model.pt"
 OUT_DIR = REPO / "web" / "public" / "results"
 MISTAKES_DIR = OUT_DIR / "mistakes"
-BASELINE_JSON = REPO / "results" / "baseline_quick_run.json"
+# Prefer the latest fuller run dump when present; fall back to the original quick baseline.
+FULLER_JSON = REPO / "results" / "baseline_fuller_run.json"
+QUICK_JSON = REPO / "results" / "baseline_quick_run.json"
+BASELINE_JSON = FULLER_JSON if FULLER_JSON.exists() else QUICK_JSON
 
-# Match run_baseline_quick / notebook quick-run evaluation subset
 SEED = 42
-MAX_TEST_SAMPLES = 4000
 BATCH_SIZE = 64
 DEVICE = torch.device("cpu")
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
@@ -113,6 +114,13 @@ def main() -> None:
     if BASELINE_JSON.exists():
         baseline_meta = json.loads(BASELINE_JSON.read_text())
 
+    # Match the training run's test subset size when available
+    max_test = int(
+        baseline_meta.get("subset_sizes", {}).get("test_used")
+        or baseline_meta.get("subset_sizes", {}).get("max_test_samples_knob")
+        or 4000
+    )
+
     ckpt = torch.load(CKPT, map_location=DEVICE, weights_only=False)
     backbone = ckpt.get("backbone", "resnet18")
     model = CamClassifier(backbone, pretrained=False).to(DEVICE)
@@ -123,7 +131,7 @@ def main() -> None:
         [transforms.ToTensor(), transforms.Normalize(IMAGENET_MEAN, IMAGENET_STD)]
     )
     test_full = datasets.PCAM(root=str(DATA_ROOT), split="test", transform=eval_tfms, download=False)
-    test_idx = subset_indices(len(test_full), MAX_TEST_SAMPLES, SEED + 2)
+    test_idx = subset_indices(len(test_full), max_test, SEED + 2)
     test_ds = Subset(test_full, test_idx)
     loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
 
@@ -200,19 +208,35 @@ def main() -> None:
                 }
             )
 
-    payload = {
-        "schema_version": 1,
-        "label": "Cursor-assisted quick baseline",
-        "disclaimer": (
+    run_id = baseline_meta.get("run_id", "baseline_quick_run")
+    is_fuller = "fuller" in str(run_id)
+    if is_fuller:
+        label = "Improved Cursor-assisted baseline (larger subset)"
+        disclaimer = (
+            "These metrics come from an improved Cursor-assisted baseline trained on a larger "
+            "official-split subset with more epochs than the original quick stub. "
+            "They are still a reference point — not Surabhi's final reported results. "
+            "She owns the science narrative and can replace this run via Colab + "
+            "scripts/export_web_results.py."
+        )
+    else:
+        label = "Cursor-assisted quick baseline"
+        disclaimer = (
             "These metrics come from a quick subset/epochs baseline trained with Cursor's help. "
             "They are a reference point — not Surabhi's final reported results. "
             "When she retrains, overwrite this file via the notebook export / scripts/export_web_results.py."
-        ),
+        )
+
+    payload = {
+        "schema_version": 1,
+        "label": label,
+        "disclaimer": disclaimer,
+        "run_id": run_id,
         "surabhi_prompts": [
             "Write 2–3 sentences on what the ROC curve and AUC mean for this problem.",
             "Does the reliability diagram look well-calibrated? Where does it deviate?",
             "What patterns do you notice in the confident-mistake gallery?",
-            "What would you change next (data, augmentation, backbone, epochs)?",
+            "What would you change next (data, augmentation, backbone, epochs, stain robustness)?",
         ],
         "config": baseline_meta.get("config")
         or {
@@ -226,7 +250,7 @@ def main() -> None:
         or {
             "train_used": 4000,
             "val_used": 1000,
-            "test_used": MAX_TEST_SAMPLES,
+            "test_used": max_test,
             "test_selection": f"fixed-seed random subset of official test (seed={SEED + 2})",
         },
         "hardware": baseline_meta.get("hardware"),

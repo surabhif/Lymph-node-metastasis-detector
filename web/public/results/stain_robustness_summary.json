@@ -1,0 +1,47 @@
+{
+  "label": "Stain / colour robustness (draft)",
+  "disclaimer": "Principled colour jitter and approximate H&E RGB scaling on a held-out official-test subset \u2014 not Macenko/Vahadane or external labs. Educational only.",
+  "n": 2000,
+  "rows": [
+    {
+      "perturbation": "clean",
+      "accuracy": 0.79,
+      "roc_auc": 0.9077391696525268,
+      "delta_auc_vs_clean": 0.0
+    },
+    {
+      "perturbation": "mild_color_jitter",
+      "accuracy": 0.7605,
+      "roc_auc": 0.8796269166422497,
+      "delta_auc_vs_clean": -0.02811225301027709
+    },
+    {
+      "perturbation": "strong_color_jitter",
+      "accuracy": 0.6765,
+      "roc_auc": 0.7885925973333759,
+      "delta_auc_vs_clean": -0.11914657231915082
+    },
+    {
+      "perturbation": "he_channel_scale",
+      "accuracy": 0.6635,
+      "roc_auc": 0.7902241120170082,
+      "delta_auc_vs_clean": -0.11751505763551862
+    },
+    {
+      "perturbation": "hue_shift_warm",
+      "accuracy": 0.738,
+      "roc_auc": 0.8506176555589,
+      "delta_auc_vs_clean": -0.05712151409362676
+    },
+    {
+      "perturbation": "hue_shift_cool",
+      "accuracy": 0.643,
+      "roc_auc": 0.7436966932702394,
+      "delta_auc_vs_clean": -0.16404247638228742
+    }
+  ],
+  "plots": {
+    "auc": "results/stain_robustness_auc.png",
+    "examples": "results/stain_robustness_examples.png"
+  }
+}

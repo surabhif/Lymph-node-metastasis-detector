@@ -10,15 +10,16 @@ export const IMAGENET_STD = [0.229, 0.224, 0.225] as const
 export const MODEL_URL = `${import.meta.env.BASE_URL}models/pcam_cam.onnx`
 
 /** Cache name for the ONNX weights in the browser Cache API. */
-export const MODEL_CACHE = 'pcam-onnx-v2-int8'
+export const MODEL_CACHE = 'pcam-onnx-v3-fuller-int8'
 
 /**
  * Visitor-facing model label. Paths / quantization notes live in the README
  * and on the Model card “Current served model” section — not in the site banner.
+ * Surabhi still owns the science narrative and can replace this improved baseline.
  */
 export const MODEL_STATUS = {
-  kind: 'quick_baseline_int8' as const,
-  label: 'Quick baseline',
+  kind: 'improved_baseline_int8' as const,
+  label: 'Improved baseline',
   sizeHintMb: 11,
 }
 
