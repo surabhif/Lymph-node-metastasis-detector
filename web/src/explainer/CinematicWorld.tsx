@@ -339,10 +339,9 @@ export function CinematicWorld({
       stepWeight(progress, 3) * 0.45,
   ) * (1 - intoNode * 0.85) * (1 - toPatches)
 
-  // Keep layers mounted once unlocked so blends never hard-cut on remount.
-  const showTorso = torsoAmt > 0.02
-  const showNode = nodeAmt > 0.02
-  const showSurgery = surgeryPanelAmt > 0.02
+  const showTorso = torsoAmt > 0.02 && patchesAmt < 0.92
+  const showNode = nodeAmt > 0.02 && patchesAmt < 0.55
+  const showSurgery = surgeryPanelAmt > 0.02 && patchesAmt < 0.92
   const showPatches = patchesAmt > 0.02
 
   // Soft scale/position for the dive into the node

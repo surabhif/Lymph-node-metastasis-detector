@@ -73,27 +73,28 @@ function makeSkinMaterial(baseOpacity: number) {
     color: new THREE.Color(COLORS.skinTranslucent).multiplyScalar(1.08),
     roughness: 0.28,
     metalness: 0.0,
-    // See-through glass — kept cool/thin so pec folds do not muddy (smudge fix)
-    transmission: 0.42,
-    thickness: 0.18,
-    ior: 1.22,
+    // See-through glass — cool/thin so pec folds do not muddy (smudge fix).
+    // Transmission helps real GPUs; custom fresnel alpha carries SwiftShader.
+    transmission: 0.55,
+    thickness: 0.22,
+    ior: 1.2,
     transparent: true,
-    opacity: Math.min(0.22, baseOpacity + 0.06),
+    opacity: Math.min(0.16, baseOpacity + 0.02),
     depthWrite: false,
     side: THREE.FrontSide,
-    sheen: 0.55,
-    sheenRoughness: 0.42,
+    sheen: 0.65,
+    sheenRoughness: 0.38,
     sheenColor: new THREE.Color(COLORS.skinRim),
-    clearcoat: 0.45,
-    clearcoatRoughness: 0.22,
-    envMapIntensity: 1.05,
-    attenuationColor: new THREE.Color('#a8d4d0'),
-    attenuationDistance: 0.85,
+    clearcoat: 0.55,
+    clearcoatRoughness: 0.18,
+    envMapIntensity: 1.2,
+    attenuationColor: new THREE.Color('#b0ddd8'),
+    attenuationDistance: 1.1,
   })
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uNeckStart = { value: NECK_FADE_START }
     shader.uniforms.uNeckEnd = { value: NECK_FADE_END }
-    shader.uniforms.uBaseOpacity = { value: Math.min(0.22, baseOpacity + 0.06) }
+    shader.uniforms.uBaseOpacity = { value: Math.min(0.16, baseOpacity + 0.02) }
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -130,7 +131,7 @@ function makeSkinMaterial(baseOpacity: number) {
         float ndv = saturate(dot(normalize(vGlassViewN), normalize(vGlassViewP)));
         float fres = pow(1.0 - ndv, 2.4);
         // Strong cool rim so the shell reads as glass, not plastic
-        gl_FragColor.rgb += vec3(0.42, 0.92, 0.9) * fres * 1.25;
+        gl_FragColor.rgb += vec3(0.48, 0.96, 0.94) * fres * 1.45;
         // Strip residual warm/brown channel from fold absorption
         float warm = max(0.0, gl_FragColor.r - max(gl_FragColor.g, gl_FragColor.b) * 1.02);
         gl_FragColor.r -= warm;
@@ -139,16 +140,16 @@ function makeSkinMaterial(baseOpacity: number) {
         // Lift dark fold valleys toward a cool glass fill (kills pec/clavicle smudges)
         float lum = dot(gl_FragColor.rgb, vec3(0.3, 0.55, 0.15));
         float valley = 1.0 - smoothstep(0.02, 0.14, lum);
-        vec3 coolFill = vec3(0.05, 0.11, 0.125);
-        gl_FragColor.rgb = mix(gl_FragColor.rgb, max(gl_FragColor.rgb, coolFill), valley * 0.8);
-        float faceAlpha = mix(uBaseOpacity * 0.28, min(0.55, uBaseOpacity + fres * 0.55), fres);
+        vec3 coolFill = vec3(0.04, 0.09, 0.105);
+        gl_FragColor.rgb = mix(gl_FragColor.rgb, max(gl_FragColor.rgb, coolFill), valley * 0.55);
+        float faceAlpha = mix(uBaseOpacity * 0.12, min(0.42, uBaseOpacity + fres * 0.72), fres);
         float neckFade = 1.0 - smoothstep(uNeckStart, uNeckEnd, vGlassWorldPos.y);
         if (neckFade <= 0.01) discard;
         gl_FragColor.a = faceAlpha * neckFade;
         `,
       )
   }
-  mat.customProgramCacheKey = () => `hra-glass-skin-v9-rim-${baseOpacity.toFixed(2)}`
+  mat.customProgramCacheKey = () => `hra-glass-skin-v10-see-${baseOpacity.toFixed(2)}`
   return mat
 }
 

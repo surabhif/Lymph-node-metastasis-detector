@@ -430,37 +430,35 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
           side={THREE.FrontSide}
         />
       </mesh>
-      {/* Capsule rim — thin edge only, not a filled disc */}
+      {/* Capsule rim — thin dark edge only (no emissive disc/bloom bar) */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
-        <torusGeometry args={[1.05, 0.018, 8, Math.max(32, segs)]} />
+        <torusGeometry args={[1.05, 0.012, 6, Math.max(32, segs)]} />
         <meshStandardMaterial
-          color="#3a9a92"
-          emissive={COLORS.vesselGlow}
-          emissiveIntensity={0.28}
-          roughness={0.4}
+          color="#1a3034"
+          roughness={0.55}
           transparent
-          opacity={0.85}
+          opacity={0.55}
           depthWrite={false}
         />
       </mesh>
       {/* Cut face — subtle translucent plane, not a solid green/teal disc */}
       <mesh position={[0, 0, 0.01]} renderOrder={0}>
-        <ringGeometry args={[0.92, 1.02, segs]} />
+        <ringGeometry args={[0.94, 1.03, segs]} />
         <meshStandardMaterial
-          color="#1a3038"
+          color="#152028"
           transparent
-          opacity={0.35}
+          opacity={0.4}
           roughness={0.9}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </mesh>
       <mesh position={[0, 0, 0]} renderOrder={0}>
-        <circleGeometry args={[0.98, segs]} />
+        <circleGeometry args={[0.96, segs]} />
         <meshStandardMaterial
-          color="#0c1418"
+          color="#0a1014"
           transparent
-          opacity={0.22}
+          opacity={0.18}
           roughness={0.95}
           side={THREE.FrontSide}
           depthWrite={false}
@@ -530,26 +528,26 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         { pos: [-1.0, 0.55, 0.12] as const, rot: [0, 0, 0.7] as const },
       ].map((v, i) => (
         <mesh key={`aff-${i}`} position={v.pos} rotation={v.rot} renderOrder={5}>
-          <capsuleGeometry args={[0.04, 0.28, 4, 10]} />
+          <capsuleGeometry args={[0.035, 0.22, 4, 10]} />
           <meshStandardMaterial
             color={COLORS.vessel}
             emissive={COLORS.vesselGlow}
-            emissiveIntensity={0.7}
+            emissiveIntensity={0.35}
             toneMapped={false}
-            roughness={0.4}
+            roughness={0.45}
           />
         </mesh>
       ))}
 
       {/* Efferent vessel at hilum (right) */}
       <mesh position={[1.25, -0.05, 0.1]} rotation={[0, 0, Math.PI / 2]} renderOrder={5}>
-        <capsuleGeometry args={[0.05, 0.38, 4, 10]} />
+        <capsuleGeometry args={[0.04, 0.32, 4, 10]} />
         <meshStandardMaterial
           color={COLORS.vessel}
           emissive={COLORS.vesselGlow}
-          emissiveIntensity={0.85}
+          emissiveIntensity={0.4}
           toneMapped={false}
-          roughness={0.35}
+          roughness={0.4}
         />
       </mesh>
 
