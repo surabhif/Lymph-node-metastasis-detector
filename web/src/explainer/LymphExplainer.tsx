@@ -177,6 +177,9 @@ export default function LymphExplainer() {
   const progressRef = useRef(0)
   const gsapRef = useRef<typeof import('gsap').default | null>(null)
   const tweenRef = useRef<{ kill: () => void } | null>(null)
+  /** Bumps on every pill / Prev-Next flight so only the latest tween / rAF stays live. */
+  const flightGenRef = useRef(0)
+  const rafRef = useRef<number | null>(null)
 
   const reducedMotion = useMediaFlag('(prefers-reduced-motion: reduce)')
   const isMobile = useMediaFlag('(max-width: 720px)')
@@ -310,10 +313,19 @@ export default function LymphExplainer() {
     const st = triggerRef.current
     const gsap = gsapRef.current
 
+    // Kill any in-flight pill tween / rAF so rapid clicks never stack scenes.
+    flightGenRef.current += 1
+    const gen = flightGenRef.current
     tweenRef.current?.kill()
+    tweenRef.current = null
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
     scrollingToRef.current = true
 
     const apply = (p: number) => {
+      if (flightGenRef.current !== gen) return
       setProgress(p)
       setStepIndex(stepIndexFromProgress(p))
       if (st) {
@@ -343,6 +355,7 @@ export default function LymphExplainer() {
         ease: 'power2.inOut',
         onUpdate: () => apply(proxy.p),
         onComplete: () => {
+          if (flightGenRef.current !== gen) return
           apply(target)
           setStepIndex(next)
           scrollingToRef.current = false
@@ -356,18 +369,20 @@ export default function LymphExplainer() {
     const t0 = performance.now()
     const ms = dur * 1000
     const tick = (now: number) => {
+      if (flightGenRef.current !== gen) return
       const t = Math.min(1, (now - t0) / ms)
       const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
       apply(from + (target - from) * e)
       if (t < 1) {
-        requestAnimationFrame(tick)
+        rafRef.current = requestAnimationFrame(tick)
       } else {
         apply(target)
         setStepIndex(next)
         scrollingToRef.current = false
+        rafRef.current = null
       }
     }
-    requestAnimationFrame(tick)
+    rafRef.current = requestAnimationFrame(tick)
   }, [scrollDriven, reducedMotion, stepIndex])
 
   const go = useCallback(

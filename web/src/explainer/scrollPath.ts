@@ -26,6 +26,9 @@ export function axillaryPathCurve() {
 /**
  * Continuous camera + look-at paths. Keyframes reuse phase-1 framings so
  * anatomy placement stays familiar, then CatmullRom interpolates between them.
+ *
+ * 2→3: gentle push toward the sentinel (not an extreme geometric dive).
+ * Scene opacity crossfade in CinematicWorld handles the handoff.
  */
 export function buildCameraPaths(mobile: boolean, aspect: number) {
   const ids = EXPLAINER_STEPS.map((s) => s.id)
@@ -47,17 +50,22 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
     ],
   }
 
-  // Mid 2→3: pull in on the sentinel so the clip-reveal is framed before the macro node shot.
+  // Mid 2→3: nudge toward sentinel while torso fades — stay well back of rest node framing.
   const sent = landmark('sentinel')
-  const diveFrame: CameraTarget = {
+  const approachFrame: CameraTarget = {
     position: [
-      sent[0] * 0.55 + frames[1]!.position[0] * 0.2,
-      sent[1] * 0.35 + 0.22,
-      Math.max(2.4, sent[2] + 2.85),
+      THREE.MathUtils.lerp(frames[1]!.position[0], sent[0], 0.28),
+      THREE.MathUtils.lerp(frames[1]!.position[1], sent[1] + 0.15, 0.25),
+      THREE.MathUtils.lerp(frames[1]!.position[2], Math.max(frames[1]!.position[2] * 0.72, sent[2] + 3.4), 0.45),
     ],
-    lookAt: [sent[0] * 0.92, sent[1] * 0.88 + 0.04, sent[2] * 0.7],
+    lookAt: [
+      THREE.MathUtils.lerp(frames[1]!.lookAt[0], sent[0], 0.55),
+      THREE.MathUtils.lerp(frames[1]!.lookAt[1], sent[1] + 0.05, 0.5),
+      THREE.MathUtils.lerp(frames[1]!.lookAt[2], sent[2], 0.4),
+    ],
   }
-  // Mid 3→4: start the pull-back while the cut-away is still readable.
+
+  // Mid 3→4: ease from node rest toward surgery framing (no extreme pull).
   const pullFrame: CameraTarget = {
     position: [
       frames[2]!.position[0] * 0.45 + frames[3]!.position[0] * 0.55,
@@ -70,6 +78,7 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
       frames[2]!.lookAt[2] * 0.35 + frames[3]!.lookAt[2] * 0.65,
     ],
   }
+
   // Mid 4→5: hold surgery framing while mosaic rises in front.
   const mosaicApproach: CameraTarget = {
     position: [
@@ -88,7 +97,7 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
     new THREE.Vector3(...frames[0]!.position),
     new THREE.Vector3(...step1Close.position),
     new THREE.Vector3(...frames[1]!.position),
-    new THREE.Vector3(...diveFrame.position),
+    new THREE.Vector3(...approachFrame.position),
     new THREE.Vector3(...frames[2]!.position),
     new THREE.Vector3(...pullFrame.position),
     new THREE.Vector3(...frames[3]!.position),
@@ -99,7 +108,7 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
     new THREE.Vector3(...frames[0]!.lookAt),
     new THREE.Vector3(...step1Close.lookAt),
     new THREE.Vector3(...frames[1]!.lookAt),
-    new THREE.Vector3(...diveFrame.lookAt),
+    new THREE.Vector3(...approachFrame.lookAt),
     new THREE.Vector3(...frames[2]!.lookAt),
     new THREE.Vector3(...pullFrame.lookAt),
     new THREE.Vector3(...frames[3]!.lookAt),
@@ -115,8 +124,7 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
   return {
     sample(progress: number): CameraTarget {
       const p = THREE.MathUtils.clamp(progress, 0, 1)
-      // Land exactly on step framings at snaps — CatmullRom neighbors (esp. the
-      // close dive key) otherwise pull step-3 inward and over-zoom the cut-away.
+      // Land exactly on step framings at snaps — CatmullRom neighbors otherwise pull.
       const snapEps = 0.012
       for (let s = 0; s < STEP_SNAP.length; s++) {
         if (Math.abs(p - STEP_SNAP[s]!) <= snapEps) return frames[s]!

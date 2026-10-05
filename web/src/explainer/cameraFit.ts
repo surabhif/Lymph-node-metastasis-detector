@@ -119,50 +119,38 @@ export const SURGERY_PANEL_SCALE = 0.74
 
 /**
  * Step 3 cut-away node AABB (capsule + afferent/efferent stubs).
- * Fitted with ≥8% margin on the limiting axis.
+ * Fitted with ≥8% margin on the limiting axis — PR #8 / c988817 framing.
  */
-export function insideNodeFocusBox(mobile = false): THREE.Box3 {
-  // Phone: tight body so the node fills ~75–80% width. Desktop: label slack.
-  if (mobile) {
-    return new THREE.Box3(
-      new THREE.Vector3(-1.05, -0.95, -0.3),
-      new THREE.Vector3(1.1, 0.95, 0.5),
-    )
-  }
+export function insideNodeFocusBox(): THREE.Box3 {
   return new THREE.Box3(
-    new THREE.Vector3(-1.55, -1.2, -0.4),
-    new THREE.Vector3(1.6, 1.2, 0.55),
+    new THREE.Vector3(-1.35, -1.05, -0.35),
+    new THREE.Vector3(1.4, 0.95, 0.55),
   )
 }
 
-/** Frontal camera for the lymph-node cut-away — ≥8% margin each side. */
+/** Frontal camera for the lymph-node cut-away — ≥8% margin each side (PR #8). */
 export function insideNodeCameraTarget(
   aspect: number,
   fovDeg: number,
   mobile = false,
 ): CameraTarget {
-  const box = insideNodeFocusBox(mobile)
+  const box = insideNodeFocusBox()
   const center = box.getCenter(new THREE.Vector3())
   const size = box.getSize(new THREE.Vector3())
-  // Phone: hard-close so the node fills ~75–80% of the canvas width.
-  // Desktop: fitted AABB with label slack.
-  if (mobile) {
-    const lookY = 0.06
-    return {
-      position: [0.02, lookY + 0.02, 2.35],
-      lookAt: [0, lookY, 0],
-    }
-  }
-  const margin = 1.72
+  // 1.19 ≈ 8% margin each side; extra slack clears labels + mobile chrome
+  const margin = mobile ? 1.68 : 1.42
   const vFov = THREE.MathUtils.degToRad(fovDeg)
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.35))
-  const distW = (size.x * margin) / (2 * Math.tan(hFov / 2))
-  const distH = (size.y * margin) / (2 * Math.tan(vFov / 2))
-  const dist = Math.max(distW, distH, 5.2)
-  const lookY = center.y + 0.05
+  const dist = Math.max(
+    (size.y * margin) / (2 * Math.tan(vFov / 2)),
+    (size.x * margin) / (2 * Math.tan(hFov / 2)),
+    3.8,
+  )
+  // Mobile: bias look-at up so the node sits above bottom UI chrome
+  const lookY = center.y + (mobile ? 0.28 : 0.08)
   return {
-    position: [center.x * 0.04, lookY + 0.02, center.z + dist],
-    lookAt: [center.x * 0.02, lookY, center.z],
+    position: [center.x * 0.12, lookY + 0.06, center.z + dist],
+    lookAt: [center.x * 0.08, lookY, center.z],
   }
 }
 

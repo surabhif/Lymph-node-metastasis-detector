@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState, useCallback, useEffect, type ReactNode } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useMemo, useRef, useState, useCallback, type ReactNode } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { AnatomyTorso, landmark } from './AnatomyTorso'
 import { CinematicLight } from './CinematicLight'
@@ -9,6 +9,7 @@ import {
   axillaryPathCurve,
   blendBetween,
   stepWeight,
+  stepIndexFromProgress,
 } from './scrollPath'
 import {
   InsideNodeScene,
@@ -17,12 +18,6 @@ import {
   type DepositMode,
   type SceneQuality,
 } from './scenes'
-
-/** Front-load a 0→1 blend so mid-scroll already shows the destination scene. */
-function easeOutBlend(t: number, power = 1.55): number {
-  const c = THREE.MathUtils.clamp(t, 0, 1)
-  return 1 - Math.pow(1 - c, power)
-}
 
 type Props = {
   progress: number
@@ -138,10 +133,9 @@ function AxillaNodes({
   const segs = quality === 'high' ? 24 : 12
   const wEarly = stepWeight(progress, 0) + stepWeight(progress, 1)
   const wSurgery = stepWeight(progress, 3)
-  // Hide while deep inside the node or on patches
   const intoNode = blendBetween(progress, 1, 2)
   const toPatches = blendBetween(progress, 3, 4)
-  const show = wEarly + wSurgery > 0.05 && intoNode < 0.75 && toPatches < 0.55
+  const show = wEarly + wSurgery > 0.05 && intoNode < 0.55 && toPatches < 0.55
   if (!show) return null
 
   const nodes = [
@@ -217,71 +211,59 @@ function AxillaNodes({
 }
 
 /**
- * Moving clip plane for the 2→3 dive: starts sealed in front of the node
- * and sweeps back so the cut-away opens toward camera.
+ * Soft sequential handoff: outgoing clears before incoming peaks.
+ * Brief low-opacity overlap is allowed so the canvas never goes fully black;
+ * both never exceed ~0.35 at the same time ("never both opaque").
  */
-function NodeClipReveal({
-  reveal,
+function sequentialFade(t: number): { out: number; inn: number } {
+  const c = THREE.MathUtils.clamp(t, 0, 1)
+  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 0.55)
+  const inn = THREE.MathUtils.smoothstep(c, 0.4, 1.0)
+  return { out, inn }
+}
+
+/**
+ * Multiplies existing material opacities on a mounted subtree so torso / surgery
+ * can fade without remounting or clipping. Captures each material's base opacity once.
+ */
+function FadeGroup({
+  opacity,
   children,
 }: {
-  reveal: number
+  opacity: number
   children: ReactNode
 }) {
-  const { gl } = useThree()
-  const localPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 1.15), [])
-  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 1.15), [])
-  const group = useRef<THREE.Group>(null)
-
-  useEffect(() => {
-    gl.localClippingEnabled = true
-    return () => {
-      gl.localClippingEnabled = false
-    }
-  }, [gl])
+  const ref = useRef<THREE.Group>(null)
+  const base = useRef(new WeakMap<THREE.Material, number>())
 
   useFrame(() => {
-    // Plane normal +Z in node-local space: clip when local z > -constant.
-    // Sealed (reveal=0): constant≈0.95 → thin sealed slab
-    // Open (reveal=1): constant≈-1.6 → whole node visible
-    // Ease the sweep so follicles appear mid-dive, not only at the end.
-    const r = THREE.MathUtils.clamp(reveal, 0, 1)
-    const eased = 1 - Math.pow(1 - r, 1.35)
-    localPlane.normal.set(0, 0, 1)
-    localPlane.constant = THREE.MathUtils.lerp(0.95, -1.6, eased)
-    const root = group.current
+    const root = ref.current
     if (!root) return
-    root.updateWorldMatrix(true, false)
-    plane.copy(localPlane).applyMatrix4(root.matrixWorld)
+    const o = THREE.MathUtils.clamp(opacity, 0, 1)
+    root.visible = o > 0.02
     root.traverse((obj) => {
       const mesh = obj as THREE.Mesh
       if (!mesh.isMesh) return
-      // Flat cut-face rings / vessels ahead of the cut skip clipping to avoid dashed z-fight
-      if (mesh.userData?.skipClip) {
-        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-        for (const m of mats) {
-          if (!m) continue
-          m.clippingPlanes = []
-          m.needsUpdate = true
-        }
-        return
-      }
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       for (const m of mats) {
         if (!m) continue
-        m.clippingPlanes = reveal >= 0.85 ? [] : [plane]
-        m.clipShadows = false
-        m.needsUpdate = true
+        const mat = m as THREE.Material & { opacity?: number; transparent?: boolean }
+        if (typeof mat.opacity !== 'number') continue
+        if (!base.current.has(m)) base.current.set(m, mat.opacity)
+        const b = base.current.get(m) ?? 1
+        mat.opacity = b * o
+        mat.transparent = mat.opacity < 0.999
       }
     })
   })
 
-  return <group ref={group}>{children}</group>
+  return <group ref={ref}>{children}</group>
 }
 
 /**
  * Continuous world scrubbed by scroll progress.
- * 1→2 cell stream to sentinel · 2→3 clip-reveal dive into node ·
- * 3→4 pull back to axilla/surgery · 4→5 fade to PCam mosaic.
+ * 1→2 cell stream · 2→3 opacity crossfade into node · 3→4 reverse · 4→5 mosaic.
+ * No clip planes, no geometric dive, no tiny→huge scale through the camera.
  */
 export function CinematicWorld({
   progress,
@@ -296,64 +278,40 @@ export function CinematicWorld({
   const path = useMemo(() => axillaryPathCurve(), [])
   const [sentinelHot, setSentinelHot] = useState(0)
   const onArrive = useCallback((s: number) => setSentinelHot(s), [])
-  // Once a scene has been needed, keep meshes mounted (no remount pop) but gate Html via hudVisible.
-  const [warmNode, setWarmNode] = useState(false)
-  const [warmSurgery, setWarmSurgery] = useState(false)
-  const [warmPatches, setWarmPatches] = useState(false)
 
-  // Blend weights across the five snaps (0, 0.25, 0.5, 0.75, 1).
-  // Front-load destination blends so mid-scroll (and stepIndex midpoints) already show the dive/crossfade.
-  const toSpread = blendBetween(progress, 0, 1) // 1→2
-  // Stronger front-load so mid-scroll (0.375) already frames the open cut-away.
-  const intoNode = easeOutBlend(blendBetween(progress, 1, 2), 2.1) // 2→3 dive
-  const outOfNode = easeOutBlend(blendBetween(progress, 2, 3), 1.45) // 3→4 pull-back
-  const toPatches = easeOutBlend(blendBetween(progress, 3, 4), 1.5) // 4→5 cross-fade
+  const toSpread = blendBetween(progress, 0, 1)
+  const intoNode = blendBetween(progress, 1, 2)
+  const outOfNode = blendBetween(progress, 2, 3)
+  const toPatches = blendBetween(progress, 3, 4)
 
-  useEffect(() => {
-    if (progress > 0.18 || intoNode > 0.02) setWarmNode(true)
-    if (progress > 0.4 || outOfNode > 0.02) setWarmSurgery(true)
-    if (progress > 0.62 || toPatches > 0.02) setWarmPatches(true)
-  }, [progress, intoNode, outOfNode, toPatches])
+  // Active + next (and previous during reverse blends) — never keep far scenes live.
+  const activeIdx = stepIndexFromProgress(progress)
+  const live = new Set<number>([
+    activeIdx,
+    Math.max(0, activeIdx - 1),
+    Math.min(4, activeIdx + 1),
+  ])
 
-  // —— Dive ordering: torso fully out BEFORE the node grows past sentinel size ——
-  // Phase A (into≲0.4): fade torso. Phase B: fade node in at small scale. Phase C: grow + cut-face.
-  const torsoOut = THREE.MathUtils.smoothstep(intoNode, 0.04, 0.4)
-  const torsoFade = (1 - torsoOut) * (1 - toPatches)
-  const torsoReturn =
-    THREE.MathUtils.smoothstep(outOfNode, 0.35, 0.85) *
-    (1 - toPatches) *
-    (1 - Math.min(1, intoNode * 1.05))
-  const torsoAmt = THREE.MathUtils.clamp(Math.max(torsoFade, torsoReturn * 0.95), 0, 1)
+  const dive = sequentialFade(intoNode)
+  const pull = sequentialFade(outOfNode)
+  const mosaic = sequentialFade(toPatches)
 
-  const nodeFadeIn = THREE.MathUtils.smoothstep(intoNode, 0.22, 0.48)
-  const nodeFadeOut = THREE.MathUtils.smoothstep(outOfNode, 0.05, 0.42)
-  const nodeOpacity = THREE.MathUtils.clamp(
-    nodeFadeIn * (1 - nodeFadeOut) * (1 - toPatches),
-    0,
-    1,
-  )
+  // Torso: steps 0–1, fades out as camera pushes toward the sentinel.
+  const torsoOpacity = THREE.MathUtils.clamp(dive.out * (outOfNode < 0.02 ? 1 : 0), 0, 1)
+  const showTorso = (live.has(0) || live.has(1)) && torsoOpacity > 0.02
 
-  // No mid-dive clipping — flat rings + clip planes caused dashed diameter artifacts.
-  // Cutaway is geometric (open shell + thick torus), not a sweeping plane.
-  const clipReveal = 1
+  // Node: fades in at rest framing (scale 0.9→1.0); fades out before surgery rises.
+  const nodeOpacity = THREE.MathUtils.clamp(dive.inn * pull.out * mosaic.out, 0, 1)
+  const nodeScale = THREE.MathUtils.lerp(0.9, 1.0, THREE.MathUtils.smoothstep(dive.inn, 0, 1))
+  const showNode = (live.has(2) || nodeOpacity > 0.02) && nodeOpacity > 0.02
 
-  // Cut-face / cortex only once torso is gone and node has started to grow
-  const cutFaceAmt =
-    THREE.MathUtils.smoothstep(intoNode, 0.62, 0.9) *
-    THREE.MathUtils.clamp(1 - outOfNode * 1.3, 0, 1)
+  // Surgery panels
+  const surgeryOpacity = THREE.MathUtils.clamp(pull.inn * mosaic.out, 0, 1)
+  const showSurgery = (live.has(3) || surgeryOpacity > 0.02) && surgeryOpacity > 0.02
 
-  const surgeryAmt = THREE.MathUtils.clamp(
-    outOfNode * (1 - toPatches),
-    0,
-    1,
-  )
-  // Dual surgery panels after leaving the node; fade as patches take over.
-  const surgeryPanelAmt =
-    THREE.MathUtils.smoothstep(outOfNode, 0.12, 0.78) *
-    THREE.MathUtils.clamp(1 - toPatches * 1.35, 0, 1)
-
-  // Patches rise across the 4→5 window so mid scrub is a real cross-fade.
-  const patchesAmt = THREE.MathUtils.smoothstep(toPatches, 0.02, 0.82)
+  // Patches
+  const patchesOpacity = THREE.MathUtils.clamp(mosaic.inn, 0, 1)
+  const showPatches = (live.has(4) || patchesOpacity > 0.02) && patchesOpacity > 0.02
 
   const cellIntensity = THREE.MathUtils.clamp(
     toSpread * 0.55 +
@@ -363,57 +321,32 @@ export function CinematicWorld({
     0,
     1,
   )
-  const vesselIntensity = Math.max(
-    0.15,
-    stepWeight(progress, 0) * 0.85 +
-      stepWeight(progress, 1) * 1.25 +
-      stepWeight(progress, 3) * 0.45,
-  ) * (1 - torsoOut) * (1 - toPatches)
-
-  // Keep scenes mounted (no Suspense pop-in) and drive visibility from blend amounts.
-  const showTorso = torsoAmt > 0.02 && patchesAmt < 0.9
-  const showNode = nodeOpacity > 0.02 && patchesAmt < 0.28
-  const showSurgery = surgeryPanelAmt > 0.02 && patchesAmt < 0.9
-  const showPatches = patchesAmt > 0.02
-
-  // Scale: hold ≈ sentinel size until torso is gone, then grow to rest.
-  // Mobile rest closer to 1.0 so phone fill isn't fighting a 0.72 world scale.
-  const restScale = quality === 'low' ? 1.2 : 0.95
-  const growT = THREE.MathUtils.smoothstep(intoNode, 0.48, 0.95)
-  const torsoScale = 1 - torsoOut * 0.55 + torsoReturn * 0.2
-  const torsoY = -torsoOut * 0.28 + torsoReturn * 0.1
-  const nodeScale =
-    THREE.MathUtils.lerp(0.14, restScale, growT) *
-    THREE.MathUtils.clamp(1 - outOfNode * 0.45, 0.35, 1)
-  // Seat the cut-away toward origin only after torso has mostly left.
-  const sent = landmark('sentinel')
-  const seat = Math.pow(1 - THREE.MathUtils.smoothstep(intoNode, 0.15, 0.55), 1.4)
-  const nodePos: [number, number, number] = [
-    sent[0] * seat,
-    sent[1] * seat + 0.05,
-    sent[2] * seat + growT * 0.12,
-  ]
+  const vesselIntensity =
+    Math.max(
+      0.15,
+      stepWeight(progress, 0) * 0.85 + stepWeight(progress, 1) * 1.25,
+    ) *
+    torsoOpacity
 
   return (
     <group>
       {showTorso && (
-        <group
-          scale={Math.max(0.35, torsoScale)}
-          position={[0, torsoY, 0]}
-          visible={torsoAmt > 0.04}
-        >
+        <group>
           <CinematicLight quality={quality} />
-          <AnatomyTorso
-            quality={quality}
-            showTumor={stepWeight(progress, 0) + stepWeight(progress, 1) > 0.12}
-            showBreast
-            dimmed={torsoOut > 0.35 || surgeryAmt > 0.45 || torsoAmt < 0.55}
-          />
+          {/* Fade only the torso mesh subtree — vessels/cells already track intensity. */}
+          <FadeGroup opacity={torsoOpacity}>
+            <AnatomyTorso
+              quality={quality}
+              showTumor={stepWeight(progress, 0) + stepWeight(progress, 1) > 0.12}
+              showBreast
+              dimmed={torsoOpacity < 0.65}
+            />
+          </FadeGroup>
           {vesselIntensity > 0.08 && (
             <PulsingVessel
               curve={path}
               quality={quality}
-              intensity={vesselIntensity * torsoAmt}
+              intensity={vesselIntensity}
               reducedMotion={reducedMotion}
             />
           )}
@@ -437,60 +370,41 @@ export function CinematicWorld({
         </group>
       )}
 
-      {/* Warm-mounted meshes; Html HUDs gated so portals cannot leak across steps */}
-      {(warmNode || showNode) && (
-        <group
-          position={nodePos}
-          scale={Math.max(0.12, nodeScale)}
-          visible={showNode}
-        >
-          {/* Opacity fade so the node never reads as a disc inside the torso */}
-          <group visible={nodeOpacity > 0.04}>
-            <NodeClipReveal reveal={clipReveal}>
-              <InsideNodeScene
-                quality={quality}
-                reducedMotion={reducedMotion}
-                activeNode={null}
-                onActiveNode={() => undefined}
-                depositMode={depositMode}
-                hudVisible={showNode && nodeOpacity > 0.55 && growT > 0.45}
-                cutFaceAmt={cutFaceAmt}
-                sceneOpacity={nodeOpacity}
-              />
-            </NodeClipReveal>
-          </group>
+      {showNode && (
+        <group scale={nodeScale} position={[0, 0.05, 0]}>
+          <InsideNodeScene
+            quality={quality}
+            reducedMotion={reducedMotion}
+            activeNode={null}
+            onActiveNode={() => undefined}
+            depositMode={depositMode}
+            hudVisible={nodeOpacity > 0.6}
+            sceneOpacity={nodeOpacity}
+          />
         </group>
       )}
 
-      {(warmSurgery || showSurgery) && (
-        <group
-          scale={0.75 + surgeryPanelAmt * 0.28}
-          position={[0, (1 - surgeryPanelAmt) * 0.15, 0]}
-          visible={showSurgery}
-        >
+      {showSurgery && (
+        <FadeGroup opacity={surgeryOpacity}>
           <SurgeryScene
             quality={quality}
             reducedMotion={reducedMotion}
             activeNode={null}
             onActiveNode={() => undefined}
             surgeryMode={surgeryMode}
-            hudVisible={showSurgery}
+            hudVisible={surgeryOpacity > 0.55}
           />
-        </group>
+        </FadeGroup>
       )}
 
-      {(warmPatches || showPatches) && (
-        <group
-          scale={0.82 + patchesAmt * 0.22}
-          position={[0, (1 - patchesAmt) * -0.2, 0]}
-          visible={showPatches}
-        >
+      {showPatches && (
+        <group scale={0.92 + patchesOpacity * 0.08}>
           <PatchesScene
             quality={quality}
             reducedMotion={reducedMotion}
             activeNode={null}
             onActiveNode={() => undefined}
-            hudVisible={showPatches && patchesAmt > 0.45}
+            hudVisible={patchesOpacity > 0.5}
           />
         </group>
       )}
