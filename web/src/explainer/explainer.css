@@ -12,6 +12,12 @@
   max-width: 46rem;
 }
 
+.explainer-section-title {
+  font-size: clamp(1.45rem, 3vw, 1.85rem);
+  color: var(--accent-deep);
+  margin: 0 0 0.55rem;
+}
+
 .explainer-stage-shell {
   outline: none;
   border-radius: var(--radius);

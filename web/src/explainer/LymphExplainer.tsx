@@ -20,6 +20,11 @@ import './explainer.css'
 
 const ExplainerCanvas = lazy(() => import('./ExplainerCanvas'))
 
+type LymphExplainerProps = {
+  /** When true, skip the full brand hero (landing page already has one). */
+  compactIntro?: boolean
+}
+
 /** Lazy GSAP + ScrollTrigger so the scroll scrubber is not in the critical path. */
 async function loadScrollTrigger() {
   const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([
@@ -144,7 +149,7 @@ function SceneLegendBody({
   )
 }
 
-export default function LymphExplainer() {
+export default function LymphExplainer({ compactIntro = false }: LymphExplainerProps) {
   const [stepIndex, setStepIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [activeNode, setActiveNode] = useState<string | null>(null)
@@ -425,23 +430,38 @@ export default function LymphExplainer() {
     <section className="explainer" aria-labelledby={headingId}>
       <div className="explainer-top">
         <div className="explainer-copy">
-          <p className="hero-eyebrow">Interactive explainer · research education</p>
-          <h1 id={headingId} className="hero-brand">
-            Lymph Node Metastasis Detector
-          </h1>
-          <p className="hero-lede">
-            A short guided tour of why axillary lymph nodes matter in breast cancer — then try the
-            in-browser detector on public PatchCamelyon patches.
-          </p>
-          <div className="hero-actions">
-            <Link className="btn" to="/demo">
-              Try the detector
-            </Link>
-            <a className="btn secondary" href="#explainer-stages">
-              Start the tour
-            </a>
-          </div>
-          <p className="hero-note">Educational visuals only · not medical advice · not for clinical use</p>
+          {compactIntro ? (
+            <>
+              <p className="hero-eyebrow">Interactive 3D explainer</p>
+              <h2 id={headingId} className="explainer-section-title">
+                Five scenes · scroll or step through
+              </h2>
+              <p className="hero-lede">
+                Lymphatics, spread, deposit sizes, surgery choices, and how whole-slide images become
+                96×96 patches — then try the detector.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="hero-eyebrow">Interactive explainer · research education</p>
+              <h1 id={headingId} className="hero-brand">
+                Lymph Node Metastasis Detector
+              </h1>
+              <p className="hero-lede">
+                A short guided tour of why axillary lymph nodes matter in breast cancer — then try the
+                in-browser detector on public PatchCamelyon patches.
+              </p>
+              <div className="hero-actions">
+                <Link className="btn" to="/demo">
+                  Try the detector
+                </Link>
+                <a className="btn secondary" href="#explainer-stages">
+                  Start the tour
+                </a>
+              </div>
+              <p className="hero-note">Educational visuals only · not medical advice · not for clinical use</p>
+            </>
+          )}
         </div>
       </div>
 
