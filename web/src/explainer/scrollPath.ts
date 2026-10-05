@@ -73,9 +73,9 @@ export function buildCameraPaths(mobile: boolean, aspect: number) {
 
   const positionCurve = new THREE.CatmullRomCurve3(posPts)
   const lookCurve = new THREE.CatmullRomCurve3(lookPts)
-  // Remap scrub t∈[0,1] so snap points land on keyframes 0,2,4,5,6
-  // (extra keys at 1 and 3 are mid dollies).
-  const keyT = [0, 0.12, 0.25, 0.38, 0.5, 0.75, 1]
+  // Remap scrub t∈[0,1] so snap points land on keyframes 0,2,4,5,6.
+  // Pull the 2→3 dive earlier so mid (≈0.375) is already near the node frame.
+  const keyT = [0, 0.12, 0.25, 0.32, 0.48, 0.75, 1]
 
   return {
     sample(progress: number): CameraTarget {
