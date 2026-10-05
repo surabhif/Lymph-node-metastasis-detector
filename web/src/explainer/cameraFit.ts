@@ -119,7 +119,7 @@ export const SURGERY_PANEL_SCALE = 0.74
 
 /**
  * Step 3 cut-away node AABB (capsule + afferent/efferent stubs).
- * Fitted with ≥8% margin on the limiting axis.
+ * Fitted with ≥8% margin on the limiting axis — PR #8 / c988817 framing.
  */
 export function insideNodeFocusBox(): THREE.Box3 {
   return new THREE.Box3(
@@ -128,7 +128,7 @@ export function insideNodeFocusBox(): THREE.Box3 {
   )
 }
 
-/** Frontal camera for the lymph-node cut-away — ≥8% margin each side. */
+/** Frontal camera for the lymph-node cut-away — ≥8% margin each side (PR #8). */
 export function insideNodeCameraTarget(
   aspect: number,
   fovDeg: number,

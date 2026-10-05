@@ -31,6 +31,11 @@ type SceneProps = {
   surgeryMode?: 'slnb' | 'alnd' | 'both'
   /** Step 3: which deposit size(s) to highlight. */
   depositMode?: DepositMode
+  /**
+   * When false, hide drei Html HUDs. Parent `visible={false}` does not hide Html portals,
+   * so cinematic blends must pass this explicitly.
+   */
+  hudVisible?: boolean
 }
 
 /** @deprecated Use CinematicLight — kept as a thin alias for any leftover imports. */
@@ -399,10 +404,23 @@ export function SpreadScene({ quality, reducedMotion }: SceneProps) {
   )
 }
 
-/** Step 3 — clean educational cut-away (readable schematic inspired by HRA node topology). */
-function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
+/**
+ * Step 3 — PR #8 / c988817 cut-away: capsule shell, rim, cortex ring, follicles,
+ * paracortex, medulla. Soft-GPU uses alpha (no transmission) so the shell never
+ * reads as a solid pink disc. sceneOpacity drives the 2↔3 / 3↔4 crossfade.
+ */
+function CutawayLymphNode({
+  quality,
+  hudVisible = true,
+  sceneOpacity = 1,
+}: {
+  quality: SceneQuality
+  hudVisible?: boolean
+  sceneOpacity?: number
+}) {
   const segs = quality === 'high' ? 48 : 28
   const follicleCount = quality === 'high' ? 10 : 7
+  const op = THREE.MathUtils.clamp(sceneOpacity, 0, 1)
 
   const follicles = useMemo(() => {
     const pts: [number, number, number, number][] = []
@@ -414,36 +432,52 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
     return pts
   }, [follicleCount])
 
+  const hudStyle = {
+    pointerEvents: 'none' as const,
+    display: hudVisible && op > 0.55 ? 'block' : 'none',
+    opacity: hudVisible && op > 0.55 ? 1 : 0,
+  }
+
   return (
     <group>
-      {/* Semi-transparent capsule shell — open cut-away toward camera (+Z) */}
+      {/* Semi-transparent capsule shell — open cut-away toward camera (+Z).
+          Alpha (not transmission) so SwiftShader never paints a solid disc. */}
       <mesh rotation={[0, 0, 0]} renderOrder={1}>
         <sphereGeometry args={[1.05, segs, segs, 0, Math.PI * 2, 0, Math.PI * 0.72]} />
-        <meshPhysicalMaterial
+        <meshStandardMaterial
           color={COLORS.nodeCapsule}
           transparent
-          opacity={0.22}
-          roughness={0.25}
-          transmission={0.35}
-          thickness={0.2}
+          opacity={0.28 * op}
+          roughness={0.28}
+          metalness={0.05}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
       </mesh>
-      {/* Capsule rim */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
+      {/* Capsule rim — torus in XY (facing camera). Do NOT rotate π/2 around X:
+          that lays the ring in XZ and reads as a glowing horizontal bar through
+          the cut center (the “dashed diameter line” artifact). */}
+      <mesh position={[0, 0, 0.02]} renderOrder={2}>
         <torusGeometry args={[1.05, 0.028, 10, Math.max(32, segs)]} />
         <meshStandardMaterial
           color={COLORS.nodeCapsule}
           emissive={COLORS.vesselGlow}
           emissiveIntensity={0.35}
           roughness={0.35}
+          transparent={op < 0.999}
+          opacity={op}
         />
       </mesh>
-      {/* Cut face */}
+      {/* Cut face — dark back plane inside the open shell */}
       <mesh position={[0, 0, 0]} rotation={[0, 0, 0]} renderOrder={0}>
         <circleGeometry args={[1.02, segs]} />
-        <meshStandardMaterial color="#152028" roughness={0.95} side={THREE.DoubleSide} />
+        <meshStandardMaterial
+          color="#152028"
+          roughness={0.95}
+          side={THREE.DoubleSide}
+          transparent={op < 0.999}
+          opacity={op}
+        />
       </mesh>
 
       {/* Cortex band (outer ring of tissue) */}
@@ -454,14 +488,14 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
           emissive={COLORS.follicleGlow}
           emissiveIntensity={0.22}
           transparent
-          opacity={0.62}
+          opacity={0.62 * op}
           roughness={0.8}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Follicles — soft translucent lymphoid pink-purple (not grey) */}
+      {/* Follicles — soft translucent lymphoid pink-purple */}
       {follicles.map((f, i) => (
         <mesh key={i} position={[f[0], f[1], f[2]]} renderOrder={4}>
           <sphereGeometry args={[f[3], 14, 14]} />
@@ -471,7 +505,7 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
             emissiveIntensity={0.95}
             roughness={0.48}
             transparent
-            opacity={0.92}
+            opacity={0.92 * op}
             depthWrite={false}
             toneMapped={false}
           />
@@ -484,7 +518,7 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         <meshStandardMaterial
           color={COLORS.paracortex}
           transparent
-          opacity={0.48}
+          opacity={0.48 * op}
           roughness={0.8}
           depthWrite={false}
         />
@@ -496,13 +530,13 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
         <meshStandardMaterial
           color={COLORS.medulla}
           transparent
-          opacity={0.55}
+          opacity={0.55 * op}
           roughness={0.75}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Afferent vessels entering capsule (left / top) — kept short of top-left legend */}
+      {/* Afferent vessels entering capsule (left / top) */}
       {[
         { pos: [-1.15, 0.28, 0.15] as const, rot: [0, 0, 0.35] as const },
         { pos: [-1.1, -0.2, 0.1] as const, rot: [0, 0, -0.3] as const },
@@ -516,6 +550,8 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
             emissiveIntensity={0.7}
             toneMapped={false}
             roughness={0.4}
+            transparent={op < 0.999}
+            opacity={op}
           />
         </mesh>
       ))}
@@ -529,23 +565,25 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
           emissiveIntensity={0.85}
           toneMapped={false}
           roughness={0.35}
+          transparent={op < 0.999}
+          opacity={op}
         />
       </mesh>
 
       {/* Labels — clear of top-left legend; Afferent/Cortex hide on narrow screens */}
-      <Html position={[0.25, 0.62, 0.3]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[0.25, 0.62, 0.3]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Cortex / follicles</span>
       </Html>
-      <Html position={[0.42, 0.12, 0.4]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[0.42, 0.12, 0.4]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno">Paracortex</span>
       </Html>
-      <Html position={[-0.28, -0.08, 0.45]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[-0.28, -0.08, 0.45]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno soft">Medulla</span>
       </Html>
-      <Html position={[-0.85, -0.78, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[-0.85, -0.78, 0.25]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Afferent</span>
       </Html>
-      <Html position={[1.2, -0.68, 0.25]} center style={{ pointerEvents: 'none' }} zIndexRange={[20, 0]}>
+      <Html position={[1.2, -0.68, 0.25]} center style={hudStyle} zIndexRange={[20, 0]}>
         <span className="node-anno hide-sm">Efferent / hilum</span>
       </Html>
     </group>
@@ -612,12 +650,14 @@ function NodeDeposits({ mode }: { mode: DepositMode }) {
   )
 }
 
-/** Step 3 — readable cut-away with optional deposit focus. */
+/** Step 3 — readable cut-away with optional deposit focus (PR #8 geometry). */
 export function InsideNodeScene({
   quality,
   reducedMotion,
   depositMode = 'all',
-}: SceneProps & { depositMode?: DepositMode }) {
+  hudVisible = true,
+  sceneOpacity = 1,
+}: SceneProps & { depositMode?: DepositMode; sceneOpacity?: number }) {
   const group = useRef<Group>(null)
 
   useFrame(({ clock }) => {
@@ -625,11 +665,17 @@ export function InsideNodeScene({
     group.current.rotation.y = Math.sin(clock.getElapsedTime() * 0.35) * 0.2
   })
 
+  const showDeposits = sceneOpacity > 0.45
+
   return (
     <group ref={group} position={[0, 0.05, 0]}>
       <MacroNodeLight quality={quality} />
-      <CutawayLymphNode quality={quality} />
-      <NodeDeposits mode={depositMode} />
+      <CutawayLymphNode
+        quality={quality}
+        hudVisible={hudVisible}
+        sceneOpacity={sceneOpacity}
+      />
+      {showDeposits && <NodeDeposits mode={depositMode} />}
     </group>
   )
 }
@@ -729,7 +775,7 @@ export function SurgeryScene({ quality, reducedMotion, surgeryMode = 'both' }: S
  * Step 5 — real H&E PCam mosaic standing in for a whole-slide image.
  * Continuous mosaic plane + seam gutters so frames and the hot tile stay pixel-aligned.
  */
-export function PatchesScene({ reducedMotion }: SceneProps) {
+export function PatchesScene({ reducedMotion, hudVisible = true }: SceneProps) {
   const grid = PATCHES_LAYOUT.grid
   const TILE = PATCHES_LAYOUT.tile
   const GUTTER = PATCHES_LAYOUT.gutter
@@ -859,7 +905,9 @@ export function PatchesScene({ reducedMotion }: SceneProps) {
     })
 
     if (labelRef.current) {
-      if (typeof forced === 'number') {
+      if (!hudVisible) {
+        labelRef.current.style.opacity = '0'
+      } else if (typeof forced === 'number') {
         labelRef.current.style.opacity = z >= 0.85 ? '1' : '0'
       } else {
         const lo = zoom < 0.4 ? 0 : THREE.MathUtils.smoothstep((zoom - 0.4) / 0.35, 0, 1)
@@ -969,7 +1017,11 @@ export function PatchesScene({ reducedMotion }: SceneProps) {
           <Html
             center
             distanceFactor={5.2}
-            style={{ pointerEvents: 'none', whiteSpace: 'nowrap' }}
+            style={{
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+              display: hudVisible ? 'block' : 'none',
+            }}
             zIndexRange={[40, 0]}
           >
             <div ref={labelRef} className="patch-float-label" style={{ opacity: 0 }}>

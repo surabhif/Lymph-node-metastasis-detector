@@ -4,18 +4,17 @@ import { EXPLAINER_STEPS } from './steps'
 /** Equal snap points for the five educational steps (0…1 scrub). */
 export const STEP_SNAP = [0, 0.25, 0.5, 0.75, 1] as const
 
+/**
+ * Step index from scrub progress. Switches at the midpoint between snaps so
+ * sidebar copy / pills track the same cross-fade as the 3D blend.
+ */
 export function stepIndexFromProgress(p: number): number {
   const clamped = Math.min(1, Math.max(0, p))
-  let best = 0
-  let bestDist = Infinity
-  for (let i = 0; i < STEP_SNAP.length; i++) {
-    const d = Math.abs(clamped - STEP_SNAP[i]!)
-    if (d < bestDist) {
-      bestDist = d
-      best = i
-    }
+  for (let i = 0; i < STEP_SNAP.length - 1; i++) {
+    const mid = (STEP_SNAP[i]! + STEP_SNAP[i + 1]!) / 2
+    if (clamped < mid) return i
   }
-  return best
+  return STEP_SNAP.length - 1
 }
 
 export function stepIdFromProgress(p: number): ExplainerStepId {

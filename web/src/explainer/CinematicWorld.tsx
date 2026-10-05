@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useCallback, useEffect, type ReactNode } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { AnatomyTorso, landmark } from './AnatomyTorso'
 import { CinematicLight } from './CinematicLight'
@@ -9,11 +9,12 @@ import {
   axillaryPathCurve,
   blendBetween,
   stepWeight,
+  stepIndexFromProgress,
 } from './scrollPath'
 import {
   InsideNodeScene,
-  PatchesScene,
   SurgeryScene,
+  PatchesScene,
   type DepositMode,
   type SceneQuality,
 } from './scenes'
@@ -132,10 +133,9 @@ function AxillaNodes({
   const segs = quality === 'high' ? 24 : 12
   const wEarly = stepWeight(progress, 0) + stepWeight(progress, 1)
   const wSurgery = stepWeight(progress, 3)
-  // Hide while deep inside the node or on patches
   const intoNode = blendBetween(progress, 1, 2)
   const toPatches = blendBetween(progress, 3, 4)
-  const show = wEarly + wSurgery > 0.05 && intoNode < 0.75 && toPatches < 0.55
+  const show = wEarly + wSurgery > 0.05 && intoNode < 0.55 && toPatches < 0.55
   if (!show) return null
 
   const nodes = [
@@ -211,55 +211,90 @@ function AxillaNodes({
 }
 
 /**
- * Moving clip plane for the 2→3 dive: starts sealed in front of the node
- * and sweeps back so the cut-away opens toward camera.
+ * Strict fade-through-dark handoff: outgoing clears before mid-blend, incoming
+ * rises after. Midpoint is intentionally dark so 2→3 / 3→4 never jump torso→node.
+ * Sidebar text switches at the same midpoint via stepIndexFromProgress.
  */
-function NodeClipReveal({
-  reveal,
+function sequentialFade(t: number): { out: number; inn: number } {
+  const c = THREE.MathUtils.clamp(t, 0, 1)
+  const out = 1 - THREE.MathUtils.smoothstep(c, 0.0, 0.48)
+  const inn = THREE.MathUtils.smoothstep(c, 0.52, 1.0)
+  return { out, inn }
+}
+
+/**
+ * Multiplies material opacities for a fade without remounting. Stores each
+ * material's true base on userData so remounts after a fade-out cannot capture
+ * a near-zero opacity as the new base (which left the torso invisible).
+ */
+function FadeGroup({
+  opacity,
   children,
 }: {
-  reveal: number
+  opacity: number
   children: ReactNode
 }) {
-  const { gl } = useThree()
-  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 0, 1), 1.15), [])
-  const group = useRef<THREE.Group>(null)
-
-  useEffect(() => {
-    gl.localClippingEnabled = true
-    return () => {
-      gl.localClippingEnabled = false
-    }
-  }, [gl])
+  const ref = useRef<THREE.Group>(null)
 
   useFrame(() => {
-    // Plane normal +Z: clip when z > -constant.
-    // Sealed (reveal=0): constant≈1.15 → keep only z ≲ -1.15 (almost nothing)
-    // Open (reveal=1): constant≈-1.6 → keep z ≲ 1.6 (whole node)
-    const r = THREE.MathUtils.clamp(reveal, 0, 1)
-    plane.constant = THREE.MathUtils.lerp(1.15, -1.6, r)
-    const root = group.current
+    const root = ref.current
     if (!root) return
+    const o = THREE.MathUtils.clamp(opacity, 0, 1)
+    root.visible = o > 0.02
     root.traverse((obj) => {
       const mesh = obj as THREE.Mesh
       if (!mesh.isMesh) return
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       for (const m of mats) {
         if (!m) continue
-        m.clippingPlanes = reveal >= 0.98 ? [] : [plane]
-        m.clipShadows = false
-        m.needsUpdate = true
+        const mat = m as THREE.Material & {
+          opacity?: number
+          transparent?: boolean
+          userData: Record<string, unknown>
+        }
+        if (typeof mat.opacity !== 'number') continue
+        if (typeof mat.userData.fadeBase !== 'number') {
+          mat.userData.fadeBase = mat.opacity
+        }
+        const b = mat.userData.fadeBase as number
+        mat.opacity = b * o
+        mat.transparent = mat.opacity < 0.999
       }
     })
   })
 
-  return <group ref={group}>{children}</group>
+  useEffect(() => {
+    const root = ref.current
+    return () => {
+      if (!root) return
+      root.traverse((obj) => {
+        const mesh = obj as THREE.Mesh
+        if (!mesh.isMesh) return
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        for (const m of mats) {
+          if (!m) continue
+          const mat = m as THREE.Material & {
+            opacity?: number
+            transparent?: boolean
+            userData: Record<string, unknown>
+          }
+          if (typeof mat.userData.fadeBase === 'number' && typeof mat.opacity === 'number') {
+            mat.opacity = mat.userData.fadeBase
+            mat.transparent = mat.opacity < 0.999
+            delete mat.userData.fadeBase
+          }
+        }
+      })
+    }
+  }, [])
+
+  return <group ref={ref}>{children}</group>
 }
 
 /**
  * Continuous world scrubbed by scroll progress.
- * 1→2 cell stream to sentinel · 2→3 clip-reveal dive into node ·
- * 3→4 pull back to axilla/surgery · 4→5 fade to PCam mosaic.
+ * 1→2 cell stream · 2→3 opacity crossfade into node · 3→4 reverse · 4→5 mosaic.
+ * No clip planes, no geometric dive, no tiny→huge scale through the camera.
  */
 export function CinematicWorld({
   progress,
@@ -275,39 +310,39 @@ export function CinematicWorld({
   const [sentinelHot, setSentinelHot] = useState(0)
   const onArrive = useCallback((s: number) => setSentinelHot(s), [])
 
-  // Blend weights across the five snaps (0, 0.25, 0.5, 0.75, 1)
-  const toSpread = blendBetween(progress, 0, 1) // 1→2
-  const intoNode = blendBetween(progress, 1, 2) // 2→3
-  const outOfNode = blendBetween(progress, 2, 3) // 3→4
-  const toPatches = blendBetween(progress, 3, 4) // 4→5
+  const toSpread = blendBetween(progress, 0, 1)
+  const intoNode = blendBetween(progress, 1, 2)
+  const outOfNode = blendBetween(progress, 2, 3)
+  const toPatches = blendBetween(progress, 3, 4)
 
-  // Torso lives through steps 1–4; fades as we enter node and again into patches
-  const torsoFade = Math.max(
-    0,
-    1 - intoNode * 0.92 - Math.max(0, intoNode - 0.85) * 2,
-  ) * (1 - toPatches)
-  // After leaving the node, torso returns for surgery before patches
-  const torsoReturn = outOfNode * (1 - toPatches) * (1 - Math.min(1, intoNode * 1.1))
-  const torsoAmt = THREE.MathUtils.clamp(Math.max(torsoFade, torsoReturn * 0.95), 0, 1)
+  // Active + next (and previous during reverse blends) — never keep far scenes live.
+  const activeIdx = stepIndexFromProgress(progress)
+  const live = new Set<number>([
+    activeIdx,
+    Math.max(0, activeIdx - 1),
+    Math.min(4, activeIdx + 1),
+  ])
 
-  const nodeAmt = THREE.MathUtils.clamp(
-    intoNode * (1 - outOfNode * 0.95) * (1 - toPatches),
-    0,
-    1,
-  )
-  // Clip opens with dive; reduced-motion snaps open via cross-fade only
-  const clipReveal = reducedMotion ? (intoNode > 0.45 ? 1 : 0) : intoNode
+  const dive = sequentialFade(intoNode)
+  const pull = sequentialFade(outOfNode)
+  const mosaic = sequentialFade(toPatches)
 
-  const surgeryAmt = THREE.MathUtils.clamp(
-    outOfNode * (1 - toPatches) * (intoNode > 0.5 ? 1 : outOfNode),
-    0,
-    1,
-  )
-  // Prefer dual surgery panels once we've pulled back from the node
-  const surgeryPanelAmt = THREE.MathUtils.clamp((outOfNode - 0.35) / 0.55, 0, 1) * (1 - toPatches)
+  // Torso: steps 0–1, fades out as camera pushes toward the sentinel.
+  const torsoOpacity = THREE.MathUtils.clamp(dive.out * (outOfNode < 0.02 ? 1 : 0), 0, 1)
+  const showTorso = (live.has(0) || live.has(1)) && torsoOpacity > 0.02
 
-  // Soft bring-up of patches earlier so mid 4→5 is visibly blended
-  const patchesAmt = THREE.MathUtils.clamp((toPatches - 0.05) / 0.9, 0, 1)
+  // Node: fades in at rest framing (scale 0.9→1.0); fades out before surgery rises.
+  const nodeOpacity = THREE.MathUtils.clamp(dive.inn * pull.out * mosaic.out, 0, 1)
+  const nodeScale = THREE.MathUtils.lerp(0.9, 1.0, THREE.MathUtils.smoothstep(dive.inn, 0, 1))
+  const showNode = (live.has(2) || nodeOpacity > 0.02) && nodeOpacity > 0.02
+
+  // Surgery panels
+  const surgeryOpacity = THREE.MathUtils.clamp(pull.inn * mosaic.out, 0, 1)
+  const showSurgery = (live.has(3) || surgeryOpacity > 0.02) && surgeryOpacity > 0.02
+
+  // Patches
+  const patchesOpacity = THREE.MathUtils.clamp(mosaic.inn, 0, 1)
+  const showPatches = (live.has(4) || patchesOpacity > 0.02) && patchesOpacity > 0.02
 
   const cellIntensity = THREE.MathUtils.clamp(
     toSpread * 0.55 +
@@ -317,38 +352,32 @@ export function CinematicWorld({
     0,
     1,
   )
-  const vesselIntensity = Math.max(
-    0.15,
-    stepWeight(progress, 0) * 0.85 +
-      stepWeight(progress, 1) * 1.25 +
-      stepWeight(progress, 3) * 0.45,
-  ) * (1 - intoNode * 0.85) * (1 - toPatches)
-
-  const showTorso = torsoAmt > 0.04 && surgeryPanelAmt < 0.92
-  const showNode = nodeAmt > 0.06
-  const showSurgery = surgeryPanelAmt > 0.08
-  const showPatches = patchesAmt > 0.06
-
-  // Soft scale/position for the dive into the node
-  const torsoScale = 1 - intoNode * 0.42 + outOfNode * 0.35 * (1 - toPatches)
-  const torsoY = -intoNode * 0.22 + outOfNode * 0.12
+  const vesselIntensity =
+    Math.max(
+      0.15,
+      stepWeight(progress, 0) * 0.85 + stepWeight(progress, 1) * 1.25,
+    ) *
+    torsoOpacity
 
   return (
     <group>
       {showTorso && (
-        <group scale={Math.max(0.35, torsoScale)} position={[0, torsoY, 0]}>
+        <group>
           <CinematicLight quality={quality} />
-          <AnatomyTorso
-            quality={quality}
-            showTumor={stepWeight(progress, 0) + stepWeight(progress, 1) > 0.12}
-            showBreast
-            dimmed={intoNode > 0.35 || surgeryAmt > 0.45 || torsoAmt < 0.55}
-          />
+          {/* Fade only the torso mesh subtree — vessels/cells already track intensity. */}
+          <FadeGroup opacity={torsoOpacity}>
+            <AnatomyTorso
+              quality={quality}
+              showTumor={stepWeight(progress, 0) + stepWeight(progress, 1) > 0.12}
+              showBreast
+              dimmed={torsoOpacity < 0.65}
+            />
+          </FadeGroup>
           {vesselIntensity > 0.08 && (
             <PulsingVessel
               curve={path}
               quality={quality}
-              intensity={vesselIntensity * torsoAmt}
+              intensity={vesselIntensity}
               reducedMotion={reducedMotion}
             />
           )}
@@ -373,45 +402,40 @@ export function CinematicWorld({
       )}
 
       {showNode && (
-        <group
-          position={[0, 0.05 - (1 - nodeAmt) * 0.1, 0]}
-          scale={0.4 + nodeAmt * 0.85}
-        >
-          <NodeClipReveal reveal={clipReveal}>
-            <InsideNodeScene
-              quality={quality}
-              reducedMotion={reducedMotion}
-              activeNode={null}
-              onActiveNode={() => undefined}
-              depositMode={depositMode}
-            />
-          </NodeClipReveal>
+        <group scale={nodeScale} position={[0, 0.05, 0]}>
+          <InsideNodeScene
+            quality={quality}
+            reducedMotion={reducedMotion}
+            activeNode={null}
+            onActiveNode={() => undefined}
+            depositMode={depositMode}
+            hudVisible={nodeOpacity > 0.6}
+            sceneOpacity={nodeOpacity}
+          />
         </group>
       )}
 
       {showSurgery && (
-        <group
-          scale={0.75 + surgeryPanelAmt * 0.28}
-          // Soft bring-up of dual panels as we leave the node
-          position={[0, (1 - surgeryPanelAmt) * 0.15, 0]}
-        >
+        <FadeGroup opacity={surgeryOpacity}>
           <SurgeryScene
             quality={quality}
             reducedMotion={reducedMotion}
             activeNode={null}
             onActiveNode={() => undefined}
             surgeryMode={surgeryMode}
+            hudVisible={surgeryOpacity > 0.55}
           />
-        </group>
+        </FadeGroup>
       )}
 
       {showPatches && (
-        <group scale={0.82 + patchesAmt * 0.22} position={[0, (1 - patchesAmt) * -0.2, 0]}>
+        <group scale={0.92 + patchesOpacity * 0.08}>
           <PatchesScene
             quality={quality}
             reducedMotion={reducedMotion}
             activeNode={null}
             onActiveNode={() => undefined}
+            hudVisible={patchesOpacity > 0.5}
           />
         </group>
       )}

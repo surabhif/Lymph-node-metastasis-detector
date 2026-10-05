@@ -1,14 +1,24 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import type { ExplainerStepId } from './steps'
-import { SceneForStep, type DepositMode, type SceneQuality } from './scenes'
+import { EXPLAINER_STEPS } from './steps'
+import type { DepositMode, SceneQuality } from './scenes'
 import { cameraTargetFor, getTorsoBounds } from './cameraFit'
-import { PostFX } from './PostFX'
 import { buildCameraPaths } from './scrollPath'
 import { CinematicWorld } from './CinematicWorld'
+import { isSoftGpu } from './gpuDetect'
+import { ExplainerCanvasBoundary } from './ExplainerCanvasBoundary'
+import ExplainerFallback from './ExplainerFallback'
+
+/** PostFX (bloom/vignette/DOF) loads async so postprocessing stays out of the canvas critical chunk. */
+const PostFX = lazy(() => import('./PostFX').then((m) => ({ default: m.PostFX })))
+/** Discrete step scenes only for the non-scroll fallback path. */
+const SceneForStep = lazy(() =>
+  import('./scenes').then((m) => ({ default: m.SceneForStep })),
+)
 
 export type SurgeryMode = 'slnb' | 'alnd' | 'both'
 
@@ -161,7 +171,6 @@ function ScrollCameraRig({
     desiredPos.current.set(...cfg.position)
     desiredLook.current.set(...cfg.lookAt)
     if (reducedMotion) {
-      // Snap framing; world handles opacity cross-fades
       camera.position.copy(desiredPos.current)
       target.current.copy(desiredLook.current)
       if (controlsRef.current) {
@@ -172,7 +181,7 @@ function ScrollCameraRig({
       }
       return
     }
-    const k = 1 - Math.exp(-dt * 10)
+    const k = 1 - Math.exp(-dt * 32)
     camera.position.lerp(desiredPos.current, k)
     target.current.lerp(desiredLook.current, k)
     if (controlsRef.current) {
@@ -186,7 +195,7 @@ function ScrollCameraRig({
   return null
 }
 
-export default function ExplainerCanvas({
+function ExplainerCanvasInner({
   stepId,
   quality,
   reducedMotion,
@@ -196,10 +205,11 @@ export default function ExplainerCanvas({
   depositMode = 'all',
   progress = 0,
   scrollDriven = false,
-}: Props) {
+  onContextLost,
+}: Props & { onContextLost: () => void }) {
   const mobile = quality === 'low'
   const dpr: [number, number] = quality === 'high' ? [1, 1.5] : [1, 1.15]
-  const [mounted, setMounted] = useState(true)
+  const [canvasReady, setCanvasReady] = useState(false)
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
   const surgerySingle = surgeryMode !== 'both'
   const start = cameraTargetFor(
@@ -208,36 +218,16 @@ export default function ExplainerCanvas({
     mobile ? 390 / 360 : 800 / 576,
     surgerySingle,
   )
-  // Dense stream: ~2k phones, ~10–15k desktop. Cap soft GPUs (SwiftShader) lower.
-  const softGpu =
-    typeof navigator !== 'undefined' &&
-    /swiftshader|llvmpipe|intel/i.test(
-      (() => {
-        try {
-          const c = document.createElement('canvas')
-          const gl = c.getContext('webgl')
-          const dbg = gl?.getExtension('WEBGL_debug_renderer_info')
-          return dbg && gl ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '') : ''
-        } catch {
-          return ''
-        }
-      })(),
-    )
+  // Cached once — never probe WebGL per progress tick.
+  const softGpu = useMemo(() => isSoftGpu(), [])
   const particleCount = quality === 'high' ? (softGpu ? 4500 : 14000) : 2000
-
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
-
-  if (!mounted) return null
 
   const isPatches = stepId === 'patches'
   const orbitEnabled = !scrollDriven || isPatches
 
   return (
     <Canvas
-      className="explainer-canvas"
+      className={`explainer-canvas${canvasReady ? ' is-ready' : ''}`}
       dpr={dpr}
       camera={{ position: start.position, fov: mobile ? 40 : 38, near: 0.1, far: 60 }}
       gl={{ antialias: true, powerPreference: 'default', alpha: true }}
@@ -245,6 +235,18 @@ export default function ExplainerCanvas({
         gl.setClearColor(0x000000, 0)
         gl.toneMapping = THREE.ACESFilmicToneMapping
         gl.toneMappingExposure = 1.28
+        const el = gl.domElement
+        const onLost = (ev: Event) => {
+          ev.preventDefault()
+          console.warn('[explainer] webglcontextlost — switching to static fallback')
+          onContextLost()
+        }
+        const onRestored = () => {
+          console.info('[explainer] webglcontextrestored')
+        }
+        el.addEventListener('webglcontextlost', onLost, false)
+        el.addEventListener('webglcontextrestored', onRestored, false)
+        requestAnimationFrame(() => setCanvasReady(true))
       }}
       aria-hidden="true"
     >
@@ -277,24 +279,28 @@ export default function ExplainerCanvas({
               controlsRef={controlsRef}
               surgeryMode={surgeryMode}
             />
-            <SceneForStep
-              stepId={stepId}
-              quality={quality}
-              reducedMotion={reducedMotion}
-              activeNode={activeNode}
-              onActiveNode={onActiveNode}
-              surgeryMode={surgeryMode}
-              depositMode={depositMode}
-            />
+            <Suspense fallback={null}>
+              <SceneForStep
+                stepId={stepId}
+                quality={quality}
+                reducedMotion={reducedMotion}
+                activeNode={activeNode}
+                onActiveNode={onActiveNode}
+                surgeryMode={surgeryMode}
+                depositMode={depositMode}
+              />
+            </Suspense>
           </>
         )}
         {!isPatches && (
-          <PostFX
-            quality={quality}
-            reducedMotion={reducedMotion}
-            enabled
-            focusAxilla={scrollDriven && (stepId === 'lymphatic' || stepId === 'spread' || stepId === 'surgery')}
-          />
+          <Suspense fallback={null}>
+            <PostFX
+              quality={quality}
+              reducedMotion={reducedMotion}
+              enabled
+              focusAxilla={scrollDriven && (stepId === 'lymphatic' || stepId === 'spread' || stepId === 'surgery')}
+            />
+          </Suspense>
         )}
         <OrbitControls
           ref={controlsRef}
@@ -311,5 +317,20 @@ export default function ExplainerCanvas({
         />
       </Suspense>
     </Canvas>
+  )
+}
+
+export default function ExplainerCanvas(props: Props) {
+  const [forceStatic, setForceStatic] = useState(false)
+  const step = EXPLAINER_STEPS.find((s) => s.id === props.stepId) ?? EXPLAINER_STEPS[0]!
+
+  if (forceStatic) {
+    return <ExplainerFallback step={step} />
+  }
+
+  return (
+    <ExplainerCanvasBoundary stepId={props.stepId} onError={() => setForceStatic(true)}>
+      <ExplainerCanvasInner {...props} onContextLost={() => setForceStatic(true)} />
+    </ExplainerCanvasBoundary>
   )
 }

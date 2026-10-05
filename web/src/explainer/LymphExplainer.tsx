@@ -10,26 +10,24 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { Link } from 'react-router-dom'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { EXPLAINER_SOURCES, EXPLAINER_STEPS } from './steps'
 import ExplainerFallback from './ExplainerFallback'
+import { detectWebGLSupport } from './gpuDetect'
 import patchesMeta from './patchesMeta.json'
 import type { DepositMode } from './scenes'
 import { STEP_SNAP, stepIndexFromProgress } from './scrollSteps'
 import './explainer.css'
 
-gsap.registerPlugin(ScrollTrigger)
-
 const ExplainerCanvas = lazy(() => import('./ExplainerCanvas'))
 
-function detectWebGL(): boolean {
-  try {
-    const canvas = document.createElement('canvas')
-    return Boolean(canvas.getContext('webgl2') || canvas.getContext('webgl'))
-  } catch {
-    return false
-  }
+/** Lazy GSAP + ScrollTrigger so the scroll scrubber is not in the critical path. */
+async function loadScrollTrigger() {
+  const [{ default: gsap }, { ScrollTrigger }] = await Promise.all([
+    import('gsap'),
+    import('gsap/ScrollTrigger'),
+  ])
+  gsap.registerPlugin(ScrollTrigger)
+  return { gsap, ScrollTrigger }
 }
 
 function useMediaFlag(query: string): boolean {
@@ -159,8 +157,21 @@ export default function LymphExplainer() {
   const panelId = useId()
   const trackRef = useRef<HTMLDivElement>(null)
   const pinRef = useRef<HTMLDivElement>(null)
-  const triggerRef = useRef<ScrollTrigger | null>(null)
+  // ScrollTrigger instance (loaded async with GSAP)
+  const triggerRef = useRef<{
+    start: number
+    end: number
+    progress: number
+    scroll: (y: number) => void
+    kill: () => void
+  } | null>(null)
   const scrollingToRef = useRef(false)
+  const progressRef = useRef(0)
+  const gsapRef = useRef<typeof import('gsap').default | null>(null)
+  const tweenRef = useRef<{ kill: () => void } | null>(null)
+  /** Bumps on every pill / Prev-Next flight so only the latest tween / rAF stays live. */
+  const flightGenRef = useRef(0)
+  const rafRef = useRef<number | null>(null)
 
   const reducedMotion = useMediaFlag('(prefers-reduced-motion: reduce)')
   const isMobile = useMediaFlag('(max-width: 720px)')
@@ -171,7 +182,11 @@ export default function LymphExplainer() {
   const surgeryMode = step.id === 'surgery' ? (isMobile ? surgeryPanel : 'both') : 'both'
 
   useEffect(() => {
-    setWebgl(detectWebGL())
+    progressRef.current = progress
+  }, [progress])
+
+  useEffect(() => {
+    setWebgl(detectWebGLSupport())
   }, [])
 
   useEffect(() => {
@@ -185,6 +200,42 @@ export default function LymphExplainer() {
     setLegendOpen(!isMobile)
   }, [isMobile])
 
+  // Capture / QA helper: hold an exact scrub without GSAP snap fighting mid-frames.
+  useEffect(() => {
+    const w = window as Window & {
+      __setExplainerProgress?: (p: number, holdMs?: number) => void
+      __releaseExplainerScroll?: () => void
+      __explainerHoldGen?: number
+    }
+    w.__setExplainerProgress = (p: number, holdMs = 4000) => {
+      const clamped = Math.min(1, Math.max(0, p))
+      const gen = (w.__explainerHoldGen = (w.__explainerHoldGen ?? 0) + 1)
+      scrollingToRef.current = true
+      tweenRef.current?.kill()
+      progressRef.current = clamped
+      setProgress(clamped)
+      setStepIndex(stepIndexFromProgress(clamped))
+      if (holdMs <= 0) {
+        scrollingToRef.current = false
+        return
+      }
+      window.setTimeout(() => {
+        // Only the latest hold may clear the lock (overlapping holds raced before).
+        if (w.__explainerHoldGen === gen) scrollingToRef.current = false
+      }, holdMs)
+    }
+    w.__releaseExplainerScroll = () => {
+      w.__explainerHoldGen = (w.__explainerHoldGen ?? 0) + 1
+      scrollingToRef.current = false
+    }
+    return () => {
+      delete w.__setExplainerProgress
+      delete w.__releaseExplainerScroll
+    }
+  }, [])
+
+  // Expose pill helper after scrollToStep exists (see below).
+
   // GSAP ScrollTrigger: scrub progress from the tall track. Use CSS sticky
   // instead of ScrollTrigger pin — pin's position:fixed reparents the WebGL
   // canvas and freezes R3F scene updates under SwiftShader.
@@ -194,69 +245,145 @@ export default function LymphExplainer() {
       return
     }
 
-    const ctx = gsap.context(() => {
-      const st = ScrollTrigger.create({
-        trigger: trackRef.current,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: isMobile ? 0.85 : 0.55,
-        invalidateOnRefresh: true,
-        snap: {
-          snapTo: (value) => {
-            let best: number = STEP_SNAP[0]!
-            let bestDist = Infinity
-            for (const s of STEP_SNAP) {
-              const d = Math.abs(value - s)
-              if (d < bestDist) {
-                bestDist = d
-                best = s
+    let cancelled = false
+    let cleanup: (() => void) | undefined
+
+    void loadScrollTrigger().then(({ gsap, ScrollTrigger }) => {
+      if (cancelled || !trackRef.current) return
+      gsapRef.current = gsap
+      const ctx = gsap.context(() => {
+        const st = ScrollTrigger.create({
+          trigger: trackRef.current,
+          start: 'top top',
+          end: 'bottom bottom',
+          // Tighter scrub so continuous blends track the wheel / snap ease
+          scrub: isMobile ? 0.55 : 0.28,
+          invalidateOnRefresh: true,
+          snap: {
+            snapTo: (value: number) => {
+              // Freeze snap while pills / programmatic flights own the scrub.
+              if (scrollingToRef.current) return value
+              let best: number = STEP_SNAP[0]!
+              let bestDist = Infinity
+              for (const s of STEP_SNAP) {
+                const d = Math.abs(value - s)
+                if (d < bestDist) {
+                  bestDist = d
+                  best = s
+                }
               }
-            }
-            return best
+              return best
+            },
+            // Ease through the transition (~0.9–1.2s) instead of a hard cut
+            duration: { min: 0.9, max: 1.2 },
+            ease: 'power2.inOut',
+            delay: 0.04,
           },
-          duration: { min: 0.12, max: 0.4 },
-          ease: 'power1.inOut',
-          delay: 0.04,
-        },
-        onUpdate: (self) => {
-          if (scrollingToRef.current) return
-          const p = self.progress
-          setProgress(p)
-          const idx = stepIndexFromProgress(p)
-          setStepIndex((prev) => (prev === idx ? prev : idx))
-        },
+          onUpdate: (self: { progress: number }) => {
+            if (scrollingToRef.current) return
+            const p = self.progress
+            setProgress(p)
+            const idx = stepIndexFromProgress(p)
+            setStepIndex((prev) => (prev === idx ? prev : idx))
+          },
+        })
+        triggerRef.current = st
       })
-      triggerRef.current = st
+      cleanup = () => {
+        triggerRef.current = null
+        ctx.revert()
+      }
     })
 
     return () => {
+      cancelled = true
+      tweenRef.current?.kill()
+      cleanup?.()
       triggerRef.current = null
-      ctx.revert()
     }
   }, [scrollDriven, isMobile])
 
+  const stepIndexRef = useRef(stepIndex)
+  useEffect(() => {
+    stepIndexRef.current = stepIndex
+  }, [stepIndex])
+
   const scrollToStep = useCallback((index: number) => {
     const next = Math.max(0, Math.min(EXPLAINER_STEPS.length - 1, index))
-    const p = STEP_SNAP[next] ?? 0
-    // Drive 3D from the snap immediately so canvas never lags the tab/legend.
-    setStepIndex(next)
-    setProgress(p)
+    const target = STEP_SNAP[next] ?? 0
+    const from = progressRef.current
 
-    const st = triggerRef.current
-    if (scrollDriven && st) {
-      scrollingToRef.current = true
+    // Kill any in-flight pill tween / rAF so rapid clicks never stack scenes.
+    flightGenRef.current += 1
+    const gen = flightGenRef.current
+    tweenRef.current?.kill()
+    tweenRef.current = null
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    scrollingToRef.current = true
+
+    /** Animate React progress only — avoid ScrollTrigger.scroll mid-flight (bounds/snap fight). */
+    const applyProgress = (p: number, landIndex?: number) => {
+      if (flightGenRef.current !== gen) return
+      const clamped = Math.min(1, Math.max(0, p))
+      progressRef.current = clamped
+      setProgress(clamped)
+      setStepIndex(landIndex ?? stepIndexFromProgress(clamped))
+    }
+
+    const syncScrollToProgress = (p: number) => {
+      const st = triggerRef.current
+      if (!st) return
       const y = st.start + (st.end - st.start) * p
       window.scrollTo(0, y)
       st.scroll(y)
+    }
+
+    const finish = () => {
+      if (flightGenRef.current !== gen) return
+      applyProgress(target, next)
+      syncScrollToProgress(target)
+      // Hold the lock so ScrollTrigger snap/scrub cannot yank off the landing.
       window.setTimeout(() => {
-        // Keep the explicit snap progress — do not trust a lagging st.progress
-        setProgress(p)
-        setStepIndex(next)
-        scrollingToRef.current = false
-      }, 180)
+        if (flightGenRef.current === gen) {
+          syncScrollToProgress(target)
+          scrollingToRef.current = false
+        }
+      }, 400)
+      tweenRef.current = null
+      rafRef.current = null
+    }
+
+    if (reducedMotion || Math.abs(target - from) < 0.001) {
+      applyProgress(target, next)
+      syncScrollToProgress(target)
+      window.setTimeout(() => {
+        if (flightGenRef.current === gen) scrollingToRef.current = false
+      }, 400)
       return
     }
-  }, [scrollDriven])
+
+    const stepSpan = Math.max(1, Math.round(Math.abs(next - stepIndexRef.current) || 1))
+    const dur = Math.min(1.15, Math.max(0.95, 0.95 + (stepSpan - 1) * 0.12))
+
+    // Prefer rAF for progress so GSAP ScrollTrigger snap cannot overwrite the proxy tween.
+    const t0 = performance.now()
+    const ms = dur * 1000
+    const tick = (now: number) => {
+      if (flightGenRef.current !== gen) return
+      const t = Math.min(1, (now - t0) / ms)
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+      applyProgress(from + (target - from) * e)
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(tick)
+      } else {
+        finish()
+      }
+    }
+    rafRef.current = requestAnimationFrame(tick)
+  }, [scrollDriven, reducedMotion])
 
   const go = useCallback(
     (next: number) => {
@@ -264,6 +391,14 @@ export default function LymphExplainer() {
     },
     [scrollToStep],
   )
+
+  useEffect(() => {
+    const w = window as Window & { __scrollToExplainerStep?: (index: number) => void }
+    w.__scrollToExplainerStep = (index: number) => scrollToStep(index)
+    return () => {
+      delete w.__scrollToExplainerStep
+    }
+  }, [scrollToStep])
 
   const onKeyNav = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -364,15 +499,17 @@ export default function LymphExplainer() {
 
         <div className="explainer-grid" role="tabpanel" id={panelId} aria-label={step.title}>
           <div
-            className={`explainer-viewport panel cinematic${step.id === 'patches' ? ' light-panel' : ''}`}
+            className={`explainer-viewport panel cinematic${
+              step.id === 'patches' && progress >= 0.9 ? ' light-panel' : ''
+            }`}
             data-progress={progress.toFixed(3)}
             data-step={step.id}
           >
-            <div className="explainer-canvas-host">
+            <div className={`explainer-canvas-host${use3d ? ' ready-3d' : ''}`}>
               {use3d ? (
                 <Suspense
                   fallback={
-                    <div className="explainer-loading" role="status">
+                    <div className="explainer-loading explainer-poster" role="status">
                       Loading 3D scene…
                     </div>
                   }
@@ -455,23 +592,25 @@ export default function LymphExplainer() {
                 </div>
               )}
               <p className="sr-only">{step.alt}</p>
-              <div className="explainer-viewport-hint muted tiny">
-                {use3d
-                  ? scrollDriven
-                    ? 'Scroll to travel · drag to glance · Tab to step controls · arrow keys snap steps'
-                    : 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
-                  : reducedMotion
-                    ? 'Motion reduced — showing a static illustration'
-                    : '3D unavailable — showing a static illustration'}
-                {webgl && !reducedMotion && (
-                  <>
-                    {' · '}
-                    <button type="button" className="text-button" onClick={() => setForceStatic((v) => !v)}>
-                      {forceStatic ? 'Use 3D view' : 'Use static view'}
-                    </button>
-                  </>
-                )}
-              </div>
+              {step.id !== 'patches' && (
+                <div className="explainer-viewport-hint muted tiny">
+                  {use3d
+                    ? scrollDriven
+                      ? 'Scroll to travel · drag to glance · Tab to step controls · arrow keys snap steps'
+                      : 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
+                    : reducedMotion
+                      ? 'Motion reduced — showing a static illustration'
+                      : '3D unavailable — showing a static illustration'}
+                  {webgl && !reducedMotion && (
+                    <>
+                      {' · '}
+                      <button type="button" className="text-button" onClick={() => setForceStatic((v) => !v)}>
+                        {forceStatic ? 'Use 3D view' : 'Use static view'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             {step.id === 'patches' && (
               <p className="patch-mosaic-caption under-canvas">{patchesMeta.label}</p>
