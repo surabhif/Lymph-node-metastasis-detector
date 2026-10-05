@@ -432,33 +432,22 @@ function CutawayLymphNode({ quality }: { quality: SceneQuality }) {
       </mesh>
       {/* Capsule rim — thin dark edge only (no emissive disc/bloom bar) */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.02]} renderOrder={2}>
-        <torusGeometry args={[1.05, 0.012, 6, Math.max(32, segs)]} />
+        <torusGeometry args={[1.05, 0.01, 6, Math.max(32, segs)]} />
         <meshStandardMaterial
           color="#1a3034"
           roughness={0.55}
           transparent
-          opacity={0.55}
+          opacity={0.45}
           depthWrite={false}
         />
       </mesh>
-      {/* Cut face — subtle translucent plane, not a solid green/teal disc */}
-      <mesh position={[0, 0, 0.01]} renderOrder={0}>
-        <ringGeometry args={[0.94, 1.03, segs]} />
-        <meshStandardMaterial
-          color="#152028"
-          transparent
-          opacity={0.4}
-          roughness={0.9}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-        />
-      </mesh>
+      {/* Cut face — very soft fill only (avoid coplanar ring z-fight seam) */}
       <mesh position={[0, 0, 0]} renderOrder={0}>
-        <circleGeometry args={[0.96, segs]} />
+        <circleGeometry args={[0.98, segs]} />
         <meshStandardMaterial
           color="#0a1014"
           transparent
-          opacity={0.18}
+          opacity={0.12}
           roughness={0.95}
           side={THREE.FrontSide}
           depthWrite={false}
