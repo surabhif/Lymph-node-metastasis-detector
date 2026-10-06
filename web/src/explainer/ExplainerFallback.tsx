@@ -84,10 +84,10 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
               <ellipse cx="190" cy="170" rx="70" ry="110" fill="#c4b5a0" />
               <circle cx="230" cy="150" r="36" fill="#b9a48c" />
               <path d="M250 150 C300 140 340 120 370 90" stroke="#2f8f78" strokeWidth="4" fill="none" />
-              <circle cx="370" cy="90" r="14" fill="#0b6b54" />
-              <circle cx="390" cy="120" r="11" fill="#0b6b54" />
+              <circle cx="370" cy="90" r="14" fill="#9b5654" />
+              <circle cx="390" cy="120" r="11" fill="#9b5654" />
               <circle cx="355" cy="55" r="10" fill="#0e8a6c" />
-              <text x="300" y="40" fill="#1a2421" fontSize="14" fontFamily="IBM Plex Sans, sans-serif">
+              <text x="300" y="40" fill="#1a2421" fontSize="14" fontFamily="Space Grotesk, sans-serif">
                 Axillary nodes
               </text>
             </>
@@ -99,21 +99,21 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
               <path d="M134 175 C200 150 260 140 320 130" stroke="#2f8f78" strokeWidth="4" fill="none" />
               <circle cx="200" cy="155" r="6" fill="#c45c4a" />
               <circle cx="250" cy="142" r="6" fill="#c45c4a" />
-              <circle cx="320" cy="130" r="18" fill="#0b6b54" />
+              <circle cx="320" cy="130" r="18" fill="#9b5654" />
               <circle cx="380" cy="90" r="14" fill="#0e8a6c" />
-              <text x="290" y="110" fill="#1a2421" fontSize="13" fontFamily="IBM Plex Sans, sans-serif">
+              <text x="290" y="110" fill="#1a2421" fontSize="13" fontFamily="Space Grotesk, sans-serif">
                 Sentinel first
               </text>
             </>
           )}
           {step.id === 'inside' && (
             <>
-              <circle cx="240" cy="160" r="95" fill="#0b6b54" opacity="0.25" />
+              <circle cx="240" cy="160" r="95" fill="#9b5654" opacity="0.25" />
               <circle cx="240" cy="160" r="88" fill="#edf2ee" />
               <circle cx="200" cy="140" r="8" fill="#e8a598" />
               <circle cx="270" cy="175" r="18" fill="#d47868" />
               <circle cx="230" cy="120" r="32" fill="#9f2d22" />
-              <text x="40" y="50" fill="#1a2421" fontSize="13" fontFamily="IBM Plex Sans, sans-serif">
+              <text x="40" y="50" fill="#1a2421" fontSize="13" fontFamily="Space Grotesk, sans-serif">
                 ITC · micro · macro deposits
               </text>
             </>
@@ -122,19 +122,19 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
             <>
               <rect x="40" y="60" width="170" height="200" rx="12" fill="#fffcf6" stroke="#c6bdae" />
               <rect x="270" y="60" width="170" height="200" rx="12" fill="#fffcf6" stroke="#c6bdae" />
-              <text x="70" y="90" fill="#084c3c" fontSize="14" fontFamily="IBM Plex Sans, sans-serif">
+              <text x="70" y="90" fill="#52302f" fontSize="14" fontFamily="Space Grotesk, sans-serif">
                 Sentinel biopsy
               </text>
-              <text x="290" y="90" fill="#084c3c" fontSize="14" fontFamily="IBM Plex Sans, sans-serif">
+              <text x="290" y="90" fill="#52302f" fontSize="14" fontFamily="Space Grotesk, sans-serif">
                 Axillary dissection
               </text>
-              <circle cx="120" cy="160" r="12" fill="#0b6b54" />
-              <circle cx="320" cy="150" r="10" fill="#0b6b54" />
-              <circle cx="350" cy="180" r="10" fill="#0b6b54" />
-              <circle cx="310" cy="200" r="10" fill="#0b6b54" />
-              <circle cx="360" cy="130" r="10" fill="#0b6b54" />
-              <text x="185" y="300" fill="#1a2421" fontSize="16" fontFamily="Source Serif 4, serif">
-                T · <tspan fill="#0b6b54" fontWeight="700">N</tspan> · M
+              <circle cx="120" cy="160" r="12" fill="#9b5654" />
+              <circle cx="320" cy="150" r="10" fill="#9b5654" />
+              <circle cx="350" cy="180" r="10" fill="#9b5654" />
+              <circle cx="310" cy="200" r="10" fill="#9b5654" />
+              <circle cx="360" cy="130" r="10" fill="#9b5654" />
+              <text x="185" y="300" fill="#1a2421" fontSize="16" fontFamily="Space Grotesk, sans-serif">
+                T · <tspan fill="#9b5654" fontWeight="700">N</tspan> · M
               </text>
             </>
           )}

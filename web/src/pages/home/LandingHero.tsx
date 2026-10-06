@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import { goToExplainerStep } from './landingNav'
+import { SITE } from '../../lib/constants'
 
 export function LandingHero() {
   return (
     <header className="landing-hero">
       <p className="landing-eyebrow">Educational research demo</p>
-      <h1 className="landing-title">Lymph Node Metastasis Detector</h1>
+      <h1 className="landing-title">{SITE.title}</h1>
       <p className="landing-byline">
         A research project by <strong>Surabhi Fadnavis</strong>
       </p>
