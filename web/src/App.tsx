@@ -29,33 +29,37 @@ export default function App() {
         Skip to content
       </a>
 
-      <div className="site-notice" role="note">
-        <p>
-          Research demo, not for clinical use. Educational baseline only — never for diagnosis or
-          care decisions.{' '}
-          <NavLink to="/model-card#current-model" className="notice-learn-more">
-            Learn more
-          </NavLink>
-        </p>
-      </div>
-
-      <header className="site-header">
-        <div className="brand-block">
-          <NavLink to="/" className="brand-title">
-            {SITE.title}
-          </NavLink>
-          <p className="brand-kicker">Surabhi · high-school research project</p>
+      <div className="site-top">
+        <div className="site-notice" role="note">
+          <p>
+            Research demo, not for clinical use. Educational baseline only — never for diagnosis or
+            care decisions.{' '}
+            <NavLink to="/model-card#current-model" className="notice-learn-more">
+              Learn more
+            </NavLink>
+          </p>
         </div>
-        <nav className="site-nav" aria-label="Primary">
-          <NavLink to="/" end>
-            Home
-          </NavLink>
-          <NavLink to="/demo">Demo</NavLink>
-          <NavLink to="/results">Results</NavLink>
-          <NavLink to="/about">About</NavLink>
-          <NavLink to="/model-card">Model card</NavLink>
-        </nav>
-      </header>
+
+        <header className="site-header">
+          <div className="site-header-inner">
+            <div className="brand-block">
+              <NavLink to="/" className="brand-title">
+                {SITE.title}
+              </NavLink>
+              <p className="brand-kicker">Surabhi · high-school research project</p>
+            </div>
+            <nav className="site-nav" aria-label="Primary">
+              <NavLink to="/" end>
+                Home
+              </NavLink>
+              <NavLink to="/demo">Demo</NavLink>
+              <NavLink to="/results">Results</NavLink>
+              <NavLink to="/about">About</NavLink>
+              <NavLink to="/model-card">Model card</NavLink>
+            </nav>
+          </div>
+        </header>
+      </div>
 
       <main id="main" className="site-main">
         <Routes>
