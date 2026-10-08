@@ -1,0 +1,67 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build (root base for static server)
+        env:
+          VITE_BASE: /
+        run: npm run build
+
+      - name: Check sibling project links
+        run: |
+          set -e
+          for url in \
+            "https://surabhif.github.io/Lymph-node-metastasis-detector/" \
+            "https://surabhif.github.io/Breast-ultrasound-lesion-segmentation/" \
+            "https://pathology-report-explainer.vercel.app"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -L "$url")
+            echo "$url → $code"
+            test "$code" = "200"
+          done
+
+      - name: Assert no stray jsep wasm in dist
+        run: |
+          if find dist -name '*jsep*.wasm' | grep -q .; then
+            echo "Unexpected jsep wasm in dist:" >&2
+            find dist -name '*jsep*.wasm' >&2
+            exit 1
+          fi
+          test -f dist/ort/ort-wasm-simd-threaded.wasm
+          echo "ORT wasm present; no jsep wasm."
+
+      - name: Lighthouse CI (warn-only assertions)
+        working-directory: .
+        run: |
+          npm install -g @lhci/cli@0.14.x
+          lhci autorun --config=./lighthouserc.json
+        continue-on-error: true

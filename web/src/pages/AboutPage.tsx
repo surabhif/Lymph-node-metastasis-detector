@@ -1,18 +1,10 @@
+import CiteBox from '../components/CiteBox'
 import { SITE } from '../lib/constants'
 
-/**
- * DRAFT — Surabhi still owns this science narrative and About voice.
- * Please personalize every first-person paragraph before treating this as final.
- * Do not invent mentors, awards, or accuracy claims beyond the published Results run.
- */
 export default function AboutPage() {
   return (
     <article className="panel prose fade-in about-page">
-      {/* DRAFT: Surabhi should rewrite this first-person voice in her own words. */}
-      <h1>About</h1>
-      <p className="muted tiny draft-note">
-        Draft copy for Surabhi to personalize — she owns the science narrative and final voice.
-      </p>
+      <h1 tabIndex={-1}>About</h1>
 
       <section className="about-hero-card">
         <div className="avatar-placeholder" aria-hidden="true">
@@ -24,26 +16,24 @@ export default function AboutPage() {
             Lambert High School senior · aspiring surgical oncologist
           </p>
           <p>
-            I built this educational research demo to learn how machine learning can support — never
+            This educational research demo explores how machine learning can support — never
             replace — the careful work pathologists and surgeons do when deciding whether breast
             cancer has reached the lymph nodes.
           </p>
         </div>
       </section>
 
-      <h2>Why lymph-node status matters to me</h2>
+      <h2>Why lymph-node status matters</h2>
       <p>
         Lymph-node involvement helps shape how far cancer may have spread and what treatment path
-        makes sense. I want to become a surgical oncologist, so understanding that decision — and
-        the limits of any algorithm that touches it — feels personal, not abstract. PatchCamelyon
-        (PCam) lets me study metastasis-related patterns on public, de-identified image patches
-        without ever touching clinic data.
+        makes sense. PatchCamelyon (PCam) lets students study metastasis-related patterns on
+        public, de-identified image patches without ever touching clinic data.
       </p>
 
-      <h2>What I set out to learn</h2>
+      <h2>What this project set out to learn</h2>
       <p>
-        I wanted to go beyond a tutorial accuracy number: train a small CNN on the official PCam
-        splits, measure ROC-AUC and calibration honestly, look at confident mistakes, export a
+        Go beyond a tutorial accuracy number: train a small CNN on the official PCam splits,
+        measure ROC-AUC and calibration honestly, look at confident mistakes, export a
         browser-friendly ONNX model with class-activation maps, and write about what still breaks —
         especially when stain colour shifts.
       </p>
@@ -68,23 +58,18 @@ export default function AboutPage() {
 
       <h2>Honest status of the model</h2>
       <p>
-        The live weights are an <em>improved Cursor-assisted baseline</em> trained on a larger
-        official-split subset than the original quick stub, still on CPU with limited epochs. Exact
-        sample counts, epochs, and metrics live on the Results page and in{' '}
-        <code>results/baseline_fuller_run.json</code>. I still plan to replace them with my own
-        Colab training run when I can push further — more data, stronger augmentation, and better
-        stain robustness.
+        The live weights are an <em>improved baseline</em> trained on a larger official-split
+        subset than the original quick stub, still on CPU with limited epochs. Exact sample counts,
+        epochs, and metrics live on the Results page and in{' '}
+        <code>results/baseline_fuller_run.json</code>. A full-PCam GPU retrain with calibration is
+        the planned next training step.
       </p>
 
-      <h2>What I still want to improve</h2>
+      <h2>Open improvements</h2>
       <ul>
         <li>Stain and scanner colour robustness (see the stain-shift experiment on Results).</li>
-        <li>Clearer write-up of mistakes, calibration, and failure modes in my own words.</li>
-        <li>A fuller training run on GPU that I can fully explain end-to-end.</li>
-        <li>
-          Later: seeking expert mentorship for pathology and ML review (outreach is intentionally
-          not claimed here yet).
-        </li>
+        <li>Clearer write-up of mistakes, calibration, and failure modes.</li>
+        <li>A fuller training run on GPU on the official training split.</li>
       </ul>
 
       <h2>Method (summary)</h2>
@@ -120,25 +105,17 @@ export default function AboutPage() {
         </a>
       </p>
 
-      <h2>How to cite</h2>
-      <pre className="cite-block">{`Surabhi Fadnavis. Lymph Node Metastasis Detector (PatchCamelyon research demo). ${new Date().getFullYear()}. ${SITE.pagesUrl}
+      <CiteBox />
 
-Dataset: Veeling et al. (2018), PatchCamelyon (CC0); Bejnordi et al. (2017), Camelyon16.`}</pre>
-
-      <h2>Credits and help</h2>
+      <h2>Credits</h2>
       <ul>
         <li>
-          <strong>Surabhi</strong> owns the science narrative, training choices she can explain,
-          evaluation interpretation, and every claim on this About page once she personalizes this
-          draft.
+          <strong>Surabhi Fadnavis</strong> — project author; science narrative and evaluation
+          interpretation.
         </li>
         <li>
-          The <strong>web app scaffold / UI polish</strong>, Pages workflow, teaching-notebook
-          template, and this improved baseline training pass were built with help from{' '}
-          <strong>Cursor AI</strong>. That help is disclosed here and in the README.
-        </li>
-        <li>
-          PCam authors and Camelyon16 organizers — see citations on the home footer and README.
+          PCam authors and Camelyon16 organizers — see citations below and in the repository
+          README.
         </li>
       </ul>
 

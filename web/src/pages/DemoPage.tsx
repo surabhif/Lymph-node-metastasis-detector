@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import samplesManifest from '../data/samples.json'
 import { MODEL_STATUS } from '../lib/constants'
 import {
-  getSession,
+  preloadModel,
   runInference,
   type InferenceResult,
   type LoadProgress,
@@ -36,10 +36,8 @@ export default function DemoPage() {
   const objectUrlRef = useRef<string | null>(null)
   const preloadDone = useRef(false)
 
+  // Defer ORT + model download until the visitor asks (or deep-links a sample).
   useEffect(() => {
-    void getSession(setLoadProgress).catch(() => {
-      /* progress callback already records error */
-    })
     return () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
     }
@@ -137,7 +135,7 @@ export default function DemoPage() {
   return (
     <div className="fade-in demo-page">
       <header className="page-intro">
-        <h1>Try the detector</h1>
+        <h1 tabIndex={-1}>Try the detector</h1>
         <p>
           Choose a real PCam test-set patch or upload your own image. Inference runs entirely in
           your browser.
@@ -160,9 +158,22 @@ export default function DemoPage() {
           <div className="progress-fill" style={{ width: `${progressPct}%` }} />
         </div>
         <p className="muted tiny">
-          First visit downloads ~{MODEL_STATUS.sizeHintMb} MB; later visits use the browser cache
-          when available.
+          ONNX Runtime and the ~{MODEL_STATUS.sizeHintMb} MB model load only when you run a sample
+          or click Load model. Later visits use the browser cache when available.
         </p>
+        {loadProgress.status === 'idle' && (
+          <p>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => {
+                void preloadModel(setLoadProgress).catch(() => undefined)
+              }}
+            >
+              Load model now
+            </button>
+          </p>
+        )}
       </div>
 
       <div className="demo-layout">
@@ -183,9 +194,14 @@ export default function DemoPage() {
               >
                 <img
                   src={`${import.meta.env.BASE_URL}${sample.src}`}
-                  alt={`${sample.label} sample`}
+                  alt={
+                    sample.kind === 'tile'
+                      ? 'PCam stitched mosaic of H&E-stained lymph-node tissue patches'
+                      : `PCam test patch ${'testIndex' in sample ? sample.testIndex : ''}, H&E-stained lymph-node tissue, ground truth ${sample.groundTruthTumor ? 'tumor' : 'normal'}`
+                  }
                   width={96}
                   height={96}
+                  loading="lazy"
                 />
                 <figcaption>
                   {sample.kind === 'tile' ? (
@@ -309,9 +325,14 @@ export default function DemoPage() {
               value={opacity}
               onChange={(e) => setOpacity(Number(e.target.value))}
               disabled={!result}
+              aria-valuetext={`${Math.round(opacity * 100)} percent opacity`}
             />
             <span className="muted">{Math.round(opacity * 100)}%</span>
           </label>
+          <p className="muted tiny heatmap-legend" aria-hidden={false}>
+            Heatmap legend: cool = lower contribution · warm = higher contribution to the tumor
+            score.
+          </p>
 
           <details className="heatmap-explainer">
             <summary>How to read this heatmap</summary>

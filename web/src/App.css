@@ -201,6 +201,183 @@
   letter-spacing: 0.06em;
 }
 
+.project-family {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--line-strong);
+}
+
+.project-family-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0.65rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.project-family-card {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.7rem 0.75rem;
+  background: #fff;
+  min-width: 0;
+}
+
+.project-family-card.is-current {
+  border-color: var(--accent);
+  border-width: 2px;
+  padding: calc(0.7rem - 1px) calc(0.75rem - 1px);
+}
+
+.project-family-card a,
+.project-family-card > span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.project-family-card a:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.project-family-card a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.project-family-swatch {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  margin-top: 0.35rem;
+  border-radius: var(--radius);
+}
+
+.project-family-card strong {
+  font-size: 0.92rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.project-family-blurb {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+}
+
+.project-family-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.sw-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: center;
+  padding: 0.55rem 1rem;
+  background: var(--accent-pale);
+  border-bottom: 1px solid var(--accent-border);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-ink);
+}
+
+.cite-box {
+  margin: 1.25rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--accent-border);
+  border-left: 4px solid var(--accent);
+  background: var(--accent-pale);
+  border-radius: var(--radius);
+}
+
+.cite-box-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.cite-box-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.cite-tabs {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.cite-tab {
+  appearance: none;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.cite-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.cite-tab:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+}
+
+.cite-box .cite-block {
+  width: 100%;
+  resize: vertical;
+  min-height: 4.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  color: var(--ink-soft);
+}
+
+.cite-box-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.heatmap-legend {
+  margin: 0.35rem 0 0;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--line-strong);
@@ -1435,6 +1612,10 @@ td {
   .demo-layout,
   .charts-grid,
   .home-strip,
+  .project-family-list {
+    grid-template-columns: 1fr;
+  }
+
   .footer-grid,
   .model-card-grid,
   .metrics-grid,
@@ -1513,11 +1694,17 @@ td {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .fade-in,
   .hero-orb,
   .hero-sample,
   .gallery-item,
-  .btn {
+  .btn,
+  .site-nav a,
+  .progress-fill {
     animation: none !important;
     transition: none !important;
   }

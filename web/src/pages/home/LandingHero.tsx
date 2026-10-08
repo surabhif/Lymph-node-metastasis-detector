@@ -6,7 +6,9 @@ export function LandingHero() {
   return (
     <header className="landing-hero">
       <p className="landing-eyebrow">Educational research demo</p>
-      <h1 className="landing-title">{SITE.title}</h1>
+      <h1 className="landing-title" tabIndex={-1}>
+        {SITE.title}
+      </h1>
       <p className="landing-byline">
         A research project by <strong>Surabhi Fadnavis</strong>
       </p>

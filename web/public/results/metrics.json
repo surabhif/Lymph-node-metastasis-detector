@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "label": "Improved Cursor-assisted baseline (larger subset)",
-  "disclaimer": "These metrics come from an improved Cursor-assisted baseline trained on a larger official-split subset with more epochs than the original quick stub. They are still a reference point \u2014 not Surabhi's final reported results. She owns the science narrative and can replace this run via Colab + scripts/export_web_results.py.",
+  "label": "Improved baseline (larger subset)",
+  "disclaimer": "These metrics come from an improved baseline trained on a larger official-split subset with more epochs than the original quick stub. They are a reference point for the educational demo \u2014 not a clinical claim. A full-PCam GPU retrain with calibration is the planned next training step.",
   "run_id": "baseline_fuller_run",
   "surabhi_prompts": [
     "Write 2\u20133 sentences on what the ROC curve and AUC mean for this problem.",

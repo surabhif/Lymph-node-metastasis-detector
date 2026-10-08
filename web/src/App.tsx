@@ -1,12 +1,15 @@
+import { Suspense, lazy, useEffect, useRef } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
-import HomePage from './pages/HomePage'
-import DemoPage from './pages/DemoPage'
-import AboutPage from './pages/AboutPage'
-import ResultsPage from './pages/ResultsPage'
-import ModelCardPage from './pages/ModelCardPage'
+import ProjectFamily from './components/ProjectFamily'
+import UpdateBanner from './components/UpdateBanner'
 import { SITE } from './lib/constants'
 import './App.css'
+
+const HomePage = lazy(() => import('./pages/HomePage'))
+const DemoPage = lazy(() => import('./pages/DemoPage'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
+const ResultsPage = lazy(() => import('./pages/ResultsPage'))
+const ModelCardPage = lazy(() => import('./pages/ModelCardPage'))
 
 const TITLES: Record<string, string> = {
   '/': SITE.title,
@@ -16,11 +19,34 @@ const TITLES: Record<string, string> = {
   '/model-card': `Model card · ${SITE.shortTitle}`,
 }
 
+function PrefetchDemoModel() {
+  // Warm the model cache when the Demo nav link is hovered or focused.
+  const warm = () => {
+    void import('./lib/inference').then((m) => m.preloadModel().catch(() => undefined))
+  }
+  return (
+    <NavLink to="/demo" onMouseEnter={warm} onFocus={warm}>
+      Demo
+    </NavLink>
+  )
+}
+
 export default function App() {
   const location = useLocation()
+  const mainRef = useRef<HTMLElement>(null)
+  const firstNav = useRef(true)
 
   useEffect(() => {
     document.title = TITLES[location.pathname] ?? SITE.title
+    if (firstNav.current) {
+      firstNav.current = false
+      return
+    }
+    const heading = mainRef.current?.querySelector('h1') as HTMLElement | null
+    if (heading) {
+      if (!heading.hasAttribute('tabindex')) heading.tabIndex = -1
+      heading.focus({ preventScroll: true })
+    }
   }, [location.pathname])
 
   return (
@@ -52,7 +78,7 @@ export default function App() {
               <NavLink to="/" end>
                 Home
               </NavLink>
-              <NavLink to="/demo">Demo</NavLink>
+              <PrefetchDemoModel />
               <NavLink to="/results">Results</NavLink>
               <NavLink to="/about">About</NavLink>
               <NavLink to="/model-card">Model card</NavLink>
@@ -61,14 +87,18 @@ export default function App() {
         </header>
       </div>
 
-      <main id="main" className="site-main">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/demo" element={<DemoPage />} />
-          <Route path="/results" element={<ResultsPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/model-card" element={<ModelCardPage />} />
-        </Routes>
+      <UpdateBanner />
+
+      <main id="main" className="site-main" ref={mainRef} tabIndex={-1}>
+        <Suspense fallback={<p className="muted">Loading…</p>}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/demo" element={<DemoPage />} />
+            <Route path="/results" element={<ResultsPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/model-card" element={<ModelCardPage />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <footer className="site-footer">
@@ -89,7 +119,7 @@ export default function App() {
                 </a>
               </li>
               <li>
-                <NavLink to="/about">How to cite</NavLink>
+                <NavLink to="/about#cite">How to cite</NavLink>
               </li>
               <li>
                 <NavLink to="/model-card">Model card</NavLink>
@@ -97,7 +127,8 @@ export default function App() {
             </ul>
           </div>
         </div>
-        <p className="footer-fine">MIT license · Research only</p>
+        <ProjectFamily />
+        <p className="footer-fine">MIT license · Research only · Not for clinical use</p>
       </footer>
     </div>
   )

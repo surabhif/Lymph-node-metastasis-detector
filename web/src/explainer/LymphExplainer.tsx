@@ -179,11 +179,13 @@ export default function LymphExplainer({ compactIntro = false }: LymphExplainerP
   const rafRef = useRef<number | null>(null)
 
   const reducedMotion = useMediaFlag('(prefers-reduced-motion: reduce)')
+  const [motionOptIn, setMotionOptIn] = useState(false)
   const isMobile = useMediaFlag('(max-width: 720px)')
   const step = EXPLAINER_STEPS[stepIndex]
   const quality = isMobile ? 'low' : 'high'
-  const use3d = webgl && !forceStatic && !reducedMotion
-  const scrollDriven = use3d
+  // Reduced motion: static by default; visitor can opt into 3D explicitly.
+  const use3d = webgl && !forceStatic && (!reducedMotion || motionOptIn)
+  const scrollDriven = use3d && !reducedMotion
   const surgeryMode = step.id === 'surgery' ? (isMobile ? surgeryPanel : 'both') : 'both'
 
   useEffect(() => {
@@ -618,9 +620,21 @@ export default function LymphExplainer({ compactIntro = false }: LymphExplainerP
                     ? scrollDriven
                       ? 'Scroll to travel · drag to glance · Tab to step controls · arrow keys snap steps'
                       : 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
-                    : reducedMotion
+                    : reducedMotion && !motionOptIn
                       ? 'Motion reduced — showing a static illustration'
                       : '3D unavailable — showing a static illustration'}
+                  {webgl && reducedMotion && (
+                    <>
+                      {' · '}
+                      <button
+                        type="button"
+                        className="text-button"
+                        onClick={() => setMotionOptIn((v) => !v)}
+                      >
+                        {motionOptIn ? 'Use static view' : 'Play 3D'}
+                      </button>
+                    </>
+                  )}
                   {webgl && !reducedMotion && (
                     <>
                       {' · '}

@@ -1,5 +1,5 @@
-import * as ort from 'onnxruntime-web'
-import { MODEL_CACHE, MODEL_URL, PATCH_SIZE } from './constants'
+import type * as OrtNS from 'onnxruntime-web'
+import { MODEL_CACHE, MODEL_URL, ORT_WASM_PATHS, PATCH_SIZE } from './constants'
 import {
   camToOverlay,
   computeCam,
@@ -28,12 +28,23 @@ export type LoadProgress = {
 }
 
 type ProgressCb = (p: LoadProgress) => void
+type OrtModule = typeof OrtNS
 
-let sessionPromise: Promise<ort.InferenceSession> | null = null
+let ortModule: OrtModule | null = null
+let sessionPromise: Promise<OrtNS.InferenceSession> | null = null
 let cachedBuffer: ArrayBuffer | null = null
 
-function configureOrt(): void {
-  ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/'
+async function loadOrt(): Promise<OrtModule> {
+  if (ortModule) return ortModule
+  // Dynamic import keeps onnxruntime-web out of the entry chunk (Home/About/Results).
+  const mod = await import('onnxruntime-web')
+  ortModule = mod
+  return mod
+}
+
+function configureOrt(ort: OrtModule): void {
+  // Self-host the single wasm variant used by the WASM EP (see vite ort-wasm plugin).
+  ort.env.wasm.wasmPaths = ORT_WASM_PATHS
   ort.env.wasm.numThreads = 1
 }
 
@@ -125,12 +136,13 @@ async function fetchModelBuffer(onProgress?: ProgressCb): Promise<ArrayBuffer> {
   return buf
 }
 
-export async function preloadModel(onProgress?: ProgressCb): Promise<ort.InferenceSession> {
+export async function preloadModel(onProgress?: ProgressCb): Promise<OrtNS.InferenceSession> {
   const alreadyLoading = Boolean(sessionPromise)
   if (!sessionPromise) {
     sessionPromise = (async () => {
       try {
-        configureOrt()
+        const ort = await loadOrt()
+        configureOrt(ort)
         const buffer = await fetchModelBuffer(onProgress)
         onProgress?.({
           status: 'creating-session',
@@ -162,7 +174,6 @@ export async function preloadModel(onProgress?: ProgressCb): Promise<ort.Inferen
     })()
   }
   const session = await sessionPromise
-  // Remount / second callers skip the create path — still report ready.
   if (alreadyLoading && cachedBuffer) {
     onProgress?.({
       status: 'ready',
@@ -174,14 +185,15 @@ export async function preloadModel(onProgress?: ProgressCb): Promise<ort.Inferen
   return session
 }
 
-export async function getSession(onProgress?: ProgressCb): Promise<ort.InferenceSession> {
+export async function getSession(onProgress?: ProgressCb): Promise<OrtNS.InferenceSession> {
   return preloadModel(onProgress)
 }
 
 async function runPatch(
-  session: ort.InferenceSession,
+  session: OrtNS.InferenceSession,
   tensorData: Float32Array,
-): Promise<{ probability: number; features: ort.Tensor; camWeights: Float32Array }> {
+  ort: OrtModule,
+): Promise<{ probability: number; features: OrtNS.Tensor; camWeights: Float32Array }> {
   const input = new ort.Tensor('float32', tensorData, [1, 3, PATCH_SIZE, PATCH_SIZE])
   const out = await session.run({ input })
   const outputs = session.outputNames
@@ -204,6 +216,7 @@ export async function runInference(
   source: string | File,
   onProgress?: ProgressCb,
 ): Promise<InferenceResult> {
+  const ort = await loadOrt()
   const session = await getSession(onProgress)
   const img = await loadImage(source)
   const width = img.naturalWidth
@@ -211,7 +224,7 @@ export async function runInference(
 
   if (width <= PATCH_SIZE + 8 && height <= PATCH_SIZE + 8) {
     const tensor = imageToTensor(img)
-    const { probability, features, camWeights } = await runPatch(session, tensor)
+    const { probability, features, camWeights } = await runPatch(session, tensor, ort)
     const [, channels, camH, camW] = features.dims
     const cam = computeCam(
       features.data as Float32Array,
@@ -246,7 +259,7 @@ export async function runInference(
       const sx = Math.min(gx * stride, Math.max(0, width - PATCH_SIZE))
       const sy = Math.min(gy * stride, Math.max(0, height - PATCH_SIZE))
       const tensor = imageToTensor(img, sx, sy, PATCH_SIZE, PATCH_SIZE)
-      const { probability } = await runPatch(session, tensor)
+      const { probability } = await runPatch(session, tensor, ort)
       row.push(probability)
       probSum += probability
       count += 1

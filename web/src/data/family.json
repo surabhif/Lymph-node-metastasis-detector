@@ -1,0 +1,26 @@
+[
+  {
+    "id": "lnm",
+    "name": "Lymph-node metastasis detector",
+    "blurb": "PCam classifier + heatmaps",
+    "url": "https://surabhif.github.io/Lymph-node-metastasis-detector/",
+    "accent": "#9B5654",
+    "current": true
+  },
+  {
+    "id": "bus",
+    "name": "Breast ultrasound lesion segmentation",
+    "blurb": "Segmentation demo",
+    "url": "https://surabhif.github.io/Breast-ultrasound-lesion-segmentation/",
+    "accent": "#297373",
+    "current": false
+  },
+  {
+    "id": "pre",
+    "name": "Pathology report explainer",
+    "blurb": "Plain-language report explainer",
+    "url": "https://pathology-report-explainer.vercel.app",
+    "accent": "#6b6b6b",
+    "current": false
+  }
+]
