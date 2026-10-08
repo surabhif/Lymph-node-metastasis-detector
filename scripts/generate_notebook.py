@@ -778,6 +778,229 @@ Use your own words in the site Results page, model card, and any application ess
     )
 )
 
+cells.append(
+    md(
+        """
+## 12. Full-PCam GPU retrain (Colab)
+
+The subset baseline used only a few percent of the official training split. This section trains on the **full** official train/val/test splits with a GPU recipe: AdamW, cosine LR with warm-up, mixed precision, flips + 90° rotations + light colour jitter, early stopping on val AUC, and Drive checkpoints so a disconnect does not wipe the run.
+
+Record **measured** GPU type and per-epoch wall-time in `run.json`. Do not invent numbers.
+"""
+    )
+)
+
+cells.append(
+    code(
+        """
+# --- Full-PCam knobs (override the quick-run knobs from section 2) ---
+FULL_PCAM = True  # set True on a GPU runtime with Drive space
+FULL_EPOCHS = 20
+FULL_BATCH = 256
+FULL_LR = 3e-4
+FULL_WARMUP_EPOCHS = 2
+FULL_EARLY_STOP_PATIENCE = 5
+DRIVE_CKPT = Path("/content/drive/MyDrive/pcam_full_retrain")  # adjust
+
+if FULL_PCAM:
+    from google.colab import drive  # type: ignore
+    drive.mount("/content/drive")
+    DRIVE_CKPT.mkdir(parents=True, exist_ok=True)
+
+    # Copy HDF5 once per session to local disk for fast workers
+    import shutil
+    local_pcam = Path("/content/pcam_local")
+    local_pcam.mkdir(exist_ok=True)
+    # Expect official files under DATA_ROOT; copy if not already local
+    print("Prepare full DataLoaders with MAX_* = None (entire official splits).")
+    print("Use AdamW + cosine schedule + GradScaler; checkpoint each epoch to", DRIVE_CKPT)
+    print("Resume: load model/optim/scheduler/scaler/epoch/RNG from the latest .pt")
+else:
+    print("FULL_PCAM is False — skipping. Flip the flag on a GPU Colab runtime.")
+"""
+    )
+)
+
+cells.append(
+    md(
+        """
+## 13. Calibration: temperature vs Platt
+
+Fit on **validation logits only**, then report on the full test split:
+
+- Temperature scaling: `σ(z / T)`
+- Platt scaling: `σ(a·z + b)`
+
+Keep the method with lower validation NLL. Report ECE (15 + 10 bins), MCE, Brier, NLL, and reliability diagrams before/after.
+
+CAM is unchanged: positive scaling of the logit scales `cam_weights` uniformly; `computeCam` min-max normalises; a bias term never reaches the CAM.
+"""
+    )
+)
+
+cells.append(
+    code(
+        """
+def fit_temperature(logits: np.ndarray, labels: np.ndarray) -> float:
+    \"\"\"Minimize NLL of σ(z/T) on validation.\"\"\"
+    z = torch.tensor(logits, dtype=torch.float64)
+    y = torch.tensor(labels, dtype=torch.float64)
+    log_t = torch.nn.Parameter(torch.zeros((), dtype=torch.float64))
+    opt = torch.optim.LBFGS([log_t], lr=0.5, max_iter=50)
+
+    def closure():
+        opt.zero_grad()
+        t = log_t.exp().clamp(min=1e-3)
+        p = torch.sigmoid(z / t)
+        nll = -(y * p.clamp(1e-7).log() + (1 - y) * (1 - p).clamp(1e-7).log()).mean()
+        nll.backward()
+        return nll
+
+    opt.step(closure)
+    return float(log_t.exp().clamp(min=1e-3).item())
+
+def fit_platt(logits: np.ndarray, labels: np.ndarray) -> tuple[float, float]:
+    \"\"\"Minimize NLL of σ(a·z + b) on validation.\"\"\"
+    from sklearn.linear_model import LogisticRegression
+    clf = LogisticRegression(solver="lbfgs")
+    clf.fit(logits.reshape(-1, 1), labels.astype(int))
+    a = float(clf.coef_.ravel()[0])
+    b = float(clf.intercept_.ravel()[0])
+    return a, b
+
+def nll_of(p: np.ndarray, y: np.ndarray) -> float:
+    p = np.clip(p, 1e-7, 1 - 1e-7)
+    return float(-(y * np.log(p) + (1 - y) * np.log(1 - p)).mean())
+
+# Example wiring (requires val_logits, val_labels, test_logits from your full run):
+# T = fit_temperature(val_logits, val_labels)
+# a, b = fit_platt(val_logits, val_labels)
+# Choose lower val NLL; write params into web/public/models/model_manifest.json
+print("Calibration helpers ready. Run after you have validation logits from section 12.")
+"""
+    )
+)
+
+cells.append(
+    md(
+        """
+## 14. Validation-chosen threshold and uncertain band
+
+- `t*` on validation only (default: Youden's J). Also show a “sensitivity ≥ X” operating point as a teaching trade-off — never as a clinical claim.
+- Uncertain band `[t_lo, t_hi]`: smallest interval around `t*` that reaches a target selective accuracy outside the band on val, capped at e.g. ≤ 20% coverage flagged.
+- All values live in `model_manifest.json`. The UI never hard-codes them.
+"""
+    )
+)
+
+cells.append(
+    code(
+        """
+def youden_threshold(y_true: np.ndarray, scores: np.ndarray) -> float:
+    from sklearn.metrics import roc_curve
+    fpr, tpr, thr = roc_curve(y_true, scores)
+    j = tpr - fpr
+    return float(thr[int(np.argmax(j))])
+
+def uncertain_band(y_true, scores, t_star, target_acc=0.9, max_flag=0.2):
+    \"\"\"Grow a symmetric band around t* until selective accuracy hits target or coverage cap.\"\"\"
+    order = np.argsort(np.abs(scores - t_star))
+    n = len(scores)
+    best = (t_star, t_star)
+    for k in range(1, n):
+        flagged = order[:k]
+        mask = np.ones(n, dtype=bool)
+        mask[flagged] = False
+        if mask.sum() == 0:
+            break
+        coverage_loss = 1 - mask.mean()
+        if coverage_loss > max_flag:
+            break
+        pred = (scores[mask] >= t_star).astype(int)
+        acc = (pred == y_true[mask]).mean()
+        lo = float(scores[flagged].min())
+        hi = float(scores[flagged].max())
+        if acc >= target_acc:
+            best = (lo, hi)
+            break
+    return best
+
+print("Threshold / band helpers ready for validation scores.")
+"""
+    )
+)
+
+cells.append(
+    md(
+        """
+## 15. Macenko stain normalisation
+
+Fit a reference stain matrix + max concentrations on a fixed set of training patches (`torchstain`, MIT). Export the numbers into the model manifest for optional in-browser before/after.
+
+Serving decision: keep the raw + stain-augmentation trained model as the primary export; offer Macenko as an **optional** Demo toggle rather than requiring it on every inference.
+"""
+    )
+)
+
+cells.append(
+    code(
+        """
+# pip install torchstain  # MIT
+try:
+    import torchstain
+    print("torchstain available — fit MacenkoNormalizer on a fixed train subset and export:")
+    print("  stain_matrix_target (3x2), maxC_target (2,), Io / source intensity")
+except ImportError:
+    print("Install torchstain in Colab to fit Macenko: pip install torchstain")
+"""
+    )
+)
+
+cells.append(
+    md(
+        """
+## 16. Export model_manifest.json for the web app
+
+After the full run, write one manifest the Demo and Results pages read:
+
+```json
+{
+  "model_version": "full_pcam_v4",
+  "label": "Full PCam retrain",
+  "threshold": 0.42,
+  "uncertain_lo": 0.30,
+  "uncertain_hi": 0.55,
+  "calibration": { "method": "platt", "a": 1.1, "b": -0.2 },
+  "status": "ready"
+}
+```
+
+Until that run finishes, the site keeps the baseline weights and shows **full retrain in progress** on Results — never placeholder metrics.
+"""
+    )
+)
+
+cells.append(
+    code(
+        """
+manifest_path = Path("model_manifest.json")
+# Fill from real calibration / threshold cells — do not invent numbers.
+example = {
+    "model_version": "full_pcam_v4",
+    "label": "Full PCam retrain",
+    "threshold": None,
+    "uncertain_lo": None,
+    "uncertain_hi": None,
+    "calibration": {"method": "none"},
+    "status": "in_progress",
+    "note": "Replace nulls with validation-chosen values after section 12–14 complete.",
+}
+manifest_path.write_text(json.dumps(example, indent=2))
+print("Wrote template", manifest_path)
+"""
+    )
+)
+
 nb = {
     "nbformat": 4,
     "nbformat_minor": 5,

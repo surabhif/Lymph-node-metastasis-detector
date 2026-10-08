@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react'
 
+type ViewMode = 'baseline' | 'retrain' | 'side'
+
+type FullRetrainStatus = {
+  status: string
+  label: string
+  message: string
+  metrics: null
+}
+
 type Metrics = {
   label: string
   disclaimer: string
+  surabhi_prompts?: string[]
   config: Record<string, unknown>
   subset_sizes: Record<string, unknown>
   metrics: {
@@ -124,6 +134,8 @@ function CalibrationChart({ bins }: { bins: Metrics['calibration'] }) {
 export default function ResultsPage() {
   const [data, setData] = useState<Metrics | null>(null)
   const [stain, setStain] = useState<StainSummary | null>(null)
+  const [retrain, setRetrain] = useState<FullRetrainStatus | null>(null)
+  const [view, setView] = useState<ViewMode>('side')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -140,6 +152,11 @@ export default function ResultsPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((j: StainSummary | null) => setStain(j))
       .catch(() => setStain(null))
+
+    fetch(`${import.meta.env.BASE_URL}results/full_retrain_status.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: FullRetrainStatus | null) => setRetrain(j))
+      .catch(() => setRetrain(null))
   }, [])
 
   if (error) {
@@ -166,6 +183,9 @@ export default function ResultsPage() {
   const cm = m.confusion_matrix.matrix
   const labels = m.confusion_matrix.labels
 
+  const showBaseline = view === 'baseline' || view === 'side'
+  const showRetrain = view === 'retrain' || view === 'side'
+
   return (
     <article className="fade-in results-page">
       <header className="page-intro">
@@ -173,31 +193,85 @@ export default function ResultsPage() {
         <p>
           <strong>{data.label}.</strong> {data.disclaimer}
         </p>
+        <div className="results-view-toggle" role="tablist" aria-label="Results view">
+          {(
+            [
+              ['baseline', 'Baseline (CPU subset)'],
+              ['retrain', 'Full retrain (GPU)'],
+              ['side', 'Side by side'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={view === id}
+              className={`results-tab${view === id ? ' active' : ''}`}
+              onClick={() => setView(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <section className="metrics-grid">
-        <div className="metric-card panel">
-          <div className="label">Test accuracy</div>
-          <div className="value">{(m.test_accuracy * 100).toFixed(2)}%</div>
-        </div>
-        <div className="metric-card panel">
-          <div className="label">ROC-AUC</div>
-          <div className="value">{m.test_roc_auc.toFixed(4)}</div>
-        </div>
-        <div className="metric-card panel">
-          <div className="label">AUC 95% bootstrap CI</div>
-          <div className="value value-sm">
-            [{m.test_roc_auc_bootstrap_95ci[0].toFixed(4)},{' '}
-            {m.test_roc_auc_bootstrap_95ci[1].toFixed(4)}]
+      {showRetrain && (
+        <section className="panel retrain-status" aria-live="polite">
+          <h2 className="section-title">
+            {retrain?.label ?? 'Full PCam GPU retrain'}
+          </h2>
+          <p className="retrain-banner">
+            <strong>Full retrain in progress.</strong>{' '}
+            {retrain?.message ??
+              'Metrics will appear after the official-split GPU run, calibration, and validation-chosen threshold are exported. No placeholder numbers.'}
+          </p>
+          <div className="metrics-grid muted-pending">
+            <div className="metric-card panel">
+              <div className="label">Test AUC</div>
+              <div className="value">—</div>
+            </div>
+            <div className="metric-card panel">
+              <div className="label">Accuracy @ t*</div>
+              <div className="value">—</div>
+            </div>
+            <div className="metric-card panel">
+              <div className="label">ECE (calibrated)</div>
+              <div className="value">—</div>
+            </div>
+            <div className="metric-card panel">
+              <div className="label">Uncertain band</div>
+              <div className="value value-sm">—</div>
+            </div>
           </div>
-        </div>
-        <div className="metric-card panel">
-          <div className="label">Threshold</div>
-          <div className="value">{m.decision_threshold}</div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <section className="charts-grid">
+      {showBaseline && (
+        <>
+          <h2 className="section-title baseline-heading">Baseline (CPU subset)</h2>
+          <section className="metrics-grid">
+            <div className="metric-card panel">
+              <div className="label">Test accuracy</div>
+              <div className="value">{(m.test_accuracy * 100).toFixed(2)}%</div>
+            </div>
+            <div className="metric-card panel">
+              <div className="label">ROC-AUC</div>
+              <div className="value">{m.test_roc_auc.toFixed(4)}</div>
+            </div>
+            <div className="metric-card panel">
+              <div className="label">AUC 95% bootstrap CI</div>
+              <div className="value value-sm">
+                [{m.test_roc_auc_bootstrap_95ci[0].toFixed(4)},{' '}
+                {m.test_roc_auc_bootstrap_95ci[1].toFixed(4)}]
+              </div>
+            </div>
+            <div className="metric-card panel">
+              <div className="label">Threshold</div>
+              <div className="value">{m.decision_threshold}</div>
+            </div>
+          </section>
+
+          <section className="charts-grid">
         <div className="panel">
           <h2 className="section-title">ROC curve</h2>
           <RocChart points={data.roc_curve} />
@@ -326,6 +400,9 @@ export default function ResultsPage() {
             Patch-level scores are not whole-slide or patient-level decisions. Educational research
             only — not for clinical use.
           </li>
+          <li>
+            Full-PCam GPU retrain metrics are shown only when exported — never as placeholders.
+          </li>
         </ul>
       </section>
 
@@ -341,6 +418,9 @@ export default function ResultsPage() {
           2,
         )}</pre>
       </section>
+
+        </>
+      )}
     </article>
   )
 }
