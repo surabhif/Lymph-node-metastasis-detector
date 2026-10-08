@@ -1,0 +1,10 @@
+{
+  "status": "in_progress",
+  "label": "Full PCam GPU retrain",
+  "message": "Full retrain in progress. Metrics will appear here after the official-split GPU run, calibration (temperature vs Platt), and validation-chosen threshold are exported. No placeholder numbers.",
+  "metrics": null,
+  "calibration": null,
+  "threshold": null,
+  "uncertain_band": null,
+  "compared_to_baseline": null
+}

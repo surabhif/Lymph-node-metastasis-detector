@@ -13,12 +13,19 @@ export function loadImage(src: string | File): Promise<HTMLImageElement> {
 
 /** Draw image (or a crop) into a PATCH_SIZE canvas and return ImageNet-normalized CHW float32. */
 export function imageToTensor(
-  img: CanvasImageSource,
+  img: CanvasImageSource | ImageData,
   sx = 0,
   sy = 0,
   sw?: number,
   sh?: number,
 ): Float32Array {
+  if (img instanceof ImageData) {
+    const c = document.createElement('canvas')
+    c.width = img.width
+    c.height = img.height
+    c.getContext('2d')!.putImageData(img, 0, 0)
+    return imageToTensor(c, sx, sy, sw, sh)
+  }
   const canvas = document.createElement('canvas')
   canvas.width = PATCH_SIZE
   canvas.height = PATCH_SIZE

@@ -1934,6 +1934,135 @@ td {
   }
 }
 
+.results-view-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+
+.results-tab {
+  appearance: none;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.results-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.retrain-banner {
+  border: 1px solid var(--accent-border);
+  border-left: 4px solid var(--accent);
+  background: var(--accent-pale);
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius);
+}
+
+.muted-pending .value {
+  color: var(--muted);
+}
+
+.baseline-heading {
+  margin: 1.25rem 0 0.5rem;
+}
+
+.threshold-bar {
+  position: relative;
+  height: 10px;
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--radius);
+  background: #fff;
+  overflow: hidden;
+  margin: 0.35rem 0 0.25rem;
+}
+
+.threshold-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+}
+
+.threshold-band {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.15) 0 3px,
+    transparent 3px 6px
+  );
+  border-left: 1px solid var(--ink);
+  border-right: 1px solid var(--ink);
+}
+
+.verdict-pill {
+  display: inline-block;
+  margin: 0.35rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-pale);
+  color: var(--accent-ink);
+}
+
+.verdict-likely_tumor {
+  border-color: var(--malignant-border);
+  background: var(--malignant-soft);
+  color: var(--malignant);
+}
+
+.verdict-likely_normal {
+  border-color: var(--line-strong);
+  background: #fff;
+  color: var(--ink);
+}
+
+.demo-opt {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.45rem 0;
+  font-size: 0.92rem;
+}
+
+.macenko-compare {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.macenko-compare figure {
+  margin: 0;
+}
+
+.macenko-compare img {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+
+.macenko-compare figcaption {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
 /* Lymph-specific: stain robustness plots on Results */
 .stain-plots {
   display: grid;

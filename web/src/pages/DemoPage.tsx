@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import samplesManifest from '../data/samples.json'
-import { MODEL_STATUS } from '../lib/constants'
+import { MODEL_STATUS, PATCH_SIZE } from '../lib/constants'
 import {
   preloadModel,
   runInference,
@@ -9,7 +9,12 @@ import {
   type LoadProgress,
 } from '../lib/inference'
 import { camToOverlay, probabilityMapOverlay } from '../lib/image'
-import { PATCH_SIZE } from '../lib/constants'
+import {
+  loadModelManifest,
+  verdictFor,
+  verdictLabel,
+  type ModelManifest,
+} from '../lib/modelSettings'
 
 type Sample = (typeof samplesManifest.samples)[number]
 
@@ -26,6 +31,9 @@ export default function DemoPage() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<InferenceResult | null>(null)
   const [opacity, setOpacity] = useState(0.45)
+  const [useTta, setUseTta] = useState(false)
+  const [useMacenko, setUseMacenko] = useState(false)
+  const [manifest, setManifest] = useState<ModelManifest | null>(null)
   const [loadProgress, setLoadProgress] = useState<LoadProgress>({
     status: 'idle',
     loadedBytes: 0,
@@ -35,9 +43,12 @@ export default function DemoPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectUrlRef = useRef<string | null>(null)
   const preloadDone = useRef(false)
+  const optsRef = useRef({ tta: false, macenko: false })
+  optsRef.current = { tta: useTta, macenko: useMacenko }
 
   // Defer ORT + model download until the visitor asks (or deep-links a sample).
   useEffect(() => {
+    void loadModelManifest().then(setManifest).catch(() => setManifest(null))
     return () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
     }
@@ -101,7 +112,10 @@ export default function DemoPage() {
       setSourceUrl(url)
       setSelectedId(meta?.id ?? null)
       setSelectedMeta(meta ?? null)
-      const out = await runInference(src, setLoadProgress)
+      const out = await runInference(src, setLoadProgress, {
+        tta: optsRef.current.tta,
+        macenko: optsRef.current.macenko,
+      })
       setResult(out)
     } catch (err) {
       console.error(err)
@@ -131,6 +145,10 @@ export default function DemoPage() {
           : 0
 
   const gt = selectedMeta?.groundTruthTumor
+  const threshold = manifest?.threshold ?? 0.5
+  const lo = manifest?.uncertain_lo ?? 0.35
+  const hi = manifest?.uncertain_hi ?? 0.65
+  const verdict = result ? verdictFor(result.probability, threshold, lo, hi) : null
 
   return (
     <div className="fade-in demo-page">
@@ -138,7 +156,8 @@ export default function DemoPage() {
         <h1 tabIndex={-1}>Try the detector</h1>
         <p>
           Choose a real PCam test-set patch or upload your own image. Inference runs entirely in
-          your browser.
+          your browser. Threshold and uncertain band come from the model settings file — not
+          hard-coded.
         </p>
       </header>
 
@@ -280,11 +299,33 @@ export default function DemoPage() {
                   {result ? formatPct(result.probability) : '—'}
                 </text>
               </svg>
-              <div className="gauge-label">P(metastasis)</div>
+              <div className="gauge-label">Calibrated tumor probability</div>
+              {verdict && (
+                <p className={`verdict-pill verdict-${verdict}`} aria-live="polite">
+                  {verdictLabel(verdict)}
+                </p>
+              )}
             </div>
 
             <div className="gt-card">
-              <div className="label">Ground truth</div>
+              <div className="label">Threshold bar</div>
+              <div
+                className="threshold-bar"
+                role="img"
+                aria-label={`Probability ${(result?.probability ?? 0).toFixed(2)}, uncertain band ${lo} to ${hi}, threshold ${threshold}`}
+              >
+                <i style={{ width: `${(result?.probability ?? 0) * 100}%` }} />
+                <span
+                  className="threshold-band"
+                  style={{ left: `${lo * 100}%`, width: `${(hi - lo) * 100}%` }}
+                />
+              </div>
+              <p className="tiny muted">
+                0 — normal —[ uncertain ]— tumor — 1 · t*={threshold} from settings
+              </p>
+              <div className="label" style={{ marginTop: '0.75rem' }}>
+                Ground truth
+              </div>
               {selectedMeta ? (
                 gt === null || gt === undefined ? (
                   <p>
@@ -333,6 +374,44 @@ export default function DemoPage() {
             Heatmap legend: cool = lower contribution · warm = higher contribution to the tumor
             score.
           </p>
+
+          <details className="heatmap-explainer demo-options">
+            <summary>Options</summary>
+            <label className="demo-opt">
+              <input
+                type="checkbox"
+                checked={useTta}
+                onChange={(e) => setUseTta(e.target.checked)}
+              />
+              Test-time augmentation (8 flips/rotations, slower)
+            </label>
+            <label className="demo-opt">
+              <input
+                type="checkbox"
+                checked={useMacenko}
+                onChange={(e) => setUseMacenko(e.target.checked)}
+              />
+              Stain-normalise first (Macenko) — educational before/after
+            </label>
+            <p className="muted tiny">
+              Re-run a sample after changing options. Settings file:{' '}
+              <code>models/model_manifest.json</code>
+              {manifest ? ` · ${manifest.label} · ${manifest.model_version}` : ''}.{' '}
+              <Link to="/model-card">Model card →</Link>
+            </p>
+            {result?.macenkoBefore && result.macenkoAfter && (
+              <div className="macenko-compare">
+                <figure>
+                  <img src={result.macenkoBefore} alt="Patch before Macenko normalisation" width={96} height={96} />
+                  <figcaption>Before</figcaption>
+                </figure>
+                <figure>
+                  <img src={result.macenkoAfter} alt="Patch after Macenko normalisation" width={96} height={96} />
+                  <figcaption>After</figcaption>
+                </figure>
+              </div>
+            )}
+          </details>
 
           <details className="heatmap-explainer">
             <summary>How to read this heatmap</summary>
