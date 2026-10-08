@@ -1,0 +1,28 @@
+{
+  "type": "Polygon",
+  "coordinates": [
+    [
+      [
+        96,
+        96
+      ],
+      [
+        480,
+        96
+      ],
+      [
+        480,
+        384
+      ],
+      [
+        96,
+        384
+      ],
+      [
+        96,
+        96
+      ]
+    ]
+  ],
+  "note": "Educational bounding box around tumor-labelled patches in this pseudo-slide \u2014 not a CAMELYON16 XML annotation."
+}

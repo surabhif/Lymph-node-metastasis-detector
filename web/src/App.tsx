@@ -8,6 +8,7 @@ import './App.css'
 const HomePage = lazy(() => import('./pages/HomePage'))
 const DemoPage = lazy(() => import('./pages/DemoPage'))
 const QuizPage = lazy(() => import('./pages/QuizPage'))
+const SlidePage = lazy(() => import('./pages/SlidePage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const ResultsPage = lazy(() => import('./pages/ResultsPage'))
 const ModelCardPage = lazy(() => import('./pages/ModelCardPage'))
@@ -16,6 +17,7 @@ const TITLES: Record<string, string> = {
   '/': SITE.title,
   '/demo': `Try the detector · ${SITE.shortTitle}`,
   '/quiz': `You vs. the model · ${SITE.shortTitle}`,
+  '/slide': `Slide viewer · ${SITE.shortTitle}`,
   '/results': `Results · ${SITE.shortTitle}`,
   '/about': `About · ${SITE.shortTitle}`,
   '/model-card': `Model card · ${SITE.shortTitle}`,
@@ -82,6 +84,7 @@ export default function App() {
               </NavLink>
               <PrefetchDemoModel />
               <NavLink to="/quiz">Quiz</NavLink>
+              <NavLink to="/slide">Slide</NavLink>
               <NavLink to="/results">Results</NavLink>
               <NavLink to="/about">About</NavLink>
               <NavLink to="/model-card">Model card</NavLink>
@@ -98,6 +101,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/demo" element={<DemoPage />} />
             <Route path="/quiz" element={<QuizPage />} />
+            <Route path="/slide" element={<SlidePage />} />
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/model-card" element={<ModelCardPage />} />

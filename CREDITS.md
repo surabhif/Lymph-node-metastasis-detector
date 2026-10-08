@@ -37,4 +37,26 @@ Files: `web/public/models/explainer/bp3d_chest.glb` (active) and legacy `upper_t
 
 Phase 1 uses in-scene Lightformers (no download). An optional Poly Haven `studio_small_09` 1K HDRI may be dropped under `web/public/hdri/` — **CC0** ([Poly Haven license](https://polyhaven.com/license)).
 
+## CAMELYON16 / PatchCamelyon (slide viewer + demo patches)
+
+The slide heatmap viewer and demo patches use **PatchCamelyon (PCam)** material derived from **CAMELYON16** sentinel lymph-node whole-slide images.
+
+| Item | Detail |
+| --- | --- |
+| License | **CC0** (public domain dedication) |
+| CAMELYON17 Data page | https://camelyon17.grand-challenge.org/Data/ — states CAMELYON16/17 data “is made available under CC0” |
+| AWS Open Data Registry | https://registry.opendata.aws/camelyon/ — `License: CC0` |
+| GigaDB snapshot | doi:10.5524/100439 |
+| Verification date | **2026-10-08** (re-checked for the slide-viewer enhancement) |
+
+**Attribution (courtesy; CC0 does not require it):** Bejnordi et al., *JAMA* 2017; Litjens et al., *GigaScience* 2018; Veeling et al. 2018 (PCam).
+
+**What ships in this repo today:** educational **pseudo-slide** regions stitched from official PCam *test*-split patches already present under `web/public/samples/` (see `scripts/build_slide_region.py`). They are **not** contiguous WSI extractions. A future pass can replace them with OpenSlide crops from PCam-test-linked CAMELYON16 slides once those assets are available; the license record above already covers that source.
+
+## OpenSeadragon (slide viewer)
+
+- **Package:** `openseadragon` (npm)
+- **License:** BSD-3-Clause
+- **Used on:** `/slide` only (lazy-loaded)
+
 Full redistribution notes: [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).

@@ -1,0 +1,15 @@
+{
+  "regions": [
+    {
+      "id": "pseudo-metastasis-a",
+      "title": "A \u00b7 contains metastasis patches",
+      "path": "slides/pseudo-metastasis-a/"
+    },
+    {
+      "id": "pseudo-normal-b",
+      "title": "B \u00b7 normal node patches",
+      "path": "slides/pseudo-normal-b/"
+    }
+  ],
+  "note": "Pseudo-slides pending CAMELYON16 WSI extraction. License CC0 re-verified 2026-10-08."
+}

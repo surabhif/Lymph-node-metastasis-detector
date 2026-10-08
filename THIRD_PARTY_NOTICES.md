@@ -68,3 +68,21 @@ CC BY 4.0 allows redistribution and adaptation with attribution. The **code** of
 | **Source** | https://github.com/google/draco (mirrored decoder build 1.5.5) |
 | **License** | Apache-2.0 |
 | **Why self-hosted** | Avoids CDN Trusted-Types / offline failures when decoding Draco GLBs |
+
+## OpenSeadragon (`openseadragon` npm dependency)
+
+| Field | Detail |
+| --- | --- |
+| **Used on** | `/slide` pan/zoom viewer (lazy-loaded) |
+| **Source** | https://github.com/openseadragon/openseadragon |
+| **License** | BSD-3-Clause |
+| **Icons CDN** | `cdnjs.cloudflare.com/.../openseadragon/.../images/` (runtime chrome only) |
+
+## CAMELYON16 / PatchCamelyon image data
+
+| Field | Detail |
+| --- | --- |
+| **Assets** | Demo samples, quiz/mistake patches, slide pseudo-regions under `web/public/` |
+| **License** | CC0 |
+| **Verified** | 2026-10-08 via camelyon17.grand-challenge.org/Data and AWS Open Data Registry |
+| **Notes** | See `CREDITS.md`. Pseudo-slides are stitched test patches, not contiguous WSIs. |
