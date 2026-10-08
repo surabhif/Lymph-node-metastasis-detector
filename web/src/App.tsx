@@ -1,22 +1,13 @@
 import { Suspense, lazy, useEffect, useRef } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
-<<<<<<< HEAD
 import ProjectFamily from './components/ProjectFamily'
 import UpdateBanner from './components/UpdateBanner'
-=======
-import { useEffect } from 'react'
-import HomePage from './pages/HomePage'
-import DemoPage from './pages/DemoPage'
-import AboutPage from './pages/AboutPage'
-import ResultsPage from './pages/ResultsPage'
-import ModelCardPage from './pages/ModelCardPage'
-import QuizPage from './pages/QuizPage'
->>>>>>> a14e9b7 (Add You vs. the model quiz (local-only, CAM reveal))
 import { SITE } from './lib/constants'
 import './App.css'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
 const DemoPage = lazy(() => import('./pages/DemoPage'))
+const QuizPage = lazy(() => import('./pages/QuizPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const ResultsPage = lazy(() => import('./pages/ResultsPage'))
 const ModelCardPage = lazy(() => import('./pages/ModelCardPage'))
@@ -89,12 +80,8 @@ export default function App() {
               <NavLink to="/" end>
                 Home
               </NavLink>
-<<<<<<< HEAD
               <PrefetchDemoModel />
-=======
-              <NavLink to="/demo">Demo</NavLink>
               <NavLink to="/quiz">Quiz</NavLink>
->>>>>>> a14e9b7 (Add You vs. the model quiz (local-only, CAM reveal))
               <NavLink to="/results">Results</NavLink>
               <NavLink to="/about">About</NavLink>
               <NavLink to="/model-card">Model card</NavLink>
@@ -103,7 +90,6 @@ export default function App() {
         </header>
       </div>
 
-<<<<<<< HEAD
       <UpdateBanner />
 
       <main id="main" className="site-main" ref={mainRef} tabIndex={-1}>
@@ -111,22 +97,12 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/demo" element={<DemoPage />} />
+            <Route path="/quiz" element={<QuizPage />} />
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/model-card" element={<ModelCardPage />} />
           </Routes>
         </Suspense>
-=======
-      <main id="main" className="site-main">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/demo" element={<DemoPage />} />
-          <Route path="/quiz" element={<QuizPage />} />
-          <Route path="/results" element={<ResultsPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/model-card" element={<ModelCardPage />} />
-        </Routes>
->>>>>>> a14e9b7 (Add You vs. the model quiz (local-only, CAM reveal))
       </main>
 
       <footer className="site-footer">
