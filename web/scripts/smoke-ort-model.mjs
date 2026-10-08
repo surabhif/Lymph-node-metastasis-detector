@@ -226,28 +226,6 @@ async function runBrowser(browserType, label) {
     )
   }
 
-  // Built chunks must not still advertise deleted /assets/ort-wasm-*.wasm URLs.
-  const assetJs = await page.evaluate(async (base) => {
-    const html = await (await fetch(base)).text()
-    const urls = [...html.matchAll(/assets\/[^"']+\.js/g)].map((m) => m[0])
-    const bodies = []
-    for (const u of urls.slice(0, 40)) {
-      try {
-        bodies.push(await (await fetch(base + u)).text())
-      } catch {
-        /* ignore */
-      }
-    }
-    // Also probe known worker/ort chunk names via script tags / imports is hard;
-    // scan fetched index-linked chunks plus a directory listing is unavailable —
-    // instead fetch a few common entry points from network after demo/slide load.
-    return bodies.join('\n')
-  }, origin)
-  // Prefer scanning dist on the server side below; keep a light page-side check too.
-  if (/assets\/ort-wasm-simd-threaded-[A-Za-z0-9_-]+\.wasm/.test(assetJs)) {
-    throw new Error(`${label} page JS still references /assets/ort-wasm-simd-threaded-*.wasm`)
-  }
-
   const slideShot = join(root, '..', 'artifacts', `smoke-slide-heatmap-${label}.png`)
   try {
     mkdirSync(dirname(slideShot), { recursive: true })
