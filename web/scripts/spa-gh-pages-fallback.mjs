@@ -65,6 +65,7 @@ const routes = [
 copyFileSync(indexHtml, join(dist, '404.html'))
 console.log('Wrote dist/404.html')
 
+<<<<<<< HEAD
 /**
  * @param {string} html
  * @param {{ path: string, title: string, description: string, ogImage: string }} meta
@@ -119,6 +120,9 @@ function rewriteMeta(html, meta) {
   return out
 }
 
+=======
+const routes = ['results', 'about', 'demo', 'model-card', 'quiz']
+>>>>>>> a14e9b7 (Add You vs. the model quiz (local-only, CAM reveal))
 for (const route of routes) {
   const dir = join(dist, route.path)
   mkdirSync(dir, { recursive: true })

@@ -1,0 +1,12 @@
+{
+  "model_version": "improved_baseline_int8_v3",
+  "label": "Improved baseline",
+  "threshold": 0.5,
+  "uncertain_lo": 0.35,
+  "uncertain_hi": 0.65,
+  "calibration": {
+    "method": "none",
+    "note": "Raw probabilities; full calibration pending a full-PCam retrain."
+  },
+  "status": "baseline"
+}
