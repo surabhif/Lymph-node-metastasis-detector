@@ -49,7 +49,10 @@ export default function App() {
     const heading = mainRef.current?.querySelector('h1') as HTMLElement | null
     if (heading) {
       if (!heading.hasAttribute('tabindex')) heading.tabIndex = -1
-      heading.focus({ preventScroll: true })
+      // Move focus for AT without a visible ring (mouse users); keyboard
+      // focus rings remain via :focus-visible on interactive controls.
+      // focusVisible is in the Focus Options spec; DOM lib types lag behind.
+      heading.focus({ preventScroll: true, focusVisible: false } as FocusOptions)
     }
   }, [location.pathname])
 

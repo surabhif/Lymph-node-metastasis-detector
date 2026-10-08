@@ -90,6 +90,19 @@ a:hover {
   outline-offset: 2px;
 }
 
+/*
+ * Route changes programmatically focus the page h1 (tabindex=-1) for screen
+ * readers. Suppress any visible ring on that target (paired with
+ * focus({ focusVisible: false }) in App). Interactive controls still use
+ * :focus-visible above.
+ */
+h1[tabindex='-1']:focus,
+h1[tabindex='-1']:focus-visible,
+h2[tabindex='-1']:focus,
+h2[tabindex='-1']:focus-visible {
+  outline: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
