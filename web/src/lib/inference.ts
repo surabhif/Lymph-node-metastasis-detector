@@ -52,8 +52,9 @@ let cachedBuffer: ArrayBuffer | null = null
 
 async function loadOrt(): Promise<OrtModule> {
   if (ortModule) return ortModule
-  // Dynamic import keeps onnxruntime-web out of the entry chunk (Home/About/Results).
-  const mod = await import('onnxruntime-web')
+  // WASM-only entry expects ort-wasm-simd-threaded.{mjs,wasm} under wasmPaths
+  // (not the default jsep pair). Lazy import keeps ORT out of Home/About/Results.
+  const mod = await import('onnxruntime-web/wasm')
   ortModule = mod
   return mod
 }

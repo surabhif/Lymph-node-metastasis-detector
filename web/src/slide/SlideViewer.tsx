@@ -178,7 +178,8 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
     workerRef.current = worker
 
     const modelUrl = `${baseUrl}models/pcam_cam.onnx`
-    const wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.30.0/dist/'
+    // Same self-hosted non-jsep pair as Demo (BASE_URL + ort/).
+    const wasmPaths = `${baseUrl}ort/`
 
     worker.onmessage = (ev: MessageEvent<WorkerOut>) => {
       const msg = ev.data

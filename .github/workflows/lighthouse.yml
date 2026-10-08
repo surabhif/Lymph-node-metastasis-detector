@@ -49,7 +49,7 @@ jobs:
             test "$code" = "200"
           done
 
-      - name: Assert no stray jsep wasm in dist
+      - name: Assert ORT wasm+mjs pair (no stray jsep)
         run: |
           if find dist -name '*jsep*.wasm' | grep -q .; then
             echo "Unexpected jsep wasm in dist:" >&2
@@ -57,7 +57,8 @@ jobs:
             exit 1
           fi
           test -f dist/ort/ort-wasm-simd-threaded.wasm
-          echo "ORT wasm present; no jsep wasm."
+          test -f dist/ort/ort-wasm-simd-threaded.mjs
+          echo "ORT wasm+mjs present; no jsep wasm."
 
       - name: Lighthouse CI (warn-only assertions)
         working-directory: .
@@ -65,3 +66,13 @@ jobs:
           npm install -g @lhci/cli@0.14.x
           lhci autorun --config=./lighthouserc.json
         continue-on-error: true
+
+      - name: Build (GitHub Pages base) + ORT model smoke
+        env:
+          VITE_BASE: /Lymph-node-metastasis-detector/
+          SMOKE_BROWSER: both
+        run: |
+          npm run build
+          npx playwright install --with-deps chromium webkit
+          npm run smoke-ort
+
