@@ -1717,8 +1717,22 @@ td {
   font-size: 0.75em;
   border: 1px solid var(--line-strong);
   background: #fff;
+  color: var(--ink);
   padding: 0 0.3rem;
   border-radius: var(--radius);
+}
+
+/* Primary (ink) buttons: white-on-white kbd looked like a solid block (NEXT ████ ›). */
+.quiz-page .btn:not(.secondary) kbd {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.65);
+  color: #fff;
+}
+
+.quiz-page .btn.secondary kbd {
+  background: #fff;
+  border-color: var(--line-strong);
+  color: var(--ink);
 }
 
 .quiz-progress-row {
