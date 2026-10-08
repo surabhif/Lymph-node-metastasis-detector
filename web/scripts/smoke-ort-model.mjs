@@ -167,6 +167,96 @@ async function runBrowser(browserType, label) {
     /* optional */
   }
 
+  // Slide heatmap: after Run model, overlay must cover the stitched region
+  // (not remain an intrinsic cols×rows ~6×6 square in the corner).
+  await page.goto(`${origin}slide/`, { waitUntil: 'networkidle', timeout: 120_000 })
+  const runBtn = page.getByRole('button', { name: /Run model/i })
+  await runBtn.waitFor({ timeout: 30_000 })
+  await page.waitForSelector('.slide-osd .openseadragon-canvas, .slide-osd canvas', {
+    timeout: 60_000,
+  })
+  await runBtn.click()
+  await page.waitForFunction(
+    () => {
+      const text = document.body?.innerText || ''
+      if (/no available backend|Importing a module script failed/i.test(text)) {
+        return 'ERR:' + text.slice(0, 200)
+      }
+      if (/Done\.|\/\s*\d+\s*patches/i.test(text) && /\b36\s*\/\s*36\b|Done\./i.test(text)) {
+        return 'OK'
+      }
+      return null
+    },
+    null,
+    { timeout: 240_000 },
+  ).catch(async (e) => {
+    const body = await page.locator('body').innerText()
+    throw new Error(`${label} slide run wait failed: ${e.message}\nBODY:\n${body.slice(0, 800)}`)
+  })
+
+  const overlayOk = await page.evaluate(() => {
+    const heat = document.querySelector('canvas.slide-heatmap')
+    const stage = document.querySelector('.slide-osd')
+    if (!heat || !stage) return { ok: false, reason: 'missing heatmap or stage' }
+    const hr = heat.getBoundingClientRect()
+    const sr = stage.getBoundingClientRect()
+    // Overlay must be a substantial fraction of the viewer (not ~6×6 CSS px).
+    const minSide = Math.min(sr.width, sr.height)
+    const covers =
+      hr.width >= minSide * 0.45 &&
+      hr.height >= minSide * 0.45 &&
+      hr.width > 48 &&
+      hr.height > 48
+    // Mostly inside the stage (allow a few px for borders/navigator chrome).
+    const inside =
+      hr.left >= sr.left - 8 &&
+      hr.top >= sr.top - 8 &&
+      hr.right <= sr.right + 8 &&
+      hr.bottom <= sr.bottom + 8
+    return {
+      ok: covers && inside,
+      reason: covers && inside ? 'ok' : `covers=${covers} inside=${inside}`,
+      heat: { w: hr.width, h: hr.height, left: hr.left, top: hr.top },
+      stage: { w: sr.width, h: sr.height },
+    }
+  })
+  if (!overlayOk.ok) {
+    throw new Error(
+      `${label} slide heatmap overlay not covering region: ${JSON.stringify(overlayOk)}`,
+    )
+  }
+
+  // Built chunks must not still advertise deleted /assets/ort-wasm-*.wasm URLs.
+  const assetJs = await page.evaluate(async (base) => {
+    const html = await (await fetch(base)).text()
+    const urls = [...html.matchAll(/assets\/[^"']+\.js/g)].map((m) => m[0])
+    const bodies = []
+    for (const u of urls.slice(0, 40)) {
+      try {
+        bodies.push(await (await fetch(base + u)).text())
+      } catch {
+        /* ignore */
+      }
+    }
+    // Also probe known worker/ort chunk names via script tags / imports is hard;
+    // scan fetched index-linked chunks plus a directory listing is unavailable —
+    // instead fetch a few common entry points from network after demo/slide load.
+    return bodies.join('\n')
+  }, origin)
+  // Prefer scanning dist on the server side below; keep a light page-side check too.
+  if (/assets\/ort-wasm-simd-threaded-[A-Za-z0-9_-]+\.wasm/.test(assetJs)) {
+    throw new Error(`${label} page JS still references /assets/ort-wasm-simd-threaded-*.wasm`)
+  }
+
+  const slideShot = join(root, '..', 'artifacts', `smoke-slide-heatmap-${label}.png`)
+  try {
+    mkdirSync(dirname(slideShot), { recursive: true })
+    await page.locator('.slide-layout').screenshot({ path: slideShot })
+    console.log(`smoke-ort: wrote ${slideShot}`)
+  } catch {
+    /* optional */
+  }
+
   await browser.close()
   console.log(`smoke-ort: ${label} OK`)
 }
@@ -176,6 +266,17 @@ if (browsers === 'both' || browsers === 'chromium') jobs.push(runBrowser(chromiu
 if (browsers === 'both' || browsers === 'webkit') jobs.push(runBrowser(webkit, 'webkit'))
 
 try {
+  // Static check: no deleted hashed wasm asset URLs left in built JS.
+  const { readdirSync: rd, readFileSync: rf } = await import('node:fs')
+  const assetsDir = join(dist, 'assets')
+  for (const name of rd(assetsDir)) {
+    if (!name.endsWith('.js')) continue
+    const body = rf(join(assetsDir, name), 'utf8')
+    if (/assets\/ort-wasm-simd-threaded-[A-Za-z0-9_-]+\.wasm/.test(body)) {
+      throw new Error(`dist/assets/${name} still references /assets/ort-wasm-simd-threaded-*.wasm`)
+    }
+  }
+
   for (const job of jobs) await job
   console.log('smoke-ort: all browsers passed')
   writeFileSync(join(dist, 'smoke-ort-ok.json'), JSON.stringify({ ok: true, base: BASE }, null, 2))

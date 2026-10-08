@@ -1,4 +1,12 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
@@ -13,10 +21,18 @@ const rootDir = dirname(fileURLToPath(import.meta.url))
  *
  * ORT dynamically `import()`s the .mjs next to wasmPaths — shipping only the
  * .wasm yields Safari's "Importing a module script failed" / "no available backend".
+ *
+ * Vite still embeds hashed `assets/ort-wasm-simd-threaded-*.wasm` URL strings in
+ * the ORT/worker chunks; we delete those files (runtime uses wasmPaths → ort/).
+ * Rewrite the dead strings to the self-hosted path so live GH Pages does not
+ * expose 404 bait for the unused asset URLs.
  */
 function ortWasmPlugin(): Plugin {
   const wasmName = 'ort-wasm-simd-threaded.wasm'
   const mjsName = 'ort-wasm-simd-threaded.mjs'
+  /** Relative to dist/assets/*.js → dist/ort/… */
+  const selfHostedRel = `../ort/${wasmName}`
+  const deadAssetWasm = /(?:\.\/)?assets\/ort-wasm-simd-threaded-[A-Za-z0-9_-]+\.wasm/g
   return {
     name: 'ort-wasm-single-variant',
     apply: 'build',
@@ -59,6 +75,11 @@ function ortWasmPlugin(): Plugin {
             } catch {
               /* ignore */
             }
+          } else if (asset.endsWith('.js')) {
+            const path = join(assets, asset)
+            const src = readFileSync(path, 'utf8')
+            const next = src.replace(deadAssetWasm, selfHostedRel)
+            if (next !== src) writeFileSync(path, next)
           }
         }
       }

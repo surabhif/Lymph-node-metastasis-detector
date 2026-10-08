@@ -107,12 +107,12 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
 
   useEffect(() => {
     if (!hostRef.current) return
+    // Bitmap = patch grid (e.g. 6×6). OSD stretches this element over the full
+    // image bounds so each cell aligns with its patch at every zoom level.
     const heat = document.createElement('canvas')
     heat.width = cols
     heat.height = rows
     heat.className = 'slide-heatmap'
-    heat.style.width = '100%'
-    heat.style.height = '100%'
     heat.style.imageRendering = 'pixelated'
     heat.style.pointerEvents = 'none'
     heatCanvasRef.current = heat
@@ -133,14 +133,30 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
     })
     viewerRef.current = viewer
 
-    viewer.addHandler('open', () => {
-      viewer.addOverlay({
-        element: heat,
-        location: new OpenSeadragon.Rect(0, 0, 1, 1),
-        checkResize: false,
-      })
+    const placeHeatmap = () => {
+      const item = viewer.world.getItemAt(0)
+      if (!item) return
+      // Image bounds in viewport coords (aspect-correct). OSD sets the overlay
+      // element's CSS width/height in pixels from this Rect; do not fight that
+      // with width/height:100%!important (that left the canvas at its intrinsic
+      // cols×rows — e.g. 6×6 — in the top-left corner).
+      const bounds = item.getBounds()
+      if (viewer.getOverlayById(heat)) {
+        viewer.updateOverlay(heat, bounds)
+      } else {
+        viewer.addOverlay({
+          element: heat,
+          location: bounds,
+          checkResize: false,
+        })
+      }
       paintRef.current()
-    })
+    }
+
+    viewer.addHandler('open', placeHeatmap)
+    // Keep overlay locked to the image through home/fit and world changes.
+    viewer.addHandler('animation-finish', placeHeatmap)
+    viewer.world.addHandler('add-item', placeHeatmap)
 
     viewer.addHandler('canvas-click', (event) => {
       const e = event as unknown as { position?: OpenSeadragon.Point; quick?: boolean }
@@ -157,7 +173,7 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
       viewerRef.current = null
       heatCanvasRef.current = null
     }
-  }, [baseUrl, regionPath, meta.display, cols, rows, stride])
+  }, [baseUrl, regionPath, meta.display, cols, rows, stride, meta.width, meta.height])
 
   useEffect(() => {
     return () => {
