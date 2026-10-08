@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import * as ort from 'onnxruntime-web'
+import * as ort from 'onnxruntime-web/wasm'
 import { PATCH_SIZE, imageDataToTensor } from '../lib/tensor'
 
 export type WorkerIn =

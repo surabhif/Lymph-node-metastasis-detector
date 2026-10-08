@@ -8,7 +8,9 @@
     "build": "node scripts/check-quiz-version.mjs && tsc -b && vite build && node scripts/spa-gh-pages-fallback.mjs",
     "check-quiz": "node scripts/check-quiz-version.mjs",
     "preview": "vite preview",
-    "spa-fallback": "node scripts/spa-gh-pages-fallback.mjs"
+    "spa-fallback": "node scripts/spa-gh-pages-fallback.mjs",
+    "smoke-ort": "node scripts/smoke-ort-model.mjs",
+    "build:gh-pages": "VITE_BASE=/Lymph-node-metastasis-detector/ npm run build"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -8,11 +8,15 @@ import { VitePWA } from 'vite-plugin-pwa'
 const rootDir = dirname(fileURLToPath(import.meta.url))
 
 /**
- * Ship only the WASM EP binary the demo uses, and strip the unused ~28 MB
- * jsep / asyncify / jspi variants Vite would otherwise emit into dist/.
+ * Self-host the WASM EP pair the demo uses (non-jsep .mjs glue + .wasm) and
+ * strip the unused jsep / asyncify / jspi variants Vite would otherwise emit.
+ *
+ * ORT dynamically `import()`s the .mjs next to wasmPaths — shipping only the
+ * .wasm yields Safari's "Importing a module script failed" / "no available backend".
  */
 function ortWasmPlugin(): Plugin {
   const wasmName = 'ort-wasm-simd-threaded.wasm'
+  const mjsName = 'ort-wasm-simd-threaded.mjs'
   return {
     name: 'ort-wasm-single-variant',
     apply: 'build',
@@ -27,12 +31,15 @@ function ortWasmPlugin(): Plugin {
       const dist = join(rootDir, 'dist')
       const ortDir = join(dist, 'ort')
       mkdirSync(ortDir, { recursive: true })
-      const src = join(rootDir, 'node_modules/onnxruntime-web/dist', wasmName)
-      if (!existsSync(src)) {
-        this.warn(`ort-wasm: missing ${src}`)
-        return
+      const ortNpm = join(rootDir, 'node_modules/onnxruntime-web/dist')
+      for (const name of [wasmName, mjsName]) {
+        const src = join(ortNpm, name)
+        if (!existsSync(src)) {
+          this.warn(`ort-wasm: missing ${src}`)
+          continue
+        }
+        copyFileSync(src, join(ortDir, name))
       }
-      copyFileSync(src, join(ortDir, wasmName))
       // Belt-and-suspenders: remove any stray wasm that landed outside ort/
       for (const name of readdirSync(dist)) {
         if (name.endsWith('.wasm')) {
@@ -66,7 +73,9 @@ export default defineConfig({
     react(),
     ortWasmPlugin(),
     VitePWA({
-      registerType: 'prompt',
+      // autoUpdate so users stuck on the broken #16 SW pick up the ORT .mjs fix
+      // without needing to click "Reload" on the update banner.
+      registerType: 'autoUpdate',
       injectRegister: null,
       includeAssets: ['favicon.svg', 'og-image.png'],
       manifest: {
@@ -89,14 +98,29 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // App shell + samples/quiz assets. ORT wasm is CacheFirst at runtime
-        // (too large for the default 2 MB precache limit). ONNX stays in Cache API.
-        globPatterns: ['**/*.{js,css,html,svg,json,woff2}', 'samples/**/*', 'favicon.svg'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        // App shell + samples/quiz assets. ORT wasm stays CacheFirst at runtime
+        // (too large for the default 2 MB precache limit). Precache the small .mjs.
+        globPatterns: [
+          '**/*.{js,css,html,svg,json,woff2}',
+          'samples/**/*',
+          'favicon.svg',
+          'ort/*.mjs',
+        ],
         navigateFallback: 'index.html',
-        navigateFallbackDenylist: [/^\/api/],
+        // Never serve the SPA shell for ORT modules / wasm / model binaries.
+        navigateFallbackDenylist: [
+          /^\/api/,
+          /\/ort\//,
+          /\.mjs$/i,
+          /\.wasm$/i,
+          /\.onnx$/i,
+        ],
         globIgnores: [
           '**/models/**',
-          '**/ort/**',
+          '**/ort/**/*.wasm',
           '**/*.wasm',
           '**/og-*.png',
           '**/results/**',
@@ -107,11 +131,11 @@ export default defineConfig({
             handler: 'NetworkOnly',
           },
           {
-            urlPattern: /\/ort\/.*\.wasm$/i,
+            urlPattern: /\/ort\/.*\.(wasm|mjs)$/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'ort-wasm',
-              expiration: { maxEntries: 4, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheName: 'ort-wasm-v2',
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
           {
@@ -143,7 +167,7 @@ export default defineConfig({
           // Do NOT force onnxruntime-web into a manual chunk: Rolldown co-locates the
           // shared module-preload helper with that chunk, and Home/About/Results would
           // sync-import the entire ~400 KB ORT bundle just for the helper. Lazy
-          // `import('onnxruntime-web')` already emits a separate ORT chunk.
+          // `import('onnxruntime-web/wasm')` already emits a separate ORT chunk.
           if (norm.includes('/node_modules/three/') || /\/node_modules\/\.pnpm\/three@/.test(norm)) {
             return 'three'
           }

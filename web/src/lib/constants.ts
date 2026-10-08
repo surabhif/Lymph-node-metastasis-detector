@@ -9,11 +9,15 @@ export const IMAGENET_STD = [0.229, 0.224, 0.225] as const
 /** Bundled model path (under Vite public/). */
 export const MODEL_URL = `${import.meta.env.BASE_URL}models/pcam_cam.onnx`
 
-/** Self-hosted ORT wasm directory (single variant; jsep wasm is not shipped). */
+/**
+ * Self-hosted ORT wasm directory. Must contain both
+ * ort-wasm-simd-threaded.mjs (glue, dynamically imported) and
+ * ort-wasm-simd-threaded.wasm. Pair with `import('onnxruntime-web/wasm')`.
+ */
 export const ORT_WASM_PATHS = `${import.meta.env.BASE_URL}ort/`
 
 /** Cache name for the ONNX weights in the browser Cache API. */
-export const MODEL_CACHE = 'pcam-onnx-v3-fuller-int8'
+export const MODEL_CACHE = 'pcam-onnx-v4-ort-mjs'
 
 /**
  * Visitor-facing model label. Paths / quantization notes live in the README
