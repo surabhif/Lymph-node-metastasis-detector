@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+title: "Lymph Node Metastasis Detector: a PatchCamelyon research demo"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Fadnavis
+    given-names: Surabhi
+version: "0.1.0"
+date-released: "2026-10-01"
+url: "https://surabhif.github.io/Lymph-node-metastasis-detector/"
+repository-code: "https://github.com/surabhif/Lymph-node-metastasis-detector"
+license: MIT
+keywords:
+  - PatchCamelyon
+  - lymph node
+  - metastasis
+  - educational
+  - research demo
+abstract: >-
+  Educational in-browser research demo of a PatchCamelyon (PCam) lymph-node
+  metastasis patch classifier with class-activation heatmaps. Not for clinical use.

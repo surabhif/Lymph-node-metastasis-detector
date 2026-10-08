@@ -1,0 +1,36 @@
+name: Check project-family links
+
+on:
+  schedule:
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'web/src/data/family.json'
+      - '.github/workflows/links.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: HTTP 200 for family URLs
+        run: |
+          set -euo pipefail
+          urls=$(python3 - <<'PY'
+          import json
+          data = json.load(open('web/src/data/family.json'))
+          for p in data:
+              print(p['url'])
+          PY
+          )
+          for url in $urls; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -L "$url")
+            echo "$url → $code"
+            test "$code" = "200"
+          done

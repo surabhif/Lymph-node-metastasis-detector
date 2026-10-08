@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 type Metrics = {
   label: string
   disclaimer: string
-  surabhi_prompts: string[]
   config: Record<string, unknown>
   subset_sizes: Record<string, unknown>
   metrics: {
@@ -146,7 +145,7 @@ export default function ResultsPage() {
   if (error) {
     return (
       <article className="panel prose fade-in">
-        <h1>Results</h1>
+        <h1 tabIndex={-1}>Results</h1>
         <p className="error-text" role="alert">
           {error}
         </p>
@@ -157,7 +156,7 @@ export default function ResultsPage() {
   if (!data) {
     return (
       <article className="panel prose fade-in">
-        <h1>Results</h1>
+        <h1 tabIndex={-1}>Results</h1>
         <p className="muted">Loading metrics…</p>
       </article>
     )
@@ -170,7 +169,7 @@ export default function ResultsPage() {
   return (
     <article className="fade-in results-page">
       <header className="page-intro">
-        <h1>Results</h1>
+        <h1 tabIndex={-1}>Results</h1>
         <p>
           <strong>{data.label}.</strong> {data.disclaimer}
         </p>
@@ -324,8 +323,8 @@ export default function ResultsPage() {
             scaling — not Macenko/Vahadane or external labs.
           </li>
           <li>
-            Surabhi still owns interpretation of these figures and can replace the model with her
-            own Colab run.
+            Patch-level scores are not whole-slide or patient-level decisions. Educational research
+            only — not for clinical use.
           </li>
         </ul>
       </section>
@@ -341,19 +340,6 @@ export default function ResultsPage() {
           null,
           2,
         )}</pre>
-      </section>
-
-      <section className="panel prompt-box">
-        <h2 className="section-title">For Surabhi to write</h2>
-        <p className="muted">
-          Do not leave fabricated interpretations here. Fill these in after you understand the
-          figures:
-        </p>
-        <ol>
-          {data.surabhi_prompts.map((q) => (
-            <li key={q}>{q}</li>
-          ))}
-        </ol>
       </section>
     </article>
   )
