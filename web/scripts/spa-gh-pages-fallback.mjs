@@ -60,6 +60,12 @@ const routes = [
     description: `Model card for the educational PCam ResNet-18 baseline. ${NOT_CLINICAL}`,
     ogImage: `${SITE}/og-image.png`,
   },
+  {
+    path: 'quiz',
+    title: 'You vs. the model · PCam Metastasis Detector',
+    description: `Local-only quiz: classify PatchCamelyon patches and compare with the model CAM. ${NOT_CLINICAL}`,
+    ogImage: `${SITE}/og-image.png`,
+  },
 ]
 
 copyFileSync(indexHtml, join(dist, '404.html'))

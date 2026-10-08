@@ -140,7 +140,10 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           const norm = id.replace(/\\/g, '/')
-          if (norm.includes('onnxruntime-web')) return 'ort'
+          // Do NOT force onnxruntime-web into a manual chunk: Rolldown co-locates the
+          // shared module-preload helper with that chunk, and Home/About/Results would
+          // sync-import the entire ~400 KB ORT bundle just for the helper. Lazy
+          // `import('onnxruntime-web')` already emits a separate ORT chunk.
           if (norm.includes('/node_modules/three/') || /\/node_modules\/\.pnpm\/three@/.test(norm)) {
             return 'three'
           }

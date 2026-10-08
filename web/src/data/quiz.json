@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "model_version": "improved_baseline_int8_v3",
+  "threshold": 0.5,
+  "uncertain_lo": 0.35,
+  "uncertain_hi": 0.65,
+  "seed_default": 42,
+  "session_size": 10,
+  "source": "gallery_and_mistakes_fallback",
+  "disclaimer": "This set deliberately includes patches the model gets wrong. It does not measure model accuracy or medical skill. Educational only \u2014 not for clinical use. Answers never leave your browser.",
+  "pool": [
+    {
+      "id": "073cea4889667367",
+      "testIndex": 2883,
+      "label": "tumor",
+      "probability": 0.999889,
+      "verdict": "tumor",
+      "stratum": "confident_correct",
+      "src": "quiz/073cea4889667367.png",
+      "camSrc": "quiz/073cea4889667367_cam.png"
+    },
+    {
+      "id": "da78a52788774422",
+      "testIndex": 14435,
+      "label": "tumor",
+      "probability": 0.181401,
+      "verdict": "normal",
+      "stratum": "model_error",
+      "src": "quiz/da78a52788774422.png",
+      "camSrc": "quiz/da78a52788774422_cam.png"
+    },
+    {
+      "id": "48275a980bc7830b",
+      "testIndex": 21314,
+      "label": "tumor",
+      "probability": 0.993186,
+      "verdict": "tumor",
+      "stratum": "confident_correct",
+      "src": "quiz/48275a980bc7830b.png",
+      "camSrc": "quiz/48275a980bc7830b_cam.png"
+    },
+    {
+      "id": "a9fa9d5b7b1da8d2",
+      "testIndex": 25314,
+      "label": "tumor",
+      "probability": 0.801965,
+      "verdict": "tumor",
+      "stratum": "confident_correct",
+      "src": "quiz/a9fa9d5b7b1da8d2.png",
+      "camSrc": "quiz/a9fa9d5b7b1da8d2_cam.png"
+    },
+    {
+      "id": "a81f072a5700c8ac",
+      "testIndex": 3223,
+      "label": "normal",
+      "probability": 0.021743,
+      "verdict": "normal",
+      "stratum": "confident_correct",
+      "src": "quiz/a81f072a5700c8ac.png",
+      "camSrc": "quiz/a81f072a5700c8ac_cam.png"
+    },
+    {
+      "id": "c7e6f63b0e9c5a8e",
+      "testIndex": 6714,
+      "label": "normal",
+      "probability": 0.014214,
+      "verdict": "normal",
+      "stratum": "confident_correct",
+      "src": "quiz/c7e6f63b0e9c5a8e.png",
+      "camSrc": "quiz/c7e6f63b0e9c5a8e_cam.png"
+    },
+    {
+      "id": "6c9d07d8883e6305",
+      "testIndex": 17222,
+      "label": "normal",
+      "probability": 0.010149,
+      "verdict": "normal",
+      "stratum": "confident_correct",
+      "src": "quiz/6c9d07d8883e6305.png",
+      "camSrc": "quiz/6c9d07d8883e6305_cam.png"
+    },
+    {
+      "id": "96ba8cdefdd79b42",
+      "testIndex": 22939,
+      "label": "normal",
+      "probability": 0.070806,
+      "verdict": "normal",
+      "stratum": "confident_correct",
+      "src": "quiz/96ba8cdefdd79b42.png",
+      "camSrc": "quiz/96ba8cdefdd79b42_cam.png"
+    },
+    {
+      "id": "92dfb20af4bd4f37",
+      "testIndex": 17023,
+      "label": "normal",
+      "probability": 0.999558,
+      "verdict": "tumor",
+      "stratum": "model_error",
+      "src": "quiz/92dfb20af4bd4f37.png",
+      "camSrc": "quiz/92dfb20af4bd4f37_cam.png"
+    },
+    {
+      "id": "20cb1c2bb0000254",
+      "testIndex": 1996,
+      "label": "normal",
+      "probability": 0.999358,
+      "verdict": "tumor",
+      "stratum": "model_error",
+      "src": "quiz/20cb1c2bb0000254.png",
+      "camSrc": "quiz/20cb1c2bb0000254_cam.png"
+    },
+    {
+      "id": "6ff7007c7665142a",
+      "testIndex": 16811,
+      "label": "tumor",
+      "probability": 0.002059,
+      "verdict": "normal",
+      "stratum": "model_error",
+      "src": "quiz/6ff7007c7665142a.png",
+      "camSrc": "quiz/6ff7007c7665142a_cam.png"
+    },
+    {
+      "id": "8abcc0e8c08182b2",
+      "testIndex": 15661,
+      "label": "normal",
+      "probability": 0.998021,
+      "verdict": "tumor",
+      "stratum": "model_error",
+      "src": "quiz/8abcc0e8c08182b2.png",
+      "camSrc": "quiz/8abcc0e8c08182b2_cam.png"
+    },
+    {
+      "id": "b1b18d18b03a6394",
+      "testIndex": 23522,
+      "label": "normal",
+      "probability": 0.997678,
+      "verdict": "tumor",
+      "stratum": "model_error",
+      "src": "quiz/b1b18d18b03a6394.png",
+      "camSrc": "quiz/b1b18d18b03a6394_cam.png"
+    },
+    {
+      "id": "f98c6f7f4bcf9200",
+      "testIndex": 2442,
+      "label": "normal",
+      "probability": 0.996772,
+      "verdict": "tumor",
+      "stratum": "model_error",
+      "src": "quiz/f98c6f7f4bcf9200.png",
+      "camSrc": "quiz/f98c6f7f4bcf9200_cam.png"
+    },
+    {
+      "id": "b0d67a08c43cc9e5",
+      "testIndex": 8694,
+      "label": "tumor",
+      "probability": 0.003398,
+      "verdict": "normal",
+      "stratum": "model_error",
+      "src": "quiz/b0d67a08c43cc9e5.png",
+      "camSrc": "quiz/b0d67a08c43cc9e5_cam.png"
+    },
+    {
+      "id": "8111b0ab9a597d38",
+      "testIndex": 23441,
+      "label": "tumor",
+      "probability": 0.003696,
+      "verdict": "normal",
+      "stratum": "model_error",
+      "src": "quiz/8111b0ab9a597d38.png",
+      "camSrc": "quiz/8111b0ab9a597d38_cam.png"
+    }
+  ]
+}

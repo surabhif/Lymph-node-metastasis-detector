@@ -32,6 +32,9 @@ export function LandingHero() {
         <Link className="btn secondary" to="/demo">
           Try the detector
         </Link>
+        <Link className="btn secondary" to="/quiz">
+          You vs. the model
+        </Link>
       </div>
       <nav className="landing-wwh" aria-label="Guide sections">
         <a href="#why">
