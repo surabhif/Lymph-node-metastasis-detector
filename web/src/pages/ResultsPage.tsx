@@ -221,9 +221,13 @@ export default function ResultsPage() {
             {retrain?.label ?? 'Full PCam GPU retrain'}
           </h2>
           <p className="retrain-banner">
-            <strong>Full retrain in progress.</strong>{' '}
-            {retrain?.message ??
-              'Metrics will appear after the official-split GPU run, calibration, and validation-chosen threshold are exported. No placeholder numbers.'}
+            {retrain?.message ?? (
+              <>
+                <strong>Full retrain in progress.</strong> Metrics will appear after the
+                official-split GPU run, calibration, and validation-chosen threshold are exported.
+                No placeholder numbers.
+              </>
+            )}
           </p>
           <div className="metrics-grid muted-pending">
             <div className="metric-card panel">
