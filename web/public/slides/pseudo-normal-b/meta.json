@@ -1,0 +1,24 @@
+{
+  "title": "Pseudo-region B (normal patches only)",
+  "kind": "normal",
+  "source": "PCam official test patches (CC0), stitched",
+  "id": "pseudo-normal-b",
+  "width": 576,
+  "height": 576,
+  "patch_size": 96,
+  "grid": [
+    6,
+    6
+  ],
+  "display": "display.png",
+  "um_per_px_approx": 1.0,
+  "pseudo_slide": true,
+  "license": "CC0",
+  "license_verified": "2026-10-08",
+  "license_sources": [
+    "https://camelyon17.grand-challenge.org/Data/ (CAMELYON16/17: made available under CC0)",
+    "https://registry.opendata.aws/camelyon/ (License: CC0)"
+  ],
+  "attribution": "Bejnordi et al., JAMA 2017; Litjens et al., GigaScience 2018; Veeling et al. 2018 (PCam).",
+  "warning": "Stitched from separate PCam official-test patches \u2014 not a contiguous whole-slide region. Educational only; not for clinical use."
+}

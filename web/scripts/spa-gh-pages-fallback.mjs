@@ -66,6 +66,12 @@ const routes = [
     description: `Local-only quiz: classify PatchCamelyon patches and compare with the model CAM. ${NOT_CLINICAL}`,
     ogImage: `${SITE}/og-image.png`,
   },
+  {
+    path: 'slide',
+    title: 'Slide viewer · PCam Metastasis Detector',
+    description: `Pan/zoom slide regions with a patch heatmap overlay from the educational baseline. ${NOT_CLINICAL}`,
+    ogImage: `${SITE}/og-image.png`,
+  },
 ]
 
 copyFileSync(indexHtml, join(dist, '404.html'))
