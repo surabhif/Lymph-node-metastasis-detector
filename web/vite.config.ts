@@ -30,9 +30,12 @@ const rootDir = dirname(fileURLToPath(import.meta.url))
 function ortWasmPlugin(): Plugin {
   const wasmName = 'ort-wasm-simd-threaded.wasm'
   const mjsName = 'ort-wasm-simd-threaded.mjs'
-  /** Relative to dist/assets/*.js → dist/ort/… */
-  const selfHostedRel = `../ort/${wasmName}`
-  const deadAssetWasm = /(?:\.\/)?assets\/ort-wasm-simd-threaded-[A-Za-z0-9_-]+\.wasm/g
+  // Vite may emit "/<base>/assets/ort-wasm-….wasm" (absolute) or "assets/…".
+  // Rewrite the whole match to the self-hosted absolute URL under the same base.
+  const basePath = (process.env.VITE_BASE || '/').replace(/\/?$/, '/')
+  const selfHostedAbs = `${basePath}ort/${wasmName}`
+  const deadAssetWasm =
+    /(?:\/(?:[\w.-]+\/)*)?assets\/ort-wasm-simd-threaded-[A-Za-z0-9_-]+\.wasm/g
   return {
     name: 'ort-wasm-single-variant',
     apply: 'build',
@@ -78,7 +81,7 @@ function ortWasmPlugin(): Plugin {
           } else if (asset.endsWith('.js')) {
             const path = join(assets, asset)
             const src = readFileSync(path, 'utf8')
-            const next = src.replace(deadAssetWasm, selfHostedRel)
+            const next = src.replace(deadAssetWasm, selfHostedAbs)
             if (next !== src) writeFileSync(path, next)
           }
         }
