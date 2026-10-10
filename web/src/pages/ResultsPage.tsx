@@ -298,7 +298,7 @@ export default function ResultsPage() {
   const [stain, setStain] = useState<StainSummary | null>(null)
   const [retrain, setRetrain] = useState<FullRetrainStatus | null>(null)
   const [full, setFull] = useState<FullRetrainMetrics | null>(null)
-  const [view, setView] = useState<ViewMode>('side')
+  const [view, setView] = useState<ViewMode>('retrain')
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -365,13 +365,21 @@ export default function ResultsPage() {
       <header className="page-intro">
         <h1 tabIndex={-1}>Results</h1>
         <p>
-          <strong>{data.label}.</strong> {data.disclaimer}
+          <strong>
+            {retrain?.label ?? 'Full PCam retrain'} is the live model
+            {full ? ` (test AUC ${full.test_calibrated_at_youden.auc.toFixed(4)}, n=32,768)` : ''}
+            .
+          </strong>{' '}
+          {retrain?.message ??
+            'Trained on all 262,144 official train patches; evaluated on the full official test set. Educational research only — not for clinical use.'}{' '}
+          An earlier <strong>{data.label}</strong> (8k-sample test eval) is kept below for
+          side-by-side comparison only — it is not what the demo downloads.
         </p>
         <div className="results-view-toggle" role="tablist" aria-label="Results view">
           {(
             [
+              ['retrain', 'Full retrain (live)'],
               ['baseline', 'Baseline (CPU subset)'],
-              ['retrain', 'Full retrain'],
               ['side', 'Side by side'],
             ] as const
           ).map(([id, label]) => (
