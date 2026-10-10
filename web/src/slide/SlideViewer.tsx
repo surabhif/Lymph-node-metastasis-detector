@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import OpenSeadragon from 'openseadragon'
+import { loadModelManifest } from '../lib/modelSettings'
 import { PATCH_SIZE, heatmapColor } from '../lib/tensor'
 import type { WorkerIn, WorkerOut } from '../workers/inference.worker'
 
@@ -196,6 +197,7 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
     const modelUrl = `${baseUrl}models/pcam_cam.onnx`
     // Same self-hosted non-jsep pair as Demo (BASE_URL + ort/).
     const wasmPaths = `${baseUrl}ort/`
+    const manifest = await loadModelManifest()
 
     worker.onmessage = (ev: MessageEvent<WorkerOut>) => {
       const msg = ev.data
@@ -223,7 +225,12 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
       }
     }
 
-    worker.postMessage({ type: 'init', modelUrl, wasmPaths } satisfies WorkerIn)
+    worker.postMessage({
+      type: 'init',
+      modelUrl,
+      wasmPaths,
+      calibration: manifest.calibration,
+    } satisfies WorkerIn)
 
     const img = await createImageBitmap(
       await (await fetch(`${baseUrl}${regionPath}${meta.display}`)).blob(),

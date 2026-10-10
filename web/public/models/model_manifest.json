@@ -1,21 +1,23 @@
 {
-  "model_version": "improved_baseline_int8_v3",
-  "label": "Improved baseline",
-  "threshold": 0.5,
-  "uncertain_lo": 0.35,
-  "uncertain_hi": 0.65,
+  "model_version": "full_pcam_int8_v1",
+  "label": "Full-PCam retrain (INT8)",
+  "threshold": 0.5201096655586059,
+  "uncertain_lo": 0.48791709483318474,
+  "uncertain_hi": 0.5522416855723584,
   "calibration": {
-    "method": "none",
-    "note": "No validation-logit fit in this environment (PCam HDF5 / GPU retrain unavailable). Probabilities are raw model outputs. Temperature vs Platt will be chosen on val NLL after the full-PCam run."
+    "method": "platt",
+    "a": 0.7045353163653968,
+    "b": 1.0488045000266217,
+    "note": "Chosen on validation by NLL/ECE among none / temperature / Platt. Apply to logit of ONNX probability: p = sigmoid(a*z + b)."
   },
   "macenko": {
     "enabled": false,
-    "note": "Reference stain matrix will be exported from the Colab Macenko cell when available."
+    "note": "Reference stain matrix not fitted for this release."
   },
   "tta": {
     "default": false,
     "transforms": 8
   },
-  "status": "baseline",
-  "full_retrain_status": "in_progress"
+  "status": "full_pcam",
+  "full_retrain_status": "shipped"
 }

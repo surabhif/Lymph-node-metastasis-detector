@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "label": "Improved baseline (larger subset)",
-  "disclaimer": "These metrics come from an improved baseline trained on a larger official-split subset with more epochs than the original quick stub. They are a reference point for the educational demo \u2014 not a clinical claim. A full-PCam GPU retrain with calibration is the planned next training step.",
+  "disclaimer": "These metrics come from an improved baseline trained on a larger official-split subset (not the full 262k train / 32k test). Kept for side-by-side comparison with the shipped full-PCam retrain. Educational research only \u2014 not a clinical claim.",
   "run_id": "baseline_fuller_run",
   "surabhi_prompts": [
     "Write 2\u20133 sentences on what the ROC curve and AUC mean for this problem.",

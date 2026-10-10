@@ -58,18 +58,19 @@ export default function AboutPage() {
 
       <h2>Honest status of the model</h2>
       <p>
-        The live weights are an <em>improved baseline</em> trained on a larger official-split
-        subset than the original quick stub, still on CPU with limited epochs. Exact sample counts,
-        epochs, and metrics live on the Results page and in{' '}
-        <code>results/baseline_fuller_run.json</code>. A full-PCam GPU retrain with calibration is
-        the planned next training step.
+        The live weights are a <em>full-PCam retrain</em>: ResNet-18 on all 262,144 official train
+        patches (8 epochs, CPU bf16; epoch 3 by val AUC 0.9587), with Platt calibration and a
+        validation-chosen threshold. Exact metrics (full 32,768-patch test set, INT8 vs PyTorch
+        gap, reliability bins) live on the Results page and in{' '}
+        <code>results/full_retrain_metrics.json</code>. An older CPU-subset baseline remains on
+        Results for side-by-side comparison only.
       </p>
 
       <h2>Open improvements</h2>
       <ul>
         <li>Stain and scanner colour robustness (see the stain-shift experiment on Results).</li>
         <li>Clearer write-up of mistakes, calibration, and failure modes.</li>
-        <li>A fuller training run on GPU on the official training split.</li>
+        <li>GPU training / longer schedules and external-lab stain normalization.</li>
       </ul>
 
       <h2>Method (summary)</h2>

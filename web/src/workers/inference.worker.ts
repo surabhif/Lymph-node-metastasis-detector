@@ -1,10 +1,23 @@
 /// <reference lib="webworker" />
 import * as ort from 'onnxruntime-web/wasm'
 import { PATCH_SIZE, imageDataToTensor } from '../lib/tensor'
+import type { Calibration } from '../lib/modelSettings'
 
 export type WorkerIn =
-  | { type: 'init'; modelUrl: string; wasmPaths: string }
-  | { type: 'score'; width: number; height: number; stride: number; buffer: ArrayBuffer; priority: Array<[number, number]> }
+  | {
+      type: 'init'
+      modelUrl: string
+      wasmPaths: string
+      calibration?: Calibration
+    }
+  | {
+      type: 'score'
+      width: number
+      height: number
+      stride: number
+      buffer: ArrayBuffer
+      priority: Array<[number, number]>
+    }
   | { type: 'pause' }
   | { type: 'resume' }
 
@@ -18,6 +31,19 @@ export type WorkerOut =
 let session: ort.InferenceSession | null = null
 let paused = false
 let abortScore = false
+let calibration: Calibration = { method: 'none' }
+
+function applyCalibration(raw: number, cal: Calibration): number {
+  const clipped = Math.min(1 - 1e-7, Math.max(1e-7, raw))
+  const logit = Math.log(clipped / (1 - clipped))
+  if (cal.method === 'temperature') {
+    return 1 / (1 + Math.exp(-(logit / cal.T)))
+  }
+  if (cal.method === 'platt') {
+    return 1 / (1 + Math.exp(-(cal.a * logit + cal.b)))
+  }
+  return raw
+}
 
 async function ensureSession(modelUrl: string, wasmPaths: string) {
   if (session) return session
@@ -37,7 +63,8 @@ async function runOne(sess: ort.InferenceSession, tensor: Float32Array): Promise
   const input = new ort.Tensor('float32', tensor, [1, 3, PATCH_SIZE, PATCH_SIZE])
   const out = await sess.run({ input })
   const probabilityTensor = out.probability ?? out[sess.outputNames[0]!]
-  return (probabilityTensor.data as Float32Array)[0] ?? 0
+  const raw = (probabilityTensor.data as Float32Array)[0] ?? 0
+  return applyCalibration(raw, calibration)
 }
 
 self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
@@ -52,6 +79,7 @@ self.onmessage = async (ev: MessageEvent<WorkerIn>) => {
       return
     }
     if (msg.type === 'init') {
+      calibration = msg.calibration ?? { method: 'none' }
       await ensureSession(msg.modelUrl, msg.wasmPaths)
       ;(self as DedicatedWorkerGlobalScope).postMessage({ type: 'ready' } satisfies WorkerOut)
       return
