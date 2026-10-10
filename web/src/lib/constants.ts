@@ -17,15 +17,15 @@ export const MODEL_URL = `${import.meta.env.BASE_URL}models/pcam_cam.onnx`
 export const ORT_WASM_PATHS = `${import.meta.env.BASE_URL}ort/`
 
 /** Cache name for the ONNX weights in the browser Cache API. */
-export const MODEL_CACHE = 'pcam-onnx-v4-ort-mjs'
+export const MODEL_CACHE = 'pcam-onnx-v5-full-pcam'
 
 /**
  * Visitor-facing model label. Paths / quantization notes live in the README
  * and on the Model card “Current served model” section — not in the site banner.
  */
 export const MODEL_STATUS = {
-  kind: 'improved_baseline_int8' as const,
-  label: 'Improved baseline',
+  kind: 'full_pcam_int8' as const,
+  label: 'Full-PCam retrain',
   sizeHintMb: 11,
 }
 

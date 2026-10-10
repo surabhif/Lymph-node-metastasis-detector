@@ -1,6 +1,12 @@
-STATUS=improved_baseline_int8
-DESCRIPTION=Improved baseline (dynamic INT8 quantization for browser size). See results/baseline_fuller_run.json for train/val/test counts and epochs.
+STATUS=full_pcam_int8_v1
+DESCRIPTION=Full-PCam retrain: ResNet-18 on all 262144 official train patches (8 epochs CPU bf16; epoch 3 by val AUC 0.9587). Platt calibration + Youden threshold chosen on val. Served as dynamic INT8 ONNX for browser size.
 METHOD=onnxruntime.quantization.quantize_dynamic default ops (incl. Conv) QUInt8
 FP32_MB=42.63
 INT8_MB=10.72
-GALLERY_MAX_ABS_DELTA=0.0113
+TEST_N=32768
+TEST_AUC_TORCH=0.9401
+TEST_AUC_INT8_RAW=0.9368
+CALIBRATION=platt a=0.7045353163653968 b=1.0488045000266217
+THRESHOLD=0.5201096655586059
+UNCERTAIN_LO=0.48791709483318474
+UNCERTAIN_HI=0.5522416855723584

@@ -40,26 +40,28 @@ METRICS = REPO / "web" / "public" / "results" / "metrics.json"
 IMAGENET_MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 PATCH = 96
-MODEL_VERSION = "improved_baseline_int8_v3"
 SEED = 42
 
 
 def load_manifest() -> dict:
-    if MANIFEST.exists():
-        return json.loads(MANIFEST.read_text())
-    # Provisional settings until the full-PCam recalibration lands (PR C).
-    data = {
-        "model_version": MODEL_VERSION,
-        "label": "Improved baseline",
-        "threshold": 0.5,
-        "uncertain_lo": 0.35,
-        "uncertain_hi": 0.65,
-        "calibration": {"method": "none", "note": "Raw probabilities; full calibration pending."},
-        "status": "baseline",
-    }
-    MANIFEST.parent.mkdir(parents=True, exist_ok=True)
-    MANIFEST.write_text(json.dumps(data, indent=2) + "\n")
-    return data
+    if not MANIFEST.exists():
+        raise SystemExit(f"Missing {MANIFEST} — write model_manifest.json before exporting quiz.")
+    return json.loads(MANIFEST.read_text())
+
+
+def apply_calibration(raw: float, cal: dict) -> float:
+    """Match web/src/lib/modelSettings.ts applyCalibration (prob → logit → cal)."""
+    p = min(1.0 - 1e-7, max(1e-7, float(raw)))
+    logit = float(np.log(p / (1.0 - p)))
+    method = (cal or {}).get("method", "none")
+    if method == "temperature":
+        t = float(cal["T"])
+        return float(1.0 / (1.0 + np.exp(-(logit / t))))
+    if method == "platt":
+        a = float(cal["a"])
+        b = float(cal["b"])
+        return float(1.0 / (1.0 + np.exp(-(a * logit + b))))
+    return float(raw)
 
 
 def hash_name(test_index: int, salt: str = "pcam-quiz") -> str:
@@ -205,6 +207,7 @@ def main() -> None:
     lo = float(manifest["uncertain_lo"])
     hi = float(manifest["uncertain_hi"])
     version = manifest["model_version"]
+    cal = manifest.get("calibration") or {"method": "none"}
 
     session = ort.InferenceSession(str(MODEL), providers=["CPUExecutionProvider"])
 
@@ -230,7 +233,9 @@ def main() -> None:
 
     pool = []
     for it in items:
-        prob, cam = run_onnx(session, it["arr"])
+        raw_prob, cam = run_onnx(session, it["arr"])
+        # Demo / Quiz / Slide apply calibration before threshold & band.
+        prob = apply_calibration(raw_prob, cal)
         stratum = it.get("bucket_hint") or stratum_for(it["label"], prob, t, lo, hi)
         # If hint was model_error but model now agrees, keep scored stratum
         if it.get("bucket_hint") == "model_error":
@@ -250,6 +255,7 @@ def main() -> None:
                 "testIndex": it["testIndex"],
                 "label": "tumor" if it["label"] else "normal",
                 "probability": round(float(prob), 6),
+                "rawProbability": round(float(raw_prob), 6),
                 "verdict": verdict_for(prob, t, lo, hi),
                 "stratum": stratum,
                 "src": f"quiz/{name}.png",
