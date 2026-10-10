@@ -36,7 +36,10 @@ export function LandingWhat() {
         <article className="landing-card">
           <span className="landing-card-kicker">Evaluation</span>
           <h3>Results</h3>
-          <p>Metrics for the model on the site, plus confident mistakes and stain-shift checks.</p>
+          <p>
+            Full-PCam retrain metrics (live model), plus an earlier subset baseline for comparison,
+            confident mistakes, and stain-shift checks.
+          </p>
           <Link className="landing-jumplink" to="/results">
             View Results →
           </Link>

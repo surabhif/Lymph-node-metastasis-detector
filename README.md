@@ -15,9 +15,10 @@ Lymph-node status matters for breast-cancer surgery planning. This project is an
 | `notebooks/01_train_pcam.ipynb` | Guided Colab teaching notebook (train, evaluate, export ONNX) |
 | `web/` | React + Vite research site (3D educational landing, guided demo, Results, About) |
 | `web/src/explainer/` | Lazy-loaded Three.js / R3F lymph-node metastasis explainer (HRA female anatomy + overlays) |
-| `web/public/models/pcam_cam.onnx` | Improved Cursor-assisted baseline ONNX (see Results for knobs; often INT8 ~11 MB) |
-| `web/public/results/metrics.json` | Data-driven Results page (ROC, calibration, CM, mistakes) |
-| `results/baseline_fuller_run.json` | Raw improved-baseline training metrics/config |
+| `web/public/models/pcam_cam.onnx` | Live full-PCam retrain ONNX (INT8 ~10.7 MB; see Results / Model card) |
+| `web/public/results/full_retrain_metrics.json` | Full official-split test metrics for the live model |
+| `web/public/results/metrics.json` | Earlier subset baseline (side-by-side comparison on Results) |
+| `results/baseline_fuller_run.json` | Raw improved-baseline training metrics/config (historical) |
 | `results/baseline_quick_run.json` | Original quick stub run (historical reference) |
 | `results/stain_robustness.md` | Stain / colour robustness experiment write-up |
 | `results/quantization_report.json` | FP32→INT8 size and gallery score deltas |
@@ -31,24 +32,27 @@ The landing explainer uses **NIH/HuBMAP Human Reference Atlas** female skin, rig
 
 ## Honest status of the bundled model
 
-The file at `web/public/models/pcam_cam.onnx` is an **improved Cursor-assisted baseline** trained on a **larger subset** of the official PCam splits than the original quick stub (ResNet-18; see `results/baseline_fuller_run.json` for exact sample counts, epochs, hardware, and metrics). It may be **dynamically quantized to INT8** for browser size when gallery probability deltas stay small. **It is not Surabhi’s final model** — she owns the science narrative and can replace it with her own Colab run. The site banner stays visitor-facing; technical paths live here and under Model card → Current served model.
+The file at `web/public/models/pcam_cam.onnx` is the **full-PCam retrain** shipped to the live demo: ResNet-18 trained on **all 262,144** official train patches (8 epochs, CPU bf16; epoch 3 by val AUC **0.9587**), evaluated on the full **32,768** official test set (AUC **0.9401**, 95% CI 0.9373–0.9428). Served as dynamic INT8 (~10.7 MB). Platt calibration, threshold **0.5201**, and uncertain band **0.4879–0.5522** were chosen on validation. INT8 scores test AUC **0.9368** / acc 83.56% @ 0.5 vs PyTorch 0.9401 — reported on Results / Model card. Educational research only — not for clinical use.
+
+An earlier **subset baseline** (larger-than-stub train subset; 8k-sample test eval, AUC ≈ 0.9103) remains on Results for side-by-side comparison only; it is not what the browser downloads.
 
 Reference metrics:
 
-- `results/baseline_fuller_run.json` — improved baseline training run dump  
+- `web/public/results/full_retrain_metrics.json` — live model (source of truth)  
+- `training/train.py`, `training/evaluate.py` — reproducibility scripts  
+- `results/baseline_fuller_run.json` / `web/public/results/metrics.json` — earlier subset baseline  
 - `results/baseline_quick_run.json` — original quick stub (historical)  
-- `web/public/results/metrics.json` — powers the Results page (overwrite after your run)  
-- `results/stain_robustness.md` — colour / stain-shift stress test
+- `results/stain_robustness.md` — colour / stain-shift stress test (baseline-era)
 
 ```bash
-python scripts/run_baseline_fuller.py    # improved baseline (larger subset / more epochs)
+python scripts/run_baseline_fuller.py    # historical subset baseline helpers
 python scripts/run_baseline_quick.py     # original quick stub knobs
-python scripts/export_web_results.py     # refresh Results JSON + mistake images
+python scripts/export_web_results.py     # refresh baseline Results JSON + mistake images
 python scripts/quantize_onnx.py          # optional INT8 shrink + delta report
 python scripts/run_stain_robustness.py   # colour / stain-shift experiment + report
 ```
 
-Then overwrite `web/public/models/pcam_cam.onnx` and update `MODEL_STATUS` in `web/src/lib/constants.ts`.
+To replace the live weights: overwrite `web/public/models/pcam_cam.onnx`, update `web/public/models/model_manifest.json` and `MODEL_STATUS` in `web/src/lib/constants.ts`, then regenerate quiz scores with `python scripts/export_quiz.py`.
 
 The notebook also documents a **MobileNetV2** backbone option (`BACKBONE = "mobilenet_v2"`) if you want a smaller unquantized export.
 
