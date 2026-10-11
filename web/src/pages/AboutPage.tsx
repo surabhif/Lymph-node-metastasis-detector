@@ -12,30 +12,29 @@ export default function AboutPage() {
         </div>
         <div>
           <h2 className="about-name">Surabhi Fadnavis</h2>
-          <p className="muted">
-            Lambert High School senior · aspiring surgical oncologist
-          </p>
+          <p className="muted">Lambert High School senior, aspiring surgical oncologist</p>
           <p>
-            This educational research demo explores how machine learning can support — never
-            replace — the careful work pathologists and surgeons do when deciding whether breast
-            cancer has reached the lymph nodes.
+            I built this research demo to explore how machine learning can support, never replace,
+            the careful work pathologists and surgeons do when asking whether breast cancer has
+            reached the lymph nodes.
           </p>
         </div>
       </section>
 
       <h2>Why lymph-node status matters</h2>
       <p>
-        Lymph-node involvement helps shape how far cancer may have spread and what treatment path
+        Lymph-node involvement helps show how far cancer may have spread and what treatment path
         makes sense. PatchCamelyon (PCam) lets students study metastasis-related patterns on
         public, de-identified image patches without ever touching clinic data.
       </p>
 
       <h2>What this project set out to learn</h2>
       <p>
-        Go beyond a tutorial accuracy number: train a small CNN on the official PCam splits,
-        measure ROC-AUC and calibration honestly, look at confident mistakes, export a
-        browser-friendly ONNX model with class-activation maps, and write about what still breaks —
-        especially when stain colour shifts.
+        I wanted more than a tutorial accuracy number. I trained a small CNN on the official PCam
+        splits, measured ROC-AUC (how well scores rank tumor vs normal) and calibration (whether a
+        predicted 70% chance is right about 70% of the time), looked at confident mistakes, exported
+        a browser-friendly ONNX model with a class-activation heatmap, and wrote about what still
+        breaks, especially when stain colour shifts.
       </p>
 
       <h2>What this app does</h2>
@@ -44,42 +43,39 @@ export default function AboutPage() {
           An in-browser demo that scores 96×96 H&amp;E patches and shows a CAM-style heatmap.
         </li>
         <li>
-          A Results page with metrics, ROC, calibration, and a confident-mistake gallery from the
-          current training run.
+          A Results page with metrics, ROC, calibration, and a gallery of confident mistakes from
+          the current training run.
         </li>
-        <li>
-          A short 3D explainer of lymph-node context for visitors who are new to the biology.
-        </li>
+        <li>A short 3D tour of lymph-node context for visitors who are new to the biology.</li>
       </ul>
       <p>
-        <strong>This is educational research only — not for clinical use.</strong> A patch score is
+        <strong>This is educational research only, not for clinical use.</strong> A patch score is
         not a patient diagnosis, a whole-slide read, or a surgical decision.
       </p>
 
-      <h2>Honest status of the model</h2>
+      <h2>Status of the model</h2>
       <p>
         The live weights are a <em>full-PCam retrain</em>: ResNet-18 on all 262,144 official train
         patches (8 epochs, CPU bf16; epoch 3 by val AUC 0.9587), with Platt calibration and a
-        validation-chosen threshold. Exact metrics (full 32,768-patch test set, INT8 vs PyTorch
-        gap, reliability bins) live on the Results page and in{' '}
-        <code>results/full_retrain_metrics.json</code>. An older CPU-subset baseline remains on
-        Results for side-by-side comparison only.
+        validation-chosen threshold. Exact metrics (full 32,768-patch test set, INT8 vs PyTorch gap,
+        reliability bins) are on the Results page. An older CPU-subset baseline stays on Results for
+        side-by-side comparison only.
       </p>
 
       <h2>Open improvements</h2>
       <ul>
-        <li>Stain and scanner colour robustness (see the stain-shift experiment on Results).</li>
+        <li>Better handling of stain and scanner colour shifts (see the stain-shift test on Results).</li>
         <li>Clearer write-up of mistakes, calibration, and failure modes.</li>
-        <li>GPU training / longer schedules and external-lab stain normalization.</li>
+        <li>GPU training, longer schedules, and stronger stain normalization.</li>
       </ul>
 
       <h2>Method (summary)</h2>
       <ul>
         <li>
-          Fine-tune an ImageNet-pretrained ResNet-18 on PatchCamelyon in PyTorch, then export ONNX
-          with <code>probability</code>, <code>features</code>, and <code>cam_weights</code>.
+          Fine-tune an ImageNet-pretrained ResNet-18 on PatchCamelyon in PyTorch, then export an
+          ONNX model that returns a tumor score, intermediate features, and heatmap weights.
         </li>
-        <li>Keep PCam&apos;s official train / valid / test splits — never reshuffle across them.</li>
+        <li>Keep PCam&apos;s official train / valid / test splits. Never reshuffle across them.</li>
         <li>
           Evaluate with accuracy, ROC-AUC (bootstrap CI), calibration, confusion matrix, confident
           mistakes, and a colour / stain-shift stress test.
@@ -88,10 +84,7 @@ export default function AboutPage() {
 
       <h2>Write-up PDF</h2>
       <div className="placeholder-box">
-        <p>
-          Download slot: place a PDF at <code>web/public/writeup.pdf</code> and link it here when
-          ready.
-        </p>
+        <p>A longer project write-up PDF will appear here when it is ready.</p>
         <p>
           <span className="btn secondary disabled-link" aria-disabled="true">
             PDF coming soon
@@ -111,19 +104,18 @@ export default function AboutPage() {
       <h2>Credits</h2>
       <ul>
         <li>
-          <strong>Surabhi Fadnavis</strong> — project author; science narrative and evaluation
+          <strong>Surabhi Fadnavis</strong>: project author; science narrative and evaluation
           interpretation.
         </li>
         <li>
-          PCam authors and Camelyon16 organizers — see citations below and in the repository
-          README.
+          PCam authors and Camelyon16 organizers: see citations below and in the repository README.
         </li>
       </ul>
 
       <h2>Ethics</h2>
       <p>
         Public de-identified data only. No clinic PHI. Licenses respected. Metrics not overclaimed.
-        Research demo — not for clinical use.
+        Research demo, not for clinical use.
       </p>
     </article>
   )

@@ -219,7 +219,7 @@ async function runPatch(
   const weightsTensor = out.cam_weights ?? (outputs[2] ? out[outputs[2]] : undefined)
   if (!probabilityTensor || !featuresTensor || !weightsTensor) {
     throw new Error(
-      `ONNX model must output probability, features, cam_weights (got: ${outputs.join(', ')})`,
+      `Model output is incomplete (need score, features, and heatmap weights; got: ${outputs.join(', ')})`,
     )
   }
   return {

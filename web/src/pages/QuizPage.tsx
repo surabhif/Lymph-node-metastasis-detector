@@ -127,7 +127,7 @@ export default function QuizPage() {
         <h1 tabIndex={-1}>You vs. the model</h1>
         <p>
           Label 10 real PCam patches. Then see how the model answered, with a CAM heatmap. Answers
-          stay on this device — nothing is uploaded.
+          stay on this device. Nothing is uploaded.
         </p>
       </header>
 
@@ -142,8 +142,8 @@ export default function QuizPage() {
               region (shown as a dashed square).
             </li>
             <li>
-              Keyboard: <kbd>T</kbd> tumor · <kbd>N</kbd> normal · <kbd>1</kbd>–<kbd>3</kbd>{' '}
-              confidence · <kbd>Enter</kbd> confirm.
+              Keyboard: <kbd>T</kbd> tumor, <kbd>N</kbd> normal, <kbd>1</kbd>–<kbd>3</kbd> confidence,{' '}
+              <kbd>Enter</kbd> to confirm.
             </li>
             <li>
               This set includes patches the model gets wrong on purpose. It is not a test of medical
@@ -151,7 +151,7 @@ export default function QuizPage() {
             </li>
           </ul>
           <p className="muted tiny">
-            Pool source: {quiz.source} · model {quiz.model_version} · seed {seed}
+            Pool: {quiz.source}. Model {quiz.model_version}. Seed {seed}.
           </p>
           <label className="quiz-persist">
             <input
@@ -159,8 +159,8 @@ export default function QuizPage() {
               checked={persistBest}
               onChange={(e) => setPersistBest(e.target.checked)}
             />
-            Remember my best score in this browser (off by default; clearable; nothing leaves the
-            device)
+            Remember my best score in this browser (off by default; you can clear it; nothing leaves
+            the device)
           </label>
           <p>
             <button type="button" className="btn" onClick={() => setPhase('question')}>
@@ -223,8 +223,8 @@ export default function QuizPage() {
 
       <p className="muted tiny" style={{ marginTop: '1.5rem' }}>
         Want to re-run a patch live?{' '}
-        <Link to="/demo">Open the detector</Link> (loads the ONNX model). The quiz itself never
-        requests the model file.
+        <Link to="/demo">Open the detector</Link> (downloads the model file). The quiz itself never
+        requests the model.
       </p>
     </div>
   )

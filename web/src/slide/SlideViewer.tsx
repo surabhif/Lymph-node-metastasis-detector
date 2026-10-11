@@ -66,7 +66,7 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
   const [running, setRunning] = useState(false)
   const [paused, setPaused] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0, pps: 0 })
-  const [status, setStatus] = useState('Idle — tiles load without the model.')
+  const [status, setStatus] = useState('Idle. Tiles load without the model.')
   const [outline, setOutline] = useState<Outline | null>(null)
   const [hoverP, setHoverP] = useState<number | null>(null)
 
@@ -184,7 +184,7 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
   }, [])
 
   async function startRun() {
-    setStatus('Loading model in a Web Worker…')
+    setStatus('Loading model in a background worker…')
     setRunning(true)
     setPaused(false)
     gridRef.current = new Float32Array(cols * rows).fill(-1)
@@ -202,7 +202,7 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
     worker.onmessage = (ev: MessageEvent<WorkerOut>) => {
       const msg = ev.data
       if (msg.type === 'ready') {
-        setStatus('Scoring tissue patches (visible-first spiral)…')
+        setStatus('Scoring tissue patches (centre-first spiral)…')
       } else if (msg.type === 'cell') {
         if (gridRef.current) {
           gridRef.current[msg.gy * cols + msg.gx] = msg.p
@@ -212,12 +212,12 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
         paintRef.current()
         if (msg.done % 10 === 0 || msg.done === msg.total) {
           setStatus(
-            `${msg.done} / ${msg.total} patches · ${msg.pps.toFixed(1)} patches/s (measured)`,
+            `${msg.done} / ${msg.total} patches, ${msg.pps.toFixed(1)} patches/s (measured)`,
           )
         }
       } else if (msg.type === 'done') {
         setRunning(false)
-        setStatus('Done. Educational visualisation only — not a diagnostic viewer.')
+        setStatus('Done. Educational view only, not a diagnostic viewer.')
         paintRef.current()
       } else if (msg.type === 'error') {
         setRunning(false)
@@ -351,7 +351,7 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
         </div>
         <p className="muted tiny" aria-live="polite">
           {status}
-          {hoverP != null ? ` · click cell p=${hoverP.toFixed(2)}` : ''}
+          {hoverP != null ? ` Clicked cell score ${hoverP.toFixed(2)}` : ''}
         </p>
         <div className="slide-actions">
           {!running ? (
@@ -365,12 +365,12 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
           )}
         </div>
         <p className="muted tiny">
-          Inference runs in a Web Worker. Keyboard: focus the viewer · OSD arrows pan · +/- zoom ·
+          Scoring runs in a background worker. Keyboard: focus the viewer, arrow keys pan, +/- zoom,
           Home resets.
         </p>
         <p className="muted tiny">
           License {meta.license ?? 'CC0'}
-          {meta.license_verified ? ` · verified ${meta.license_verified}` : ''}. {meta.attribution}
+          {meta.license_verified ? `, verified ${meta.license_verified}` : ''}. {meta.attribution}
         </p>
       </aside>
     </div>

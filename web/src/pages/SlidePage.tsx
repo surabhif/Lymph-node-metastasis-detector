@@ -20,7 +20,7 @@ export default function SlidePage() {
   useEffect(() => {
     void fetch(`${BASE}slides/index.json`)
       .then((r) => {
-        if (!r.ok) throw new Error('Could not load slides/index.json')
+        if (!r.ok) throw new Error('Could not load the slide list')
         return r.json()
       })
       .then((j: IndexFile) => setIndex(j))
@@ -48,8 +48,8 @@ export default function SlidePage() {
       <header className="page-intro">
         <h1 tabIndex={-1}>Slide heatmap viewer</h1>
         <p>
-          Educational visualisation of a patch classifier swept across a region. Not a diagnostic
-          viewer. Source patches are CC0 PatchCamelyon / CAMELYON16 material — see CREDITS.
+          An educational view of a patch classifier swept across a stitched region. Not a diagnostic
+          viewer. Source patches are CC0 PatchCamelyon / CAMELYON16 material (see CREDITS).
         </p>
         {index && (
           <div className="results-view-toggle" role="radiogroup" aria-label="Slide region">

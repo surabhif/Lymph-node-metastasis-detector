@@ -7,7 +7,7 @@
   "seed_default": 42,
   "session_size": 10,
   "source": "gallery_and_mistakes_fallback",
-  "disclaimer": "This set deliberately includes patches the model gets wrong. It does not measure model accuracy or medical skill. Educational only \u2014 not for clinical use. Answers never leave your browser.",
+  "disclaimer": "This set deliberately includes patches the model gets wrong. It does not measure model accuracy or medical skill. Educational only, not for clinical use. Answers never leave your browser.",
   "pool": [
     {
       "id": "073cea4889667367",

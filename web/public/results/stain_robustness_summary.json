@@ -1,6 +1,6 @@
 {
-  "label": "Stain / colour robustness (draft)",
-  "disclaimer": "Principled colour jitter and approximate H&E RGB scaling on a held-out official-test subset \u2014 not Macenko/Vahadane or external labs. Educational only.",
+  "label": "Stain and colour checks (draft)",
+  "disclaimer": "Colour jitter and approximate H&E RGB scaling on a held-out official-test subset, not Macenko/Vahadane or external labs. Educational only.",
   "n": 2000,
   "rows": [
     {

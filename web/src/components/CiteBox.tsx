@@ -78,8 +78,8 @@ export default function CiteBox() {
       />
       <div className="cite-box-foot">
         <p className="muted tiny">
-          Also cite: Veeling et al. 2018 (PCam) · Bejnordi et al. 2017 (CAMELYON16). Version{' '}
-          {CITATION.version} · {SITE.shortTitle}.
+          Also cite Veeling et al. 2018 (PCam) and Bejnordi et al. 2017 (CAMELYON16). Version{' '}
+          {CITATION.version}, {SITE.shortTitle}.
         </p>
         <button type="button" className="btn secondary" onClick={() => void copy()}>
           Copy

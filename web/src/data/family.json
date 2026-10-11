@@ -2,7 +2,7 @@
   {
     "id": "lnm",
     "name": "Lymph-node metastasis detector",
-    "blurb": "PCam classifier + heatmaps",
+    "blurb": "PCam classifier and heatmaps",
     "url": "https://surabhif.github.io/Lymph-node-metastasis-detector/",
     "accent": "#9B5654",
     "current": true

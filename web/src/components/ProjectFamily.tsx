@@ -19,7 +19,7 @@ export default function ProjectFamily() {
               <span aria-current="page">
                 <strong>{project.name}</strong>
                 <span className="project-family-blurb">
-                  {project.blurb} · you are here
+                  {project.blurb} (you are here)
                 </span>
               </span>
             ) : (
@@ -35,7 +35,7 @@ export default function ProjectFamily() {
         ))}
       </ul>
       <p className="project-family-note">
-        All three are educational, high-school research projects — not clinical tools.
+        All three are educational high-school research projects, not clinical tools.
       </p>
     </nav>
   )

@@ -114,7 +114,7 @@ export default function ExplainerFallback({ step }: { step: ExplainerStep }) {
               <circle cx="270" cy="175" r="18" fill="#d47868" />
               <circle cx="230" cy="120" r="32" fill="#c81e4a" />
               <text x="40" y="50" fill="#52302f" fontSize="13" fontFamily="Space Grotesk, sans-serif">
-                ITC · micro · macro deposits
+                ITC, micro, macro deposits
               </text>
             </>
           )}

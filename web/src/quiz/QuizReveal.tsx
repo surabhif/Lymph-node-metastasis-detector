@@ -61,7 +61,7 @@ export default function QuizReveal({ item, answer, baseUrl, onNext, isLast }: Pr
             ? 'The model agreed with the ground-truth centre label.'
             : item.verdict === 'uncertain'
               ? 'The model scored this patch in its uncertain band.'
-              : 'The model missed this one — heatmaps show where it focused, which is not always the centre.'}
+              : 'The model missed this one. Heatmaps show where it focused, which is not always the centre.'}
         </p>
       </div>
       <div className="quiz-reveal-actions">

@@ -15,12 +15,12 @@ const ModelCardPage = lazy(() => import('./pages/ModelCardPage'))
 
 const TITLES: Record<string, string> = {
   '/': SITE.title,
-  '/demo': `Try the detector · ${SITE.shortTitle}`,
-  '/quiz': `You vs. the model · ${SITE.shortTitle}`,
-  '/slide': `Slide viewer · ${SITE.shortTitle}`,
-  '/results': `Results · ${SITE.shortTitle}`,
-  '/about': `About · ${SITE.shortTitle}`,
-  '/model-card': `Model card · ${SITE.shortTitle}`,
+  '/demo': `Try the detector | ${SITE.shortTitle}`,
+  '/quiz': `You vs. the model | ${SITE.shortTitle}`,
+  '/slide': `Slide viewer | ${SITE.shortTitle}`,
+  '/results': `Results | ${SITE.shortTitle}`,
+  '/about': `About | ${SITE.shortTitle}`,
+  '/model-card': `Model card | ${SITE.shortTitle}`,
 }
 
 function PrefetchDemoModel() {
@@ -65,7 +65,7 @@ export default function App() {
       <div className="site-top">
         <div className="site-notice" role="note">
           <p>
-            Research demo, not for clinical use. Educational baseline only — never for diagnosis or
+            Research demo, not for clinical use. For learning only. Never use it for diagnosis or
             care decisions.{' '}
             <NavLink to="/model-card#current-model" className="notice-learn-more">
               Learn more
@@ -79,7 +79,7 @@ export default function App() {
               <NavLink to="/" className="brand-title">
                 {SITE.title}
               </NavLink>
-              <p className="brand-kicker">Surabhi · high-school research project</p>
+              <p className="brand-kicker">Surabhi, high-school research project</p>
             </div>
             <nav className="site-nav" aria-label="Primary">
               <NavLink to="/" end>
@@ -117,8 +117,8 @@ export default function App() {
           <div>
             <p className="footer-brand">{SITE.title}</p>
             <p>
-              Dataset: PatchCamelyon (PCam), CC0 — Veeling et al. 2018; Camelyon16 (Bejnordi et
-              al. 2017). Inference runs locally in your browser.
+              Dataset: PatchCamelyon (PCam), CC0 (Veeling et al. 2018; Camelyon16, Bejnordi et al.
+              2017). Scoring runs locally in your browser.
             </p>
           </div>
           <div>
@@ -139,7 +139,7 @@ export default function App() {
           </div>
         </div>
         <ProjectFamily />
-        <p className="footer-fine">MIT license · Research only · Not for clinical use</p>
+        <p className="footer-fine">MIT license. Research only. Not for clinical use.</p>
       </footer>
     </div>
   )

@@ -95,7 +95,7 @@ export default function QuizSummary({
                 style={{ imageRendering: 'pixelated' }}
               />
               <span className="quiz-thumb-marks">
-                You {youOk ? '✓' : '✗'} · Model {modelOk ? '✓' : '✗'}
+                You {youOk ? '✓' : '✗'}, Model {modelOk ? '✓' : '✗'}
               </span>
             </button>
           )
@@ -104,7 +104,7 @@ export default function QuizSummary({
 
       <p className="muted">
         &ldquo;Very sure&rdquo; answers: {very}
-        {very > 0 ? ` · of those correct: ${veryOk}` : ''}
+        {very > 0 ? `; of those correct: ${veryOk}` : ''}
       </p>
 
       <div className="quiz-summary-actions">
@@ -116,7 +116,7 @@ export default function QuizSummary({
         </button>
       </div>
       <p className="muted tiny">
-        Seed <code>{seed}</code> · shareable as <code>{link}</code>
+        This set&apos;s ID is {seed}. Share link: {link}
       </p>
       <p className="quiz-disclaimer" role="note">
         {disclaimer}

@@ -22,7 +22,7 @@ export async function loadModelManifest(): Promise<ModelManifest> {
   if (cached) return cached
   const url = `${import.meta.env.BASE_URL}models/model_manifest.json`
   const res = await fetch(url)
-  if (!res.ok) throw new Error(`Failed to load model_manifest.json (${res.status})`)
+  if (!res.ok) throw new Error(`Failed to load model settings (${res.status})`)
   cached = (await res.json()) as ModelManifest
   return cached
 }
