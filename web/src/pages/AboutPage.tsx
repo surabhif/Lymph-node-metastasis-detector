@@ -58,9 +58,8 @@ export default function AboutPage() {
         The live weights are a <em>full-PCam retrain</em>: ResNet-18 on all 262,144 official train
         patches (8 epochs, CPU bf16; epoch 3 by val AUC 0.9587), with Platt calibration and a
         validation-chosen threshold. Exact metrics (full 32,768-patch test set, INT8 vs PyTorch gap,
-        reliability bins) are on the Results page and in{' '}
-        <code>results/full_retrain_metrics.json</code>. An older CPU-subset baseline stays on
-        Results for side-by-side comparison only.
+        reliability bins) are on the Results page. An older CPU-subset baseline stays on Results for
+        side-by-side comparison only.
       </p>
 
       <h2>Open improvements</h2>
@@ -73,8 +72,8 @@ export default function AboutPage() {
       <h2>Method (summary)</h2>
       <ul>
         <li>
-          Fine-tune an ImageNet-pretrained ResNet-18 on PatchCamelyon in PyTorch, then export ONNX
-          with <code>probability</code>, <code>features</code>, and <code>cam_weights</code>.
+          Fine-tune an ImageNet-pretrained ResNet-18 on PatchCamelyon in PyTorch, then export an
+          ONNX model that returns a tumor score, intermediate features, and heatmap weights.
         </li>
         <li>Keep PCam&apos;s official train / valid / test splits. Never reshuffle across them.</li>
         <li>
@@ -85,10 +84,7 @@ export default function AboutPage() {
 
       <h2>Write-up PDF</h2>
       <div className="placeholder-box">
-        <p>
-          Download slot: place a PDF at <code>web/public/writeup.pdf</code> and link it here when
-          ready.
-        </p>
+        <p>A longer project write-up PDF will appear here when it is ready.</p>
         <p>
           <span className="btn secondary disabled-link" aria-disabled="true">
             PDF coming soon

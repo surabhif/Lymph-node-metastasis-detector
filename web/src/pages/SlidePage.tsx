@@ -20,7 +20,7 @@ export default function SlidePage() {
   useEffect(() => {
     void fetch(`${BASE}slides/index.json`)
       .then((r) => {
-        if (!r.ok) throw new Error('Could not load slides/index.json')
+        if (!r.ok) throw new Error('Could not load the slide list')
         return r.json()
       })
       .then((j: IndexFile) => setIndex(j))

@@ -116,7 +116,7 @@ export default function QuizSummary({
         </button>
       </div>
       <p className="muted tiny">
-        Seed <code>{seed}</code>, shareable as <code>{link}</code>
+        This set&apos;s ID is {seed}. Share link: {link}
       </p>
       <p className="quiz-disclaimer" role="note">
         {disclaimer}

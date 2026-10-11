@@ -351,7 +351,7 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
         </div>
         <p className="muted tiny" aria-live="polite">
           {status}
-          {hoverP != null ? ` Click cell p=${hoverP.toFixed(2)}` : ''}
+          {hoverP != null ? ` Clicked cell score ${hoverP.toFixed(2)}` : ''}
         </p>
         <div className="slide-actions">
           {!running ? (

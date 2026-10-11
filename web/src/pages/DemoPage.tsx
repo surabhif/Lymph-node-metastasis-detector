@@ -156,8 +156,8 @@ export default function DemoPage() {
         <h1 tabIndex={-1}>Try the detector</h1>
         <p>
           Choose a real PCam test-set patch or upload your own image. Scoring runs entirely in your
-          browser. The decision threshold and uncertain band come from{' '}
-          <code>models/model_manifest.json</code>.
+          browser. The cutoff and uncertain range come from the model&apos;s settings, chosen on
+          validation data.
         </p>
       </header>
 
@@ -321,7 +321,8 @@ export default function DemoPage() {
                 />
               </div>
               <p className="tiny muted">
-                0 (normal) to 1 (tumor). Uncertain band in the middle. Threshold t*={Number(threshold).toFixed(4)}.
+                0 (normal) to 1 (tumor). Uncertain range in the middle. Cutoff{' '}
+                {Number(threshold).toFixed(4)}.
               </p>
               <div className="label" style={{ marginTop: '0.75rem' }}>
                 Ground truth
@@ -392,10 +393,10 @@ export default function DemoPage() {
               Stain-normalize first (Macenko); educational before/after
             </label>
             <p className="muted tiny">
-              Re-run a sample after changing options. Settings:{' '}
-              <code>models/model_manifest.json</code>
-              {manifest ? ` (${manifest.label}, ${manifest.model_version})` : ''}.{' '}
-              <Link to="/model-card">Model card</Link>
+              Re-run a sample after changing options. Cutoff and uncertain range follow the live
+              model settings
+              {manifest ? ` (${manifest.label})` : ''}. See the{' '}
+              <Link to="/model-card">Model card</Link> for technical detail.
             </p>
             {result?.macenkoBefore && result.macenkoAfter && (
               <div className="macenko-compare">

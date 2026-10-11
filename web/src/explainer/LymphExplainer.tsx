@@ -738,9 +738,9 @@ export default function LymphExplainer({ compactIntro = false }: LymphExplainerP
         <p className="tiny muted">
           Primary meshes are NIH/HuBMAP Human Reference Atlas female skin, right mammary gland,
           and lymph-node reference geometry (CC BY 4.0). BodyParts3D (CC BY 4.0) is credited in
-          Sources / <code>THIRD_PARTY_NOTICES.md</code>, but pec/chest fragments are omitted because
-          they misaligned under glass and read as dark mid-chest smudges. Axillary vessels and nodes
-          are educational overlays. Step 3 uses a clean cut-away schematic (HRA-inspired) so deposit
+          Sources and the third-party notices file, but pec/chest fragments are omitted because they
+          misaligned under glass and read as dark mid-chest smudges. Axillary vessels and nodes are
+          educational overlays. Step 3 uses a clean cut-away schematic (HRA-inspired) so deposit
           sizes stay readable. If a mesh fails to load, a procedural fallback is used. Step 5 uses a
           mosaic of real PCam (CC0) test patches as a whole-slide stand-in, not continuous tissue.
         </p>
