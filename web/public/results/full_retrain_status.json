@@ -1,7 +1,7 @@
 {
   "status": "shipped",
   "label": "Full PCam retrain (CPU)",
-  "message": "Trained on all 262,144 official train patches (8 epochs, CPU bf16; epoch 3 selected by val AUC 0.9587). Evaluated on the full 32,768 official test set. Platt calibration and threshold chosen on validation. Educational research only — not for clinical use.",
+  "message": "Trained on all 262,144 official train patches (8 epochs, CPU bf16; epoch 3 selected by val AUC 0.9587). Evaluated on the full 32,768 official test set. Platt calibration and threshold chosen on validation. Educational research only, not for clinical use.",
   "metrics_path": "results/full_retrain_metrics.json",
   "calibration": {
     "method": "platt",
@@ -19,6 +19,6 @@
     "baseline_label": "Improved baseline (CPU subset, 8k-sample test eval)",
     "baseline_test_auc": 0.9103,
     "full_retrain_test_auc": 0.9401,
-    "note": "Baseline used a fixed-seed 8,000-patch test subset; full retrain uses the full 32,768 official test split — not a paired comparison on identical samples."
+    "note": "Baseline used a fixed-seed 8,000-patch test subset; full retrain uses the full 32,768 official test split. Not a paired comparison on identical samples."
   }
 }

@@ -1,5 +1,5 @@
 {
-  "disclaimer": "Gallery images are real PatchCamelyon (PCam) official test-set patches (CC0), chosen at random with a fixed seed \u2014 not cherry-picked. Mosaic tiles are stitched from separate patches, not contiguous slides. Inference still runs locally in your browser.",
+  "disclaimer": "Gallery images are real PatchCamelyon (PCam) official test-set patches (CC0), chosen at random with a fixed seed, not cherry-picked. Mosaic tiles are stitched from separate patches, not continuous slides. Scoring still runs locally in your browser.",
   "seed": 42,
   "source": "PCam official test split (Veeling et al. 2018; Camelyon16 / Bejnordi et al. 2017)",
   "samples": [

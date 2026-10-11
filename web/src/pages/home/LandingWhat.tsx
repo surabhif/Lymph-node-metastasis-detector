@@ -9,55 +9,61 @@ export function LandingWhat() {
         <span className="t" id="what-heading">
           What
         </span>
-        <span className="d">What you&apos;ll find in the app</span>
+        <span className="d">What you will find in the app</span>
       </div>
 
       <p className="landing-intro">
-        A static website: no account, no installation, and no server running the model. Main areas:
+        A static website: no account, no install, and no server running the model. Main areas:
       </p>
 
       <div className="landing-cards tour">
         <article className="landing-card">
           <span className="landing-card-kicker">On this page</span>
           <h3>3D explainer</h3>
-          <p>Five interactive scenes covering lymphatics, spread, deposit sizes, surgery, and patches.</p>
+          <p>
+            Five short scenes on lymph flow, spread, deposit sizes, surgery, and how slides become
+            small image patches.
+          </p>
           <button type="button" className="landing-jumplink" onClick={() => goToExplainerStep()}>
-            Open the tour →
+            Open the tour
           </button>
         </article>
         <article className="landing-card">
           <span className="landing-card-kicker">Try it</span>
           <h3>Detector</h3>
-          <p>Score a sample PCam patch or upload an image; see a tumor probability and CAM heatmap.</p>
+          <p>
+            Score a sample PatchCamelyon (PCam) patch or upload an image. You get a tumor chance
+            and a heatmap of where the model focused.
+          </p>
           <Link className="landing-jumplink" to="/demo">
-            Go to Demo →
+            Go to Demo
           </Link>
         </article>
         <article className="landing-card">
           <span className="landing-card-kicker">Evaluation</span>
           <h3>Results</h3>
           <p>
-            Full-PCam retrain metrics (live model), plus an earlier subset baseline for comparison,
-            confident mistakes, and stain-shift checks.
+            Numbers for the live full-PCam model, plus an older subset baseline for comparison,
+            mistakes the model made, and stain-shift checks.
           </p>
           <Link className="landing-jumplink" to="/results">
-            View Results →
+            View Results
           </Link>
         </article>
         <article className="landing-card">
           <span className="landing-card-kicker">Transparency</span>
           <h3>Model card</h3>
-          <p>Intended use, training data, and known limitations — educational, not clinical.</p>
+          <p>Intended use, training data, and known limits. For learning, not clinical care.</p>
           <Link className="landing-jumplink" to="/model-card">
-            Read the model card →
+            Read the model card
           </Link>
         </article>
         <article className="landing-card">
           <span className="landing-card-kicker">Project</span>
           <h3>About</h3>
-          <p>Background on the project and its educational purpose.</p>
+          <p>Background on the project and why it exists.</p>
           <Link className="landing-jumplink" to="/about">
-            About the project →
+            About the project
           </Link>
         </article>
       </div>
@@ -68,10 +74,10 @@ export function LandingWhat() {
           {(
             [
               ['lymphatic', '1', 'Lymphatics', 'Where lymph drains near the breast.'],
-              ['spread', '2', 'Spread', 'How cancer cells travel through lymphatic vessels.'],
-              ['inside', '3', 'Inside a node', 'ITC, micro-, and macrometastasis at scale.'],
-              ['surgery', '4', 'Surgery', 'Sentinel node biopsy vs axillary dissection.'],
-              ['patches', '5', 'Patches', 'How whole-slide images become 96×96 patches.'],
+              ['spread', '2', 'Spread', 'How cancer cells can travel through lymphatic vessels.'],
+              ['inside', '3', 'Inside a node', 'Tiny, medium, and larger tumor deposits at scale.'],
+              ['surgery', '4', 'Surgery', 'Sentinel node biopsy vs removing more armpit nodes.'],
+              ['patches', '5', 'Patches', 'How huge slides are cut into 96×96 image tiles.'],
             ] as const
           ).map(([id, num, title, blurb]) => (
             <button

@@ -48,8 +48,8 @@ export default function SlidePage() {
       <header className="page-intro">
         <h1 tabIndex={-1}>Slide heatmap viewer</h1>
         <p>
-          Educational visualisation of a patch classifier swept across a region. Not a diagnostic
-          viewer. Source patches are CC0 PatchCamelyon / CAMELYON16 material — see CREDITS.
+          An educational view of a patch classifier swept across a stitched region. Not a diagnostic
+          viewer. Source patches are CC0 PatchCamelyon / CAMELYON16 material (see CREDITS).
         </p>
         {index && (
           <div className="results-view-toggle" role="radiogroup" aria-label="Slide region">

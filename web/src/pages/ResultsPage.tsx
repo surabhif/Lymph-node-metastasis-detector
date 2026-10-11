@@ -234,7 +234,7 @@ function ReliabilityBars({
       aria-label={`${title}, ECE ${ece.toFixed(3)}`}
     >
       <text x={padL} y={18} className="chart-axis" style={{ fontSize: 12, fill: 'var(--ink)' }}>
-        {title} · ECE={ece.toFixed(3)}
+        {title}, ECE={ece.toFixed(3)}
       </text>
       <rect
         x={padL}
@@ -371,9 +371,9 @@ export default function ResultsPage() {
             .
           </strong>{' '}
           {retrain?.message ??
-            'Trained on all 262,144 official train patches; evaluated on the full official test set. Educational research only — not for clinical use.'}{' '}
+            'Trained on all 262,144 official train patches; evaluated on the full official test set. Educational research only, not for clinical use.'}{' '}
           An earlier <strong>{data.label}</strong> (8k-sample test eval) is kept below for
-          side-by-side comparison only — it is not what the demo downloads.
+          side-by-side comparison only. It is not what the demo downloads.
         </p>
         <div className="results-view-toggle" role="tablist" aria-label="Results view">
           {(
@@ -413,20 +413,21 @@ export default function ResultsPage() {
                   <div className="value">{cal.auc.toFixed(4)}</div>
                   <p className="muted tiny">
                     95% CI [{full.test_auc_bootstrap95[0].toFixed(4)},{' '}
-                    {full.test_auc_bootstrap95[1].toFixed(4)}] · n={cal.n.toLocaleString()}
+                    {full.test_auc_bootstrap95[1].toFixed(4)}], n={cal.n.toLocaleString()}
                   </p>
                 </div>
                 <div className="metric-card panel">
-                  <div className="label">Accuracy @ t*={cal.threshold.toFixed(4)}</div>
+                  <div className="label">Accuracy at threshold {cal.threshold.toFixed(4)}</div>
                   <div className="value">{pct(cal.accuracy)}</div>
                   <p className="muted tiny">
-                    sens {pct(cal.sensitivity)} · spec {pct(cal.specificity)} (calibrated)
+                    Sensitivity {pct(cal.sensitivity)}, specificity {pct(cal.specificity)}{' '}
+                    (calibrated)
                   </p>
                 </div>
                 <div className="metric-card panel">
                   <div className="label">ECE (calibrated)</div>
                   <div className="value">{cal.ece15.toFixed(4)}</div>
-                  <p className="muted tiny">Raw @ 0.5 ECE {raw.ece15.toFixed(4)}</p>
+                  <p className="muted tiny">Raw at 0.5: ECE {raw.ece15.toFixed(4)}</p>
                 </div>
                 <div className="metric-card panel">
                   <div className="label">Uncertain band</div>
@@ -434,17 +435,18 @@ export default function ResultsPage() {
                     {full.uncertain_band_val.lo.toFixed(4)}–{full.uncertain_band_val.hi.toFixed(4)}
                   </div>
                   <p className="muted tiny">
-                    flags {pct(full.test_uncertain.flagged_frac, 1)} of test ·{' '}
-                    {pct(full.test_uncertain.selective_accuracy_outside_band, 1)} acc outside
+                    Flags {pct(full.test_uncertain.flagged_frac, 1)} of test;{' '}
+                    {pct(full.test_uncertain.selective_accuracy_outside_band, 1)} accuracy outside
+                    the band
                   </p>
                 </div>
               </div>
 
               <div className="metrics-grid" style={{ marginTop: '1rem' }}>
                 <div className="metric-card panel">
-                  <div className="label">Raw @ 0.5</div>
+                  <div className="label">Raw at threshold 0.5</div>
                   <div className="value value-sm">
-                    acc {pct(raw.accuracy)} · sens {pct(raw.sensitivity)} · spec{' '}
+                    Acc {pct(raw.accuracy)}, sens {pct(raw.sensitivity)}, spec{' '}
                     {pct(raw.specificity)}
                   </div>
                 </div>
@@ -452,26 +454,26 @@ export default function ResultsPage() {
                   <div className="label">INT8 ONNX vs PyTorch</div>
                   <div className="value value-sm">
                     AUC {onnx.int8_test_auc_raw.toFixed(4)} / acc{' '}
-                    {pct(onnx.int8_test_acc_raw_0p5)} @ 0.5
+                    {pct(onnx.int8_test_acc_raw_0p5)} at 0.5
                   </div>
                   <p className="muted tiny">
-                    Served file is INT8 ({onnx.int8_mb.toFixed(1)} MB) vs FP32 ({onnx.fp32_mb.toFixed(1)}{' '}
-                    MB). PyTorch test AUC {cal.auc.toFixed(4)}. Mean |Δp| on 512 patches{' '}
-                    {onnx.int8_vs_torch_mean_abs_512.toFixed(4)}.
+                    Served file is INT8 ({onnx.int8_mb.toFixed(1)} MB) vs FP32 (
+                    {onnx.fp32_mb.toFixed(1)} MB). PyTorch test AUC {cal.auc.toFixed(4)}. Mean |Δp|
+                    on 512 patches {onnx.int8_vs_torch_mean_abs_512.toFixed(4)}.
                   </p>
                 </div>
                 <div className="metric-card panel">
                   <div className="label">Calibration</div>
                   <div className="value value-sm">
-                    Platt · a={full.calibration.platt_a.toFixed(5)} · b=
+                    Platt, a={full.calibration.platt_a.toFixed(5)}, b=
                     {full.calibration.platt_b.toFixed(5)}
                   </div>
-                  <p className="muted tiny">{full.calibration.formula} · chosen on val</p>
+                  <p className="muted tiny">{full.calibration.formula}; chosen on val</p>
                 </div>
                 <div className="metric-card panel">
                   <div className="label">Checkpoint</div>
                   <div className="value value-sm">
-                    epoch {full.checkpoint_epoch} · val AUC {full.best_val_auc_raw.toFixed(4)}
+                    Epoch {full.checkpoint_epoch}, val AUC {full.best_val_auc_raw.toFixed(4)}
                   </div>
                   <p className="muted tiny">8 epochs CPU bf16; best by val AUC</p>
                 </div>
@@ -479,7 +481,7 @@ export default function ResultsPage() {
 
               <section className="charts-grid" style={{ marginTop: '1.25rem' }}>
                 <div className="panel">
-                  <h3 className="section-title">Reliability — raw</h3>
+                  <h3 className="section-title">Reliability diagram (raw)</h3>
                   <ReliabilityBars
                     bins={raw.reliability_bins_15}
                     title="Raw (test)"
@@ -487,7 +489,7 @@ export default function ResultsPage() {
                   />
                 </div>
                 <div className="panel">
-                  <h3 className="section-title">Reliability — Platt calibrated</h3>
+                  <h3 className="section-title">Reliability diagram (Platt calibrated)</h3>
                   <ReliabilityBars
                     bins={cal.reliability_bins_15}
                     title="Calibrated: platt (test)"
@@ -497,7 +499,7 @@ export default function ResultsPage() {
               </section>
 
               <section className="panel" style={{ marginTop: '1.25rem' }}>
-                <h3 className="section-title">Confusion matrix (calibrated @ t*)</h3>
+                <h3 className="section-title">Confusion matrix (calibrated at threshold)</h3>
                 <p className="muted tiny">
                   Full official test set (n={cal.n.toLocaleString()}). TP {cal.confusion.tp.toLocaleString()}{' '}
                   / FN {cal.confusion.fn.toLocaleString()} / FP {cal.confusion.fp.toLocaleString()} / TN{' '}
@@ -537,7 +539,7 @@ export default function ResultsPage() {
               <p className="muted tiny">
                 Val–test gap: best val AUC {full.best_val_auc_raw.toFixed(4)} vs test AUC{' '}
                 {cal.auc.toFixed(4)}. Source: <code>results/full_retrain_metrics.json</code>.
-                Educational research only — not for clinical use.
+                Educational research only, not for clinical use.
               </p>
             </>
           ) : (
@@ -550,8 +552,8 @@ export default function ResultsPage() {
         <>
           <h2 className="section-title baseline-heading">Baseline (CPU subset)</h2>
           <p className="muted tiny">
-            Old subset-trained model evaluated on a fixed-seed 8,000-patch official-test subset —
-            kept for side-by-side comparison. The live demo now serves the full-PCam retrain.
+            Older subset-trained model evaluated on a fixed-seed 8,000-patch official-test subset.
+            Kept for side-by-side comparison. The live demo serves the full-PCam retrain.
           </p>
           <section className="metrics-grid">
             <div className="metric-card panel">
@@ -588,7 +590,7 @@ export default function ResultsPage() {
 
           <section className="panel">
             <h2 className="section-title">Confusion matrix</h2>
-            <p className="muted tiny">Rows = true label · columns = predicted</p>
+            <p className="muted tiny">Rows = true label; columns = predicted</p>
             <table className="cm-table">
               <thead>
                 <tr>
@@ -616,9 +618,9 @@ export default function ResultsPage() {
           <section className="panel">
             <h2 className="section-title">Confident mistakes</h2>
             <p className="muted">
-              Highest-confidence errors on the evaluation subset. These are a good place to stay
-              humble: morphology can be ambiguous, stain can mislead, and a patch is not a patient.
-              Review before writing conclusions.
+              Highest-confidence errors on the evaluation subset. Tissue patterns can be ambiguous,
+              stain can mislead, and a patch is not a patient. Review these before drawing
+              conclusions.
             </p>
             <div className="mistakes-grid">
               {data.mistakes.map((item) => (
@@ -630,9 +632,9 @@ export default function ResultsPage() {
                     height={96}
                   />
                   <figcaption>
-                    true {item.trueLabel} · pred {item.predictedLabel}
+                    true {item.trueLabel}, pred {item.predictedLabel}
                     <br />
-                    P={item.probability.toFixed(2)} · test #{item.testIndex}
+                    P={item.probability.toFixed(2)}, test #{item.testIndex}
                   </figcaption>
                 </figure>
               ))}
@@ -641,7 +643,7 @@ export default function ResultsPage() {
 
           {stain && (
             <section className="panel">
-              <h2 className="section-title">Stain / colour robustness</h2>
+              <h2 className="section-title">Stain and colour checks</h2>
               <p>
                 <strong>{stain.label}.</strong> {stain.disclaimer} Held-out official-test subset (n=
                 {stain.n}). Full write-up: <code>results/stain_robustness.md</code>.
@@ -689,7 +691,7 @@ export default function ResultsPage() {
           )}
 
           <section className="panel">
-            <h2 className="section-title">Limitations (honest)</h2>
+            <h2 className="section-title">Limitations</h2>
             <ul>
               <li>
                 Baseline metrics are from a fixed-seed <em>subset</em> of the official test split
@@ -697,11 +699,11 @@ export default function ResultsPage() {
               </li>
               <li>
                 Colour / stain stress tests here use principled jitter and approximate H&amp;E RGB
-                scaling — not Macenko/Vahadane or external labs.
+                scaling, not Macenko/Vahadane or external labs.
               </li>
               <li>
                 Patch-level scores are not whole-slide or patient-level decisions. Educational
-                research only — not for clinical use.
+                research only, not for clinical use.
               </li>
               <li>
                 The live demo serves the full-PCam retrain (see Full retrain tab); INT8 export is

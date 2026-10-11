@@ -20,5 +20,5 @@
     "https://registry.opendata.aws/camelyon/ (License: CC0)"
   ],
   "attribution": "Bejnordi et al., JAMA 2017; Litjens et al., GigaScience 2018; Veeling et al. 2018 (PCam).",
-  "warning": "Stitched from separate PCam official-test patches \u2014 not a contiguous whole-slide region. Educational only; not for clinical use."
+  "warning": "Stitched from separate PCam official-test patches, not a continuous whole-slide region. Educational only; not for clinical use."
 }

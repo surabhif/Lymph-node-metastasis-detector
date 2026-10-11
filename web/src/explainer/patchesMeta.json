@@ -3,7 +3,7 @@
   "grid": 3,
   "patchPx": 96,
   "label": "Mosaic of real PCam patches standing in for a whole-slide image",
-  "disclaimer": "Stitched from separate PatchCamelyon (PCam) official test-set patches (CC0). Not a contiguous whole-slide region \u2014 an honest stand-in for tiling.",
+  "disclaimer": "Stitched from separate PatchCamelyon (PCam) official test-set patches (CC0). Not a continuous whole-slide region; a stand-in for tiling.",
   "labelingRule": "In PCam, a patch is labeled tumor if the center 32\u00d732 region contains tumor tissue.",
   "source": "PCam official test split (Veeling et al. 2018; Camelyon16 / Bejnordi et al. 2017)",
   "hotTile": {

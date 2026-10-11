@@ -32,7 +32,7 @@ export const MODEL_STATUS = {
 export const SITE = {
   title: 'Lymph Node Metastasis Detector',
   shortTitle: 'PCam Metastasis Detector',
-  tagline: 'In-browser research demo on PatchCamelyon',
+  tagline: 'A research demo that runs on PatchCamelyon in your browser',
   githubUrl: 'https://github.com/surabhif/Lymph-node-metastasis-detector',
   pagesUrl: 'https://surabhif.github.io/Lymph-node-metastasis-detector/',
 }

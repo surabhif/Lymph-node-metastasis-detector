@@ -155,9 +155,9 @@ export default function DemoPage() {
       <header className="page-intro">
         <h1 tabIndex={-1}>Try the detector</h1>
         <p>
-          Choose a real PCam test-set patch or upload your own image. Inference runs entirely in
-          your browser. Threshold and uncertain band come from the model settings file — not
-          hard-coded.
+          Choose a real PCam test-set patch or upload your own image. Scoring runs entirely in your
+          browser. The decision threshold and uncertain band come from{' '}
+          <code>models/model_manifest.json</code>.
         </p>
       </header>
 
@@ -178,7 +178,7 @@ export default function DemoPage() {
         </div>
         <p className="muted tiny">
           ONNX Runtime and the ~{MODEL_STATUS.sizeHintMb} MB model load only when you run a sample
-          or click Load model. Later visits use the browser cache when available.
+          or click Load model. Later visits can use the browser cache.
         </p>
         {loadProgress.status === 'idle' && (
           <p>
@@ -299,7 +299,7 @@ export default function DemoPage() {
                   {result ? formatPct(result.probability) : '—'}
                 </text>
               </svg>
-              <div className="gauge-label">Calibrated tumor probability</div>
+              <div className="gauge-label">Calibrated tumor chance</div>
               {verdict && (
                 <p className={`verdict-pill verdict-${verdict}`} aria-live="polite">
                   {verdictLabel(verdict)}
@@ -321,16 +321,14 @@ export default function DemoPage() {
                 />
               </div>
               <p className="tiny muted">
-                0 — normal —[ uncertain ]— tumor — 1 · t*={threshold} from settings
+                0 (normal) to 1 (tumor). Uncertain band in the middle. Threshold t*={Number(threshold).toFixed(4)}.
               </p>
               <div className="label" style={{ marginTop: '0.75rem' }}>
                 Ground truth
               </div>
               {selectedMeta ? (
                 gt === null || gt === undefined ? (
-                  <p>
-                    Stitched mosaic of separate test patches — no single patch label.
-                  </p>
+                  <p>Stitched mosaic of separate test patches. No single patch label.</p>
                 ) : (
                   <p>
                     <span className={`badge ${gt ? 'tumor' : 'normal'}`}>
@@ -349,8 +347,8 @@ export default function DemoPage() {
                 Mode:{' '}
                 {result
                   ? result.mode === 'single-patch'
-                    ? 'Single-patch CAM'
-                    : 'Sliding-window map'
+                    ? 'Single-patch heatmap (CAM)'
+                    : 'Sliding-window probability map'
                   : '—'}
               </p>
             </div>
@@ -371,8 +369,8 @@ export default function DemoPage() {
             <span className="muted">{Math.round(opacity * 100)}%</span>
           </label>
           <p className="muted tiny heatmap-legend" aria-hidden={false}>
-            Heatmap legend: cool = lower contribution · warm = higher contribution to the tumor
-            score.
+            Heatmap legend: cool means lower contribution; warm means higher contribution to the
+            tumor score.
           </p>
 
           <details className="heatmap-explainer demo-options">
@@ -383,7 +381,7 @@ export default function DemoPage() {
                 checked={useTta}
                 onChange={(e) => setUseTta(e.target.checked)}
               />
-              Test-time augmentation (8 flips/rotations, slower)
+              Test-time augmentation (8 flips/rotations; slower)
             </label>
             <label className="demo-opt">
               <input
@@ -391,13 +389,13 @@ export default function DemoPage() {
                 checked={useMacenko}
                 onChange={(e) => setUseMacenko(e.target.checked)}
               />
-              Stain-normalise first (Macenko) — educational before/after
+              Stain-normalize first (Macenko); educational before/after
             </label>
             <p className="muted tiny">
-              Re-run a sample after changing options. Settings file:{' '}
+              Re-run a sample after changing options. Settings:{' '}
               <code>models/model_manifest.json</code>
-              {manifest ? ` · ${manifest.label} · ${manifest.model_version}` : ''}.{' '}
-              <Link to="/model-card">Model card →</Link>
+              {manifest ? ` (${manifest.label}, ${manifest.model_version})` : ''}.{' '}
+              <Link to="/model-card">Model card</Link>
             </p>
             {result?.macenkoBefore && result.macenkoAfter && (
               <div className="macenko-compare">
@@ -417,12 +415,12 @@ export default function DemoPage() {
             <summary>How to read this heatmap</summary>
             <p>
               For a single 96×96 patch, warmer colors mark regions that contributed more to the
-              metastasis score (class activation map from the final conv features and classifier
-              weights — no gradients in the browser).
+              metastasis score. That overlay is a class-activation map (CAM) built from the final
+              convolution features and classifier weights. No gradients run in the browser.
             </p>
             <p>
               For larger images, the overlay is a sliding-window probability map: each patch is
-              scored separately and blended. A mosaic of separate patches is not contiguous tissue.
+              scored separately and blended. A mosaic of separate patches is not continuous tissue.
             </p>
           </details>
         </section>

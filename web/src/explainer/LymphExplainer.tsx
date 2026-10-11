@@ -137,7 +137,7 @@ function SceneLegendBody({
   }
   return (
     <>
-      <div className="scene-legend-row muted">Real PCam H&amp;E mosaic (WSI stand-in)</div>
+      <div className="scene-legend-row muted">Real PCam H&amp;E mosaic (whole-slide stand-in)</div>
       <div className="scene-legend-row">
         <span className="scene-swatch tumor soft-tint" /> Tumor-labeled tile (frame)
       </div>
@@ -436,21 +436,21 @@ export default function LymphExplainer({ compactIntro = false }: LymphExplainerP
             <>
               <p className="hero-eyebrow">Interactive 3D explainer</p>
               <h2 id={headingId} className="explainer-section-title">
-                Five scenes · scroll or step through
+                Five scenes. Scroll or step through.
               </h2>
               <p className="hero-lede">
                 Lymphatics, spread, deposit sizes, surgery choices, and how whole-slide images become
-                96×96 patches — then try the detector.
+                96×96 patches. Then try the detector.
               </p>
             </>
           ) : (
             <>
-              <p className="hero-eyebrow">Interactive explainer · research education</p>
+              <p className="hero-eyebrow">Interactive explainer for research education</p>
               <h1 id={headingId} className="hero-brand">
                 Lymph Node Metastasis Detector
               </h1>
               <p className="hero-lede">
-                A short guided tour of why axillary lymph nodes matter in breast cancer — then try the
+                A short guided tour of why underarm lymph nodes matter in breast cancer. Then try the
                 in-browser detector on public PatchCamelyon patches.
               </p>
               <div className="hero-actions">
@@ -461,7 +461,7 @@ export default function LymphExplainer({ compactIntro = false }: LymphExplainerP
                   Start the tour
                 </a>
               </div>
-              <p className="hero-note">Educational visuals only · not medical advice · not for clinical use</p>
+              <p className="hero-note">Educational visuals only. Not medical advice. Not for clinical use.</p>
             </>
           )}
         </div>
@@ -618,11 +618,11 @@ export default function LymphExplainer({ compactIntro = false }: LymphExplainerP
                 <div className="explainer-viewport-hint muted tiny">
                   {use3d
                     ? scrollDriven
-                      ? 'Scroll to travel · drag to glance · Tab to step controls · arrow keys snap steps'
-                      : 'Drag to rotate · scroll to zoom · Tab to step controls · arrow keys change steps'
+                      ? 'Scroll to move, drag to look around, Tab for step controls, arrow keys to snap steps'
+                      : 'Drag to rotate, scroll to zoom, Tab for step controls, arrow keys to change steps'
                     : reducedMotion && !motionOptIn
-                      ? 'Motion reduced — showing a static illustration'
-                      : '3D unavailable — showing a static illustration'}
+                      ? 'Motion reduced; showing a static illustration'
+                      : '3D unavailable; showing a static illustration'}
                   {webgl && reducedMotion && (
                     <>
                       {' · '}
@@ -705,17 +705,18 @@ export default function LymphExplainer({ compactIntro = false }: LymphExplainerP
       <section className="home-strip" aria-label="Project pillars">
         <div>
           <h2>Public data</h2>
-          <p>PCam (CC0) lymph-node patches from Camelyon16 — de-identified research images only.</p>
+          <p>PCam (CC0) lymph-node patches from Camelyon16. De-identified research images only.</p>
         </div>
         <div>
-          <h2>Honest evaluation</h2>
+          <h2>Clear evaluation</h2>
           <p>
-            Official splits, ROC-AUC with a confidence interval, calibration, and a failure gallery.
+            Official splits, ROC-AUC with a confidence interval, calibration, and a gallery of
+            mistakes.
           </p>
         </div>
         <div>
-          <h2>Private by design</h2>
-          <p>ONNX Runtime Web runs on-device. Uploaded images are not sent to a server.</p>
+          <h2>Runs on your device</h2>
+          <p>ONNX Runtime Web runs locally. Uploaded images are not sent to a server.</p>
         </div>
       </section>
 
@@ -730,18 +731,18 @@ export default function LymphExplainer({ compactIntro = false }: LymphExplainerP
               <a href={s.href} target="_blank" rel="noreferrer">
                 {s.name}
               </a>
-              <span className="muted"> — {s.note}</span>
+              <span className="muted"> ({s.note})</span>
             </li>
           ))}
         </ul>
         <p className="tiny muted">
           Primary meshes are NIH/HuBMAP Human Reference Atlas female skin, right mammary gland,
           and lymph-node reference geometry (CC BY 4.0). BodyParts3D (CC BY 4.0) is credited in
-          Sources / <code>THIRD_PARTY_NOTICES.md</code> but pec/chest fragments are omitted — they
-          misaligned under glass and read as dark mid-chest smudges. Axillary vessels/nodes are
-          educational overlays. Step 3 uses a clean cut-away schematic (HRA-inspired) so deposit
+          Sources / <code>THIRD_PARTY_NOTICES.md</code>, but pec/chest fragments are omitted because
+          they misaligned under glass and read as dark mid-chest smudges. Axillary vessels and nodes
+          are educational overlays. Step 3 uses a clean cut-away schematic (HRA-inspired) so deposit
           sizes stay readable. If a mesh fails to load, a procedural fallback is used. Step 5 uses a
-          mosaic of real PCam (CC0) test patches as an honest WSI stand-in — not contiguous tissue.
+          mosaic of real PCam (CC0) test patches as a whole-slide stand-in, not continuous tissue.
         </p>
       </details>
     </section>
