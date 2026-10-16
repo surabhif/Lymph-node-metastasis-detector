@@ -1,4 +1,5 @@
 import CiteBox from '../components/CiteBox'
+import LinkedInLink from '../components/LinkedInLink'
 import { SITE } from '../lib/constants'
 
 export default function AboutPage() {
@@ -12,6 +13,9 @@ export default function AboutPage() {
         </div>
         <div>
           <h2 className="about-name">Surabhi Fadnavis</h2>
+          <p className="about-linkedin">
+            <LinkedInLink />
+          </p>
           <p className="muted">Lambert High School senior, aspiring surgical oncologist</p>
           <p>
             I built this research demo to explore how machine learning can support, never replace,
@@ -104,8 +108,10 @@ export default function AboutPage() {
       <h2>Credits</h2>
       <ul>
         <li>
-          <strong>Surabhi Fadnavis</strong>: project author; science narrative and evaluation
-          interpretation.
+          <strong>
+            <LinkedInLink>Surabhi Fadnavis</LinkedInLink>
+          </strong>
+          : project author; science narrative and evaluation interpretation.
         </li>
         <li>
           PCam authors and Camelyon16 organizers: see citations below and in the repository README.

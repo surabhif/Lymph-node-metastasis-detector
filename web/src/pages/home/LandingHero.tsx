@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import LinkedInLink from '../../components/LinkedInLink'
 import { goToExplainerStep } from './landingNav'
 import { SITE } from '../../lib/constants'
 
@@ -10,7 +11,10 @@ export function LandingHero() {
         {SITE.title}
       </h1>
       <p className="landing-byline">
-        A research project by <strong>Surabhi Fadnavis</strong>
+        A research project by{' '}
+        <strong>
+          <LinkedInLink>Surabhi Fadnavis</LinkedInLink>
+        </strong>
       </p>
       <p className="landing-lede">
         One question that matters in breast-cancer care: has cancer reached the lymph nodes? This

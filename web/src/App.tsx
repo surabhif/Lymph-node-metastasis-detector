@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useRef } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import LinkedInLink from './components/LinkedInLink'
 import ProjectFamily from './components/ProjectFamily'
 import UpdateBanner from './components/UpdateBanner'
 import { SITE } from './lib/constants'
@@ -79,7 +80,10 @@ export default function App() {
               <NavLink to="/" className="brand-title">
                 {SITE.title}
               </NavLink>
-              <p className="brand-kicker">Surabhi, high-school research project</p>
+              <p className="brand-kicker">
+                <LinkedInLink className="brand-kicker-link">Surabhi</LinkedInLink>, high-school
+                research project
+              </p>
             </div>
             <nav className="site-nav" aria-label="Primary">
               <NavLink to="/" end>
@@ -128,6 +132,9 @@ export default function App() {
                 <a href={SITE.githubUrl} target="_blank" rel="noreferrer">
                   GitHub repository
                 </a>
+              </li>
+              <li>
+                <LinkedInLink />
               </li>
               <li>
                 <NavLink to="/about#cite">How to cite</NavLink>

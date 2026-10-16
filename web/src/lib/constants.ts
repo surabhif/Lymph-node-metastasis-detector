@@ -35,6 +35,7 @@ export const SITE = {
   tagline: 'A research demo that runs on PatchCamelyon in your browser',
   githubUrl: 'https://github.com/surabhif/Lymph-node-metastasis-detector',
   pagesUrl: 'https://surabhif.github.io/Lymph-node-metastasis-detector/',
+  linkedinUrl: 'https://www.linkedin.com/in/surabhi-fadnavis-804065329/',
 }
 
 /** Fixed citation metadata — never use Date.getFullYear() on the cite box. */
