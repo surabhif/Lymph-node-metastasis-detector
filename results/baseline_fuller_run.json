@@ -1,6 +1,6 @@
 {
   "run_id": "baseline_fuller_run",
-  "note": "Improved baseline produced with Cursor's help on a larger subset / more epochs than the original quick stub (4k/1k/4k, 2 epochs). Still not Surabhi's final model \u2014 she owns the science narrative and can replace this with her own Colab training run.",
+  "note": "Improved baseline (larger subset) with more epochs than the original quick stub (4k/1k/4k, 2 epochs). Re-run on a Colab GPU to beat these numbers.",
   "compared_to_quick": {
     "quick_train_val_test": [
       4000,

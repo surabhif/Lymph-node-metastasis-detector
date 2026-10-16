@@ -1,6 +1,6 @@
 {
   "run_id": "baseline_quick_run",
-  "note": "Quick baseline produced with Cursor's help so the live demo has a real model. Not Surabhi's final results \u2014 she should beat these numbers with her own Colab run.",
+  "note": "Quick baseline model on a PCam subset so the live demo has a real model. Re-run the notebook on a Colab GPU to beat these numbers.",
   "hardware": {
     "device": "cpu",
     "cuda_available": false,

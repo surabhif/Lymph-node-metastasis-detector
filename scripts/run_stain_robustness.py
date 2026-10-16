@@ -327,7 +327,7 @@ def main() -> None:
     md_lines = [
         "# Stain / colour robustness (draft experiment)",
         "",
-        "> Educational research check — not a clinical validation. Surabhi owns interpretation and can extend this.",
+        "> Educational research check, not a clinical validation.",
         "",
         "## Method",
         "",
@@ -377,8 +377,7 @@ def main() -> None:
             "",
             "If AUC or accuracy drops under strong colour / H&E-ish shifts, the model is partly "
             "relying on stain appearance rather than morphology alone. Mild shifts should stay "
-            "closer to clean performance. Surabhi can use this table when writing Results limitations "
-            "and when planning stain-augmentation for a future Colab run.",
+            "closer to clean performance. Use this table when writing the Results limitations.",
             "",
         ]
     )

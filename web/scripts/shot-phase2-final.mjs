@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
 const BASE = process.env.SHOT_BASE || 'http://127.0.0.1:4210'
-const OUT = process.env.SHOT_OUT || '/opt/cursor/artifacts'
+const OUT = process.env.SHOT_OUT || './screenshots'
 mkdirSync(OUT, { recursive: true })
 mkdirSync(join(OUT, 'screenshots'), { recursive: true })
 
