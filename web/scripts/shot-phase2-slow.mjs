@@ -2,14 +2,14 @@
  * Phase-2 QA capture: slow real wheel scroll through the explainer so
  * continuous blends are visible (not tab-snap jumps).
  *
- * Env: SHOT_BASE (default http://127.0.0.1:4210), SHOT_OUT (/opt/cursor/artifacts)
+ * Env: SHOT_BASE (default http://127.0.0.1:4210), SHOT_OUT (./screenshots)
  */
 import { chromium } from 'playwright'
 import { mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
 const BASE = process.env.SHOT_BASE || 'http://127.0.0.1:4210'
-const OUT = process.env.SHOT_OUT || '/opt/cursor/artifacts'
+const OUT = process.env.SHOT_OUT || './screenshots'
 mkdirSync(OUT, { recursive: true })
 mkdirSync(join(OUT, 'screenshots'), { recursive: true })
 mkdirSync(join(OUT, 'videos-raw'), { recursive: true })

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Fuller baseline training run — same code path as run_baseline_quick.py / notebook,
-with larger subsets and more epochs for an improved (still Surabhi-replaceable) baseline.
+with larger subsets and more epochs for an improved baseline.
 
 CPU-honest knobs on this VM (no GPU). Official PCam splits only; never reshuffle across splits.
 """
@@ -23,7 +23,7 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, models, transforms
 from tqdm.auto import tqdm
 
-# === Fuller knobs (still a subset — document exactly; Surabhi can beat on Colab GPU) ===
+# === Fuller knobs (still a subset — document exactly; re-run on Colab GPU to beat) ===
 BACKBONE = "resnet18"
 EPOCHS = 5
 BATCH_SIZE = 64
@@ -300,9 +300,9 @@ def main() -> None:
     meta = WEB_MODEL.parent / "MODEL_STATUS.txt"
     meta.write_text(
         "STATUS=improved_baseline_fp32\n"
-        "DESCRIPTION=Improved Cursor-assisted baseline on a larger PCam subset "
+        "DESCRIPTION=Improved baseline (larger subset) "
         f"({MAX_TRAIN_SAMPLES} train / {MAX_VAL_SAMPLES} val / {MAX_TEST_SAMPLES} test, "
-        f"{EPOCHS} epochs, {BACKBONE}, CPU). Surabhi can still replace with her own Colab run.\n"
+        f"{EPOCHS} epochs, {BACKBONE}, CPU).\n"
         f"TEST_AUC={auc:.4f}\n"
         f"TEST_ACC={acc:.4f}\n"
     )
@@ -310,9 +310,8 @@ def main() -> None:
     results = {
         "run_id": RUN_ID,
         "note": (
-            "Improved baseline produced with Cursor's help on a larger subset / more epochs than "
-            "the original quick stub (4k/1k/4k, 2 epochs). Still not Surabhi's final model — "
-            "she owns the science narrative and can replace this with her own Colab training run."
+            "Improved baseline (larger subset) with more epochs than the original quick stub "
+            "(4k/1k/4k, 2 epochs). Re-run on a Colab GPU to beat these numbers."
         ),
         "compared_to_quick": {
             "quick_train_val_test": [4000, 1000, 4000],

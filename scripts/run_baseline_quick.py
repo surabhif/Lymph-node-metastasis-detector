@@ -3,7 +3,7 @@
 Quick baseline training run — faithful to notebooks/01_train_pcam.ipynb knobs/code path.
 
 Runs on this VM (CPU) so the live demo can ship a real (subset) model.
-Surabhi should re-run the notebook herself on Colab GPU and beat these numbers.
+Re-run the notebook on a Colab GPU to beat these numbers.
 """
 
 from __future__ import annotations
@@ -291,17 +291,17 @@ def main() -> None:
     meta = WEB_MODEL.parent / "MODEL_STATUS.txt"
     meta.write_text(
         "STATUS=quick_baseline\n"
-        "DESCRIPTION=Quick baseline trained with Cursor's help on a PCam subset "
+        "DESCRIPTION=Quick baseline model on a PCam subset "
         f"({MAX_TRAIN_SAMPLES} train / {MAX_VAL_SAMPLES} val / {MAX_TEST_SAMPLES} test, "
-        f"{EPOCHS} epochs, {BACKBONE}). To be replaced by Surabhi's own training run.\n"
+        f"{EPOCHS} epochs, {BACKBONE}).\n"
         f"TEST_AUC={auc:.4f}\n"
     )
 
     results = {
         "run_id": "baseline_quick_run",
         "note": (
-            "Quick baseline produced with Cursor's help so the live demo has a real model. "
-            "Not Surabhi's final results — she should beat these numbers with her own Colab run."
+            "Quick baseline model on a PCam subset so the live demo has a real model. "
+            "Re-run the notebook on a Colab GPU to beat these numbers."
         ),
         "hardware": {
             "device": str(DEVICE),

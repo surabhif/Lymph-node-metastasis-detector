@@ -2,8 +2,8 @@
 """
 Export web/public/results/metrics.json (+ mistake gallery images) from a trained checkpoint.
 
-Faithful to the notebook evaluation section. Surabhi's Colab run should overwrite these
-artifacts when she exports; do not invent interpretations here.
+Faithful to the notebook evaluation section. A later Colab export should overwrite these
+artifacts; do not invent interpretations here.
 """
 
 from __future__ import annotations
@@ -211,20 +211,19 @@ def main() -> None:
     run_id = baseline_meta.get("run_id", "baseline_quick_run")
     is_fuller = "fuller" in str(run_id)
     if is_fuller:
-        label = "Improved Cursor-assisted baseline (larger subset)"
+        label = "Improved baseline (larger subset)"
         disclaimer = (
-            "These metrics come from an improved Cursor-assisted baseline trained on a larger "
-            "official-split subset with more epochs than the original quick stub. "
-            "They are still a reference point — not Surabhi's final reported results. "
-            "She owns the science narrative and can replace this run via Colab + "
-            "scripts/export_web_results.py."
+            "These metrics come from an improved baseline trained on a larger official-split "
+            "subset with more epochs than the original quick stub. They are a reference point "
+            "for comparison. Overwrite this file via Colab + scripts/export_web_results.py after "
+            "a new training run."
         )
     else:
-        label = "Cursor-assisted quick baseline"
+        label = "Quick baseline"
         disclaimer = (
-            "These metrics come from a quick subset/epochs baseline trained with Cursor's help. "
-            "They are a reference point — not Surabhi's final reported results. "
-            "When she retrains, overwrite this file via the notebook export / scripts/export_web_results.py."
+            "These metrics come from a quick subset/epochs baseline. They are a reference point "
+            "for comparison. Overwrite this file via the notebook export / "
+            "scripts/export_web_results.py after a new training run."
         )
 
     payload = {

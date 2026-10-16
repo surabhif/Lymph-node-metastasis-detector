@@ -125,8 +125,7 @@ def main() -> None:
         shutil.copy2(quant_path, DST)
         (REPO / "web" / "public" / "models" / "MODEL_STATUS.txt").write_text(
             "STATUS=improved_baseline_int8\n"
-            "DESCRIPTION=Improved Cursor-assisted baseline (dynamic INT8 quantization for browser size). "
-            "Surabhi can still replace with her own Colab export. "
+            "DESCRIPTION=Improved baseline (dynamic INT8 quantization for browser size). "
             "See results/baseline_fuller_run.json for train/val/test counts and epochs.\n"
             f"METHOD={method}\n"
             f"FP32_MB={report['fp32_mb']}\n"

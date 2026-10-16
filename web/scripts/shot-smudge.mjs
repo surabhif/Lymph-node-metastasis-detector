@@ -3,7 +3,7 @@ import { mkdirSync } from 'fs'
 import { join } from 'path'
 
 const BASE = process.env.SHOT_BASE || 'http://127.0.0.1:4182'
-const OUT = process.env.SHOT_OUT || '/opt/cursor/artifacts/screenshots'
+const OUT = process.env.SHOT_OUT || './screenshots'
 mkdirSync(OUT, { recursive: true })
 
 async function waitCanvas(page) {
