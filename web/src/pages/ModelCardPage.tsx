@@ -1,3 +1,5 @@
+import LinkedInLink from '../components/LinkedInLink'
+
 export default function ModelCardPage() {
   return (
     <article className="panel prose fade-in">
@@ -26,7 +28,10 @@ export default function ModelCardPage() {
         <section className="placeholder-box">
           <h2>Model details</h2>
           <ul>
-            <li>Developer: Surabhi Fadnavis (high-school research project)</li>
+            <li>
+              Developer:{' '}
+              <LinkedInLink>Surabhi Fadnavis</LinkedInLink> (high-school research project)
+            </li>
             <li>
               Architecture: ResNet-18 (ImageNet-pretrained), binary logit plus CAM export (
               <code>probability</code>, <code>features</code> N×512×3×3, <code>cam_weights</code>{' '}
