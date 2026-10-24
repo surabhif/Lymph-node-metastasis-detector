@@ -1037,6 +1037,50 @@
   object-fit: cover;
 }
 
+.failure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.failure-card {
+  margin: 0;
+}
+
+.failure-imgs {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.failure-imgs img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  image-rendering: auto;
+  border: 1px solid var(--line);
+}
+
+.failure-card figcaption {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.failure-meta {
+  color: var(--ink);
+}
+
+.failure-caption-placeholder {
+  color: var(--muted);
+  font-style: italic;
+  border-left: 2px solid var(--line-strong);
+  padding-left: 0.45rem;
+}
+
 .mistake-card figcaption {
   padding: 0.45rem 0.5rem 0.6rem;
   font-size: 0.7rem;

@@ -12,6 +12,7 @@ const QuizPage = lazy(() => import('./pages/QuizPage'))
 const SlidePage = lazy(() => import('./pages/SlidePage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const ResultsPage = lazy(() => import('./pages/ResultsPage'))
+const FailuresPage = lazy(() => import('./pages/FailuresPage'))
 const ModelCardPage = lazy(() => import('./pages/ModelCardPage'))
 
 const TITLES: Record<string, string> = {
@@ -20,6 +21,7 @@ const TITLES: Record<string, string> = {
   '/quiz': `You vs. the model | ${SITE.shortTitle}`,
   '/slide': `Slide viewer | ${SITE.shortTitle}`,
   '/results': `Results | ${SITE.shortTitle}`,
+  '/failures': `Where the model was wrong | ${SITE.shortTitle}`,
   '/about': `About | ${SITE.shortTitle}`,
   '/model-card': `Model card | ${SITE.shortTitle}`,
 }
@@ -110,6 +112,7 @@ export default function App() {
             <Route path="/quiz" element={<QuizPage />} />
             <Route path="/slide" element={<SlidePage />} />
             <Route path="/results" element={<ResultsPage />} />
+            <Route path="/failures" element={<FailuresPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/model-card" element={<ModelCardPage />} />
           </Routes>

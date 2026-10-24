@@ -72,6 +72,12 @@ const routes = [
     description: `Pan and zoom a stitched region with a patch heatmap overlay. ${NOT_CLINICAL}`,
     ogImage: `${SITE}/og-image.png`,
   },
+  {
+    path: 'failures',
+    title: 'Where the model was wrong | PCam Metastasis Detector',
+    description: `Confident false negatives and false positives from the PatchCamelyon test set. ${NOT_CLINICAL}`,
+    ogImage: `${SITE}/og-image.png`,
+  },
 ]
 
 copyFileSync(indexHtml, join(dist, '404.html'))

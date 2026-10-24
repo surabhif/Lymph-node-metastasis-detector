@@ -1,0 +1,187 @@
+{
+  "model_version": "full_pcam_int8_v1",
+  "threshold": 0.5201096655586059,
+  "n_false_negatives": 8,
+  "n_false_positives": 8,
+  "selection": "Most confident false negatives = true tumor with the lowest calibrated scores below the threshold. Most confident false positives = true normal with the highest calibrated scores at or above the threshold. Official PCam test split.",
+  "credit": "Patches from PatchCamelyon (PCam), CC0. Cite Veeling et al. 2018 and Bejnordi et al. 2017 / Camelyon16.",
+  "disclaimer": "Educational research only, not for clinical use.",
+  "items": [
+    {
+      "kind": "fn",
+      "testIndex": 31340,
+      "trueLabel": "tumor",
+      "score": 0.0022804024629294872,
+      "rawScore": 4.026293754577637e-05,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fn_00_idx31340_patch.png",
+      "heatmap": "results/failures/fn_00_idx31340_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fn",
+      "testIndex": 988,
+      "trueLabel": "tumor",
+      "score": 0.004136505536735058,
+      "rawScore": 9.399652481079102e-05,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fn_01_idx988_patch.png",
+      "heatmap": "results/failures/fn_01_idx988_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fn",
+      "testIndex": 32231,
+      "trueLabel": "tumor",
+      "score": 0.004214414861053228,
+      "rawScore": 9.652972221374512e-05,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fn_02_idx32231_patch.png",
+      "heatmap": "results/failures/fn_02_idx32231_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fn",
+      "testIndex": 21967,
+      "trueLabel": "tumor",
+      "score": 0.004981449339538813,
+      "rawScore": 0.00012251734733581543,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fn_03_idx21967_patch.png",
+      "heatmap": "results/failures/fn_03_idx21967_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fn",
+      "testIndex": 16859,
+      "trueLabel": "tumor",
+      "score": 0.00617918511852622,
+      "rawScore": 0.0001666247844696045,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fn_04_idx16859_patch.png",
+      "heatmap": "results/failures/fn_04_idx16859_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fn",
+      "testIndex": 26058,
+      "trueLabel": "tumor",
+      "score": 0.006461994256824255,
+      "rawScore": 0.00017762184143066406,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fn_05_idx26058_patch.png",
+      "heatmap": "results/failures/fn_05_idx26058_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fn",
+      "testIndex": 16151,
+      "trueLabel": "tumor",
+      "score": 0.006831668317317963,
+      "rawScore": 0.00019231438636779785,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fn_06_idx16151_patch.png",
+      "heatmap": "results/failures/fn_06_idx16151_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fn",
+      "testIndex": 1697,
+      "trueLabel": "tumor",
+      "score": 0.0072860196232795715,
+      "rawScore": 0.00021085143089294434,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fn_07_idx1697_patch.png",
+      "heatmap": "results/failures/fn_07_idx1697_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fp",
+      "testIndex": 11778,
+      "trueLabel": "normal",
+      "score": 0.9995680451393127,
+      "rawScore": 0.9999256730079651,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fp_00_idx11778_patch.png",
+      "heatmap": "results/failures/fp_00_idx11778_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fp",
+      "testIndex": 8109,
+      "trueLabel": "normal",
+      "score": 0.9988332390785217,
+      "rawScore": 0.9996951818466187,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fp_01_idx8109_patch.png",
+      "heatmap": "results/failures/fp_01_idx8109_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fp",
+      "testIndex": 19810,
+      "trueLabel": "normal",
+      "score": 0.9981404542922974,
+      "rawScore": 0.9994089007377625,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fp_02_idx19810_patch.png",
+      "heatmap": "results/failures/fp_02_idx19810_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fp",
+      "testIndex": 31751,
+      "trueLabel": "normal",
+      "score": 0.9979428052902222,
+      "rawScore": 0.9993176460266113,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fp_03_idx31751_patch.png",
+      "heatmap": "results/failures/fp_03_idx31751_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fp",
+      "testIndex": 3497,
+      "trueLabel": "normal",
+      "score": 0.9978822469711304,
+      "rawScore": 0.9992889165878296,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fp_04_idx3497_patch.png",
+      "heatmap": "results/failures/fp_04_idx3497_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fp",
+      "testIndex": 29000,
+      "trueLabel": "normal",
+      "score": 0.9976237416267395,
+      "rawScore": 0.9991624355316162,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fp_05_idx29000_patch.png",
+      "heatmap": "results/failures/fp_05_idx29000_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fp",
+      "testIndex": 20806,
+      "trueLabel": "normal",
+      "score": 0.9974403977394104,
+      "rawScore": 0.999069094657898,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fp_06_idx20806_patch.png",
+      "heatmap": "results/failures/fp_06_idx20806_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    },
+    {
+      "kind": "fp",
+      "testIndex": 11337,
+      "trueLabel": "normal",
+      "score": 0.9970372319221497,
+      "rawScore": 0.998853862285614,
+      "threshold": 0.5201096655586059,
+      "patch": "results/failures/fp_07_idx11337_patch.png",
+      "heatmap": "results/failures/fp_07_idx11337_heatmap.png",
+      "captionPlaceholder": "[Student note: write your own observation here.]"
+    }
+  ]
+}
