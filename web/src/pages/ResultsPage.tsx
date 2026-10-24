@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { NavLink } from 'react-router-dom'
 
 type ViewMode = 'baseline' | 'retrain' | 'side'
 
@@ -544,6 +545,9 @@ export default function ResultsPage() {
                     </tr>
                   </tbody>
                 </table>
+                <p style={{ marginTop: '0.85rem' }}>
+                  <NavLink to="/failures">See confident false negatives and false positives →</NavLink>
+                </p>
               </section>
 
               {retrain?.compared_to_baseline && (
