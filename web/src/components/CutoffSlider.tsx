@@ -181,8 +181,11 @@ export default function CutoffSlider() {
       </table>
 
       <p className="muted tiny" style={{ marginTop: '0.75rem' }}>
-        {table.note}
+        The slider uses the smaller in-browser version of the model, so its numbers at the 0.5201
+        cutoff (80.4% sensitivity, 92.7% specificity) differ slightly from the full model&apos;s
+        results above.
       </p>
+      <p className="muted tiny">{table.note}</p>
     </div>
   )
 }
