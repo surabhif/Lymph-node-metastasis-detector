@@ -1,27 +1,27 @@
-# Stain / colour robustness (draft experiment)
+# Stain / colour robustness
 
 > Educational research check, not a clinical validation.
 
 ## Method
 
-Held-out fixed-seed subset of the official PCam test split. Perturbations: mild/strong ColorJitter (hue/saturation/brightness/contrast), approximate H&E RGB channel scaling, and fixed warm/cool hue shifts. Not full Macenko or Vahadane stain normalization — those were out of scope for this CPU VM; a principled simpler colour jitter is used instead.
+Held-out fixed-seed subset of the official PCam test split. Perturbations: mild/strong ColorJitter (hue/saturation/brightness/contrast), approximate H&E RGB channel scaling, and fixed warm/cool hue shifts. Not full Macenko or Vahadane stain normalization — those were out of scope; a simpler colour jitter is used instead.
 
-- Evaluation subset: **2000** patches from the official PCam **test** split (fixed seed `49`; within-split shuffle only).
-- Checkpoint: `export/best_model.pt` (backbone `resnet18`, run `baseline_fuller_run`).
-- Decision threshold: 0.5.
+- Evaluation subset: **4000** patches from the official PCam **test** split (fixed seed `49`; within-split shuffle only).
+- Model: shipped `web/public/models/pcam_cam.onnx` (`full_pcam_int8_v1`, ResNet-18 INT8).
+- Decision threshold: 0.5 on raw ONNX probability.
 
-## Knobs
+## Settings
 
 ```json
 {
-  "max_eval_samples": 2000,
+  "max_eval_samples": 4000,
   "seed": 42,
   "index_seed": 49,
   "batch_size": 64,
   "decision_threshold": 0.5,
   "backbone": "resnet18",
-  "checkpoint": "export/best_model.pt",
-  "source_run_id": "baseline_fuller_run"
+  "onnx": "web/public/models/pcam_cam.onnx",
+  "source_run_id": "full_pcam_int8_v1"
 }
 ```
 
@@ -29,12 +29,12 @@ Held-out fixed-seed subset of the official PCam test split. Perturbations: mild/
 
 | Perturbation | Accuracy | ROC-AUC | Δ Acc vs clean | Δ AUC vs clean | Mean |ΔP| vs clean |
 |---|---:|---:|---:|---:|---:|
-| `clean` | 0.7900 | 0.9077 | +0.0000 | +0.0000 | 0.0000 |
-| `mild_color_jitter` | 0.7605 | 0.8796 | -0.0295 | -0.0281 | 0.0904 |
-| `strong_color_jitter` | 0.6765 | 0.7886 | -0.1135 | -0.1191 | 0.1790 |
-| `he_channel_scale` | 0.6635 | 0.7902 | -0.1265 | -0.1175 | 0.1700 |
-| `hue_shift_warm` | 0.7380 | 0.8506 | -0.0520 | -0.0571 | 0.1411 |
-| `hue_shift_cool` | 0.6430 | 0.7437 | -0.1470 | -0.1640 | 0.1840 |
+| `clean` | 0.8373 | 0.9317 | +0.0000 | +0.0000 | 0.0000 |
+| `mild_color_jitter` | 0.7935 | 0.8949 | -0.0438 | -0.0368 | 0.1008 |
+| `strong_color_jitter` | 0.7195 | 0.8134 | -0.1178 | -0.1183 | 0.1897 |
+| `he_channel_scale` | 0.6737 | 0.7504 | -0.1635 | -0.1813 | 0.2153 |
+| `hue_shift_warm` | 0.6995 | 0.8211 | -0.1378 | -0.1106 | 0.2306 |
+| `hue_shift_cool` | 0.6435 | 0.7055 | -0.1938 | -0.2262 | 0.2543 |
 
 ![AUC by perturbation](stain_robustness_auc.png)
 
@@ -47,7 +47,7 @@ Held-out fixed-seed subset of the official PCam test split. Perturbations: mild/
 - scanner-specific colour profiles
 - cross-lab external cohorts
 
-## Takeaway (honest, draft)
+## Takeaway
 
-If AUC or accuracy drops under strong colour / H&E-ish shifts, the model is partly relying on stain appearance rather than morphology alone. Mild shifts should stay closer to clean performance. Use this table when writing the Results limitations.
+If AUC or accuracy drops under strong colour / H&E-ish shifts, the model is partly relying on stain appearance rather than morphology alone. Mild shifts should stay closer to clean performance.
 

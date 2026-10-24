@@ -43,8 +43,8 @@ export const CITATION = {
   author: 'Fadnavis, S.',
   year: 2026,
   title: 'Lymph Node Metastasis Detector: a PatchCamelyon research demo',
-  version: '0.1.0',
-  dateReleased: '2026-10-01',
+  version: '1.0.0',
+  dateReleased: '2026-10-24',
   url: SITE.pagesUrl,
 } as const
 

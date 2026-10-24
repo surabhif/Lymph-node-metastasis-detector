@@ -5,8 +5,8 @@ type: software
 authors:
   - family-names: Fadnavis
     given-names: Surabhi
-version: "0.1.0"
-date-released: "2026-10-01"
+version: "1.0.0"
+date-released: "2026-10-24"
 url: "https://surabhif.github.io/Lymph-node-metastasis-detector/"
 repository-code: "https://github.com/surabhif/Lymph-node-metastasis-detector"
 license: MIT
@@ -17,5 +17,6 @@ keywords:
   - educational
   - research demo
 abstract: >-
-  Educational in-browser research demo of a PatchCamelyon (PCam) lymph-node
-  metastasis patch classifier with class-activation heatmaps. Not for clinical use.
+  Educational in-browser research demo of a ResNet-18 PatchCamelyon (PCam)
+  lymph-node metastasis patch classifier (full official-split test AUC 0.94)
+  with class-activation heatmaps. Not for clinical use.

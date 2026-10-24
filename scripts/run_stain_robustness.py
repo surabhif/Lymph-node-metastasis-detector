@@ -288,8 +288,8 @@ def main() -> None:
             "Held-out fixed-seed subset of the official PCam test split. "
             "Perturbations: mild/strong ColorJitter (hue/saturation/brightness/contrast), "
             "approximate H&E RGB channel scaling, and fixed warm/cool hue shifts. "
-            "Not full Macenko or Vahadane stain normalization — those were out of scope for "
-            "this CPU VM; a principled simpler colour jitter is used instead."
+            "Not full Macenko or Vahadane stain normalization — those were out of scope; "
+            "a principled simpler colour jitter is used instead."
         ),
         "knobs": {
             "max_eval_samples": MAX_EVAL,

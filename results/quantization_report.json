@@ -1,4 +1,8 @@
 {
+  "model_version": "full_pcam_int8_v1",
+  "label": "FP32→INT8 quantization for the live full-PCam retrain (ResNet-18)",
+  "matches_shipped_web_model": true,
+  "shipped_path": "web/public/models/pcam_cam.onnx",
   "fp32_path": "export/pcam_cam_fp32.onnx",
   "int8_path": "export/pcam_cam_int8_default_ops.onnx",
   "fp32_bytes": 44703281,
@@ -6,6 +10,7 @@
   "fp32_mb": 42.63,
   "int8_mb": 10.72,
   "method": "onnxruntime.quantization.quantize_dynamic default ops (incl. Conv) QUInt8",
+  "full_test_note": "On the full official test set (n=32,768), INT8 raw AUC 0.9368 / acc 83.56% @ 0.5 vs PyTorch AUC 0.9401 (see web/public/results/full_retrain_metrics.json onnx.*).",
   "gallery_deltas": [
     {
       "id": "pcam_test_tumor_01_idx2883",
