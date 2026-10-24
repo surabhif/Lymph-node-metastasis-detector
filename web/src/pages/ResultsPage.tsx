@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import CutoffSlider from '../components/CutoffSlider'
 
 type ViewMode = 'baseline' | 'retrain' | 'side'
 
@@ -548,6 +549,10 @@ export default function ResultsPage() {
                 <p style={{ marginTop: '0.85rem' }}>
                   <NavLink to="/failures">See confident false negatives and false positives →</NavLink>
                 </p>
+              </section>
+
+              <section className="panel" style={{ marginTop: '1.25rem' }}>
+                <CutoffSlider />
               </section>
 
               {retrain?.compared_to_baseline && (
