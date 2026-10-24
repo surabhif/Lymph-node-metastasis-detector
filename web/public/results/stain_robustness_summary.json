@@ -1,43 +1,44 @@
 {
-  "label": "Stain and colour checks (draft)",
-  "disclaimer": "Colour jitter and approximate H&E RGB scaling on a held-out official-test subset, not Macenko/Vahadane or external labs. Educational only.",
-  "n": 2000,
+  "label": "Stain and colour checks (full_pcam_int8_v1)",
+  "disclaimer": "Colour jitter and approximate H&E RGB scaling on a held-out official-test subset, not Macenko/Vahadane or external labs. Run on the live INT8 model. Educational only.",
+  "model_version": "full_pcam_int8_v1",
+  "n": 4000,
   "rows": [
     {
       "perturbation": "clean",
-      "accuracy": 0.79,
-      "roc_auc": 0.9077391696525268,
+      "accuracy": 0.83725,
+      "roc_auc": 0.9317109768439074,
       "delta_auc_vs_clean": 0.0
     },
     {
       "perturbation": "mild_color_jitter",
-      "accuracy": 0.7605,
-      "roc_auc": 0.8796269166422497,
-      "delta_auc_vs_clean": -0.02811225301027709
+      "accuracy": 0.7935,
+      "roc_auc": 0.894947579790319,
+      "delta_auc_vs_clean": -0.03676339705358833
     },
     {
       "perturbation": "strong_color_jitter",
-      "accuracy": 0.6765,
-      "roc_auc": 0.7885925973333759,
-      "delta_auc_vs_clean": -0.11914657231915082
+      "accuracy": 0.7195,
+      "roc_auc": 0.813435378741515,
+      "delta_auc_vs_clean": -0.11827559810239241
     },
     {
       "perturbation": "he_channel_scale",
-      "accuracy": 0.6635,
-      "roc_auc": 0.7902241120170082,
-      "delta_auc_vs_clean": -0.11751505763551862
+      "accuracy": 0.67375,
+      "roc_auc": 0.7503688764755059,
+      "delta_auc_vs_clean": -0.18134210036840148
     },
     {
       "perturbation": "hue_shift_warm",
-      "accuracy": 0.738,
-      "roc_auc": 0.8506176555589,
-      "delta_auc_vs_clean": -0.05712151409362676
+      "accuracy": 0.6995,
+      "roc_auc": 0.8211324095296382,
+      "delta_auc_vs_clean": -0.11057856731426918
     },
     {
       "perturbation": "hue_shift_cool",
-      "accuracy": 0.643,
-      "roc_auc": 0.7436966932702394,
-      "delta_auc_vs_clean": -0.16404247638228742
+      "accuracy": 0.6435,
+      "roc_auc": 0.7054708218832875,
+      "delta_auc_vs_clean": -0.2262401549606199
     }
   ],
   "plots": {

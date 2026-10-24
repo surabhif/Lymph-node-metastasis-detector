@@ -63,7 +63,7 @@ export default function ModelCardPage() {
             <li>Patch-level labels are not whole-slide or patient-level decisions</li>
             <li>
               Stain, scanner, and population shift can lower performance (see Results stain section
-              for the older baseline stress test)
+              for the live-model colour-shift check)
             </li>
             <li>Official PCam splits must be respected; reshuffling risks leakage</li>
             <li>
@@ -71,8 +71,9 @@ export default function ModelCardPage() {
               selection set.
             </li>
             <li>
-              Served INT8 file scores test AUC 0.9368 / acc 83.56% @ 0.5 vs PyTorch 0.9401. Small
-              but real quantization gap; both are reported.
+              The browser downloads INT8 weights (~10.7 MB). On the full test set, INT8 raw AUC is
+              0.9368 and accuracy is 83.56% at threshold 0.5 (before Platt calibration). PyTorch
+              AUC is 0.9401. Small quantization gap; both are reported.
             </li>
           </ul>
         </section>

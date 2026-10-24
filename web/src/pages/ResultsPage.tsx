@@ -116,6 +116,7 @@ type StainSummary = {
   label: string
   disclaimer: string
   n: number
+  model_version?: string
   rows: {
     perturbation: string
     accuracy: number
@@ -464,16 +465,17 @@ export default function ResultsPage() {
                   </div>
                 </div>
                 <div className="metric-card panel">
-                  <div className="label">INT8 ONNX vs PyTorch</div>
+                  <div className="label">INT8 download vs PyTorch</div>
                   <div className="value value-sm">
-                    AUC {onnx.int8_test_auc_raw.toFixed(4)} / acc{' '}
-                    {pct(onnx.int8_test_acc_raw_0p5)} at 0.5
+                    AUC {onnx.int8_test_auc_raw.toFixed(4)} ·{' '}
+                    {pct(onnx.int8_test_acc_raw_0p5)} accuracy at 0.5
                   </div>
                   <p className="muted tiny">
-                    Served file is INT8 ({onnx.int8_mb.toFixed(1)} MB) vs FP32 (
-                    {onnx.fp32_mb.toFixed(1)} MB). PyTorch test AUC {cal.auc.toFixed(4)}. Mean
-                    absolute score difference on 512 patches:{' '}
-                    {onnx.int8_vs_torch_mean_abs_512.toFixed(4)}.
+                    The browser downloads INT8 ({onnx.int8_mb.toFixed(1)} MB; FP32 was{' '}
+                    {onnx.fp32_mb.toFixed(1)} MB). Those INT8 numbers are raw scores at threshold
+                    0.5 — before Platt calibration and before the chosen cutoff 0.5201. PyTorch
+                    test AUC is {cal.auc.toFixed(4)}. Mean absolute score difference on 512
+                    patches: {onnx.int8_vs_torch_mean_abs_512.toFixed(4)}.
                   </p>
                 </div>
                 <div className="metric-card panel">
@@ -657,53 +659,6 @@ export default function ResultsPage() {
             </div>
           </section>
 
-          {stain && (
-            <section className="panel">
-              <h2 className="section-title">Stain and colour checks</h2>
-              <p>
-                <strong>{stain.label}.</strong> {stain.disclaimer} Held-out official-test subset (n=
-                {stain.n}). Plots and table below summarize the checks.
-              </p>
-              <div className="stain-plots">
-                <figure>
-                  <img
-                    src={`${import.meta.env.BASE_URL}${stain.plots.auc}`}
-                    alt="ROC-AUC under colour and stain-like perturbations"
-                  />
-                </figure>
-                <figure>
-                  <img
-                    src={`${import.meta.env.BASE_URL}${stain.plots.examples}`}
-                    alt="Example clean versus strong colour-jitter patches"
-                  />
-                </figure>
-              </div>
-              <table className="cm-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Perturbation</th>
-                    <th scope="col">Accuracy</th>
-                    <th scope="col">ROC-AUC</th>
-                    <th scope="col">Δ AUC vs clean</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stain.rows.map((r) => (
-                    <tr key={r.perturbation}>
-                      <th scope="row">{stainPerturbationLabel(r.perturbation)}</th>
-                      <td>{(r.accuracy * 100).toFixed(2)}%</td>
-                      <td>{r.roc_auc.toFixed(4)}</td>
-                      <td>
-                        {r.delta_auc_vs_clean >= 0 ? '+' : ''}
-                        {r.delta_auc_vs_clean.toFixed(4)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
-          )}
-
           <section className="panel">
             <h2 className="section-title">Limitations</h2>
             <ul>
@@ -712,8 +667,8 @@ export default function ResultsPage() {
                 (8k patches), not the full 32,768-patch test set.
               </li>
               <li>
-                Colour / stain stress tests here use principled jitter and approximate H&amp;E RGB
-                scaling, not Macenko/Vahadane or external labs.
+                Colour / stain stress tests (see below) use principled jitter and approximate
+                H&amp;E RGB scaling, not Macenko/Vahadane or external labs.
               </li>
               <li>
                 Patch-level scores are not whole-slide or patient-level decisions. Educational
@@ -741,6 +696,55 @@ export default function ResultsPage() {
             </pre>
           </section>
         </>
+      )}
+
+      {stain && (
+        <section className="panel" style={{ marginTop: '1.25rem' }}>
+          <h2 className="section-title">Stain and colour checks</h2>
+          <p>
+            <strong>{stain.label}.</strong> {stain.disclaimer} Held-out official-test subset (n=
+            {stain.n}
+            {stain.model_version ? `; model ${stain.model_version}` : ''}). Plots and table below
+            summarize the checks.
+          </p>
+          <div className="stain-plots">
+            <figure>
+              <img
+                src={`${import.meta.env.BASE_URL}${stain.plots.auc}`}
+                alt="ROC-AUC under colour and stain-like perturbations"
+              />
+            </figure>
+            <figure>
+              <img
+                src={`${import.meta.env.BASE_URL}${stain.plots.examples}`}
+                alt="Example clean versus strong colour-jitter patches"
+              />
+            </figure>
+          </div>
+          <table className="cm-table">
+            <thead>
+              <tr>
+                <th scope="col">Perturbation</th>
+                <th scope="col">Accuracy</th>
+                <th scope="col">ROC-AUC</th>
+                <th scope="col">Δ AUC vs clean</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stain.rows.map((r) => (
+                <tr key={r.perturbation}>
+                  <th scope="row">{stainPerturbationLabel(r.perturbation)}</th>
+                  <td>{(r.accuracy * 100).toFixed(2)}%</td>
+                  <td>{r.roc_auc.toFixed(4)}</td>
+                  <td>
+                    {r.delta_auc_vs_clean >= 0 ? '+' : ''}
+                    {r.delta_auc_vs_clean.toFixed(4)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
       )}
     </article>
   )
