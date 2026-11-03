@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useRef } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import LinkedInLink from './components/LinkedInLink'
 import ProjectFamily from './components/ProjectFamily'
+import ThemeToggle from './components/ThemeToggle'
 import UpdateBanner from './components/UpdateBanner'
 import { SITE } from './lib/constants'
 import './App.css'
@@ -97,6 +98,7 @@ export default function App() {
               <NavLink to="/results">Results</NavLink>
               <NavLink to="/about">About</NavLink>
               <NavLink to="/model-card">Model card</NavLink>
+              <ThemeToggle />
             </nav>
           </div>
         </header>

@@ -26,6 +26,14 @@
   --line-strong: #d4c5c5;
   --panel: #ffffff;
 
+  /* Text on solid accent / solid ink buttons (WCAG AA with brand rose) */
+  --on-accent: #ffffff;
+  --on-ink: #ffffff;
+
+  /* Glossary tip surface (inverted vs page for contrast) */
+  --tip-bg: #1a1a1a;
+  --tip-ink: #f5f5f5;
+
   /* Clinical disclaimer banner: solid brand + white text */
   --warn-bg: var(--accent);
   --warn: #ffffff;
@@ -48,6 +56,7 @@
   --font-mono: 'Chivo Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
   --max: 1120px;
+  color-scheme: light;
   color: var(--ink);
   background-color: var(--bg);
   background-image:
@@ -59,6 +68,51 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Dark theme: keep --accent #9b5654 (white text on accent still ~AA).
+ * Soft/pale accent tokens become dark rose panels; accent-ink lightens for text on them.
+ */
+[data-theme='dark'] {
+  --accent: #9b5654;
+  /* Keep deep dark enough for white text on solid fills (AA) */
+  --accent-deep: #7a4341;
+  --accent-ink: #f0d4d3;
+  --accent-mid: #b06a68;
+  --accent-muted: #3d2a2a;
+  --accent-soft: #2a1c1c;
+  --accent-pale: #1e1616;
+  --accent-border: #6b4544;
+
+  --bg: #121010;
+  --bg-muted: #1a1515;
+  --bg-deep: #0c0a0a;
+  --ink: #f4efef;
+  --ink-soft: #ddd4d4;
+  --muted: #b5a4a4;
+  --line: #3a2e2e;
+  --line-strong: #524444;
+  --panel: #1a1515;
+
+  --on-accent: #ffffff;
+  --on-ink: #121010;
+
+  --tip-bg: #f4efef;
+  --tip-ink: #121010;
+
+  --warn-bg: var(--accent);
+  --warn: #ffffff;
+
+  --malignant: #f04870;
+  --malignant-soft: #3a1520;
+  --malignant-border: #7a3048;
+  --benign: #f4efef;
+  --benign-soft: #1a1515;
+  --normal: var(--accent-ink);
+  --normal-soft: var(--accent-soft);
+
+  color-scheme: dark;
 }
 
 * {

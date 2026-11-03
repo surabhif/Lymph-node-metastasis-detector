@@ -10,7 +10,7 @@
   left: -999px;
   top: 0;
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   padding: 0.5rem 1rem;
   z-index: 100;
   font-family: var(--font-mono);
@@ -28,7 +28,7 @@
   top: 0;
   z-index: 50;
   width: 100%;
-  background: #ffffff;
+  background: var(--bg);
   isolation: isolate;
 }
 
@@ -52,7 +52,7 @@
 }
 
 .notice-learn-more {
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -61,15 +61,15 @@
 
 .notice-learn-more:hover,
 .notice-learn-more:focus-visible {
-  color: #ffffff;
+  color: var(--on-accent);
   background: var(--accent-deep);
-  outline: 2px solid #ffffff;
+  outline: 2px solid var(--on-accent);
   outline-offset: 2px;
 }
 
 .site-header {
   width: 100%;
-  background: #ffffff;
+  background: var(--bg);
   border-bottom: 1px dashed var(--line-strong);
 }
 
@@ -163,7 +163,7 @@
 }
 
 .site-nav a.active {
-  color: #ffffff;
+  color: var(--on-accent);
   border-color: var(--accent-deep);
   background: var(--accent);
   font-weight: 500;
@@ -251,7 +251,7 @@
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   padding: 0.7rem 0.75rem;
-  background: #fff;
+  background: var(--panel);
   min-width: 0;
 }
 
@@ -357,7 +357,7 @@
 .cite-tab {
   appearance: none;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--panel);
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -371,7 +371,7 @@
 .cite-tab.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .cite-tab:focus-visible {
@@ -389,7 +389,7 @@
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   padding: 0.65rem 0.75rem;
-  background: #fff;
+  background: var(--panel);
   color: var(--ink-soft);
 }
 
@@ -435,7 +435,7 @@
   appearance: none;
   border: 1px solid var(--ink);
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   border-radius: var(--radius);
   padding: 0.7rem 1.1rem;
   cursor: pointer;
@@ -461,14 +461,14 @@
 .btn:hover,
 .btn:focus-visible {
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   border-color: var(--accent-deep);
   outline: 2px solid var(--accent-deep);
   outline-offset: 2px;
 }
 
 .btn.secondary {
-  background: #fff;
+  background: var(--panel);
   color: var(--ink);
 }
 
@@ -674,7 +674,7 @@
 .gallery-item {
   appearance: none;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--panel);
   padding: 0;
   border-radius: var(--radius);
   overflow: hidden;
@@ -918,8 +918,8 @@
   z-index: 40;
   width: min(22rem, 70vw);
   padding: 0.55rem 0.7rem;
-  background: #1a1a1a;
-  color: #f5f5f5;
+  background: var(--tip-bg);
+  color: var(--tip-ink);
   font-size: 0.8rem;
   line-height: 1.4;
   font-family: var(--font-body);
@@ -1005,7 +1005,7 @@
 .metric-card {
   border-right: 1px solid var(--line-strong);
   padding: 1rem;
-  background: #fff;
+  background: var(--panel);
 }
 
 .metric-card:last-child {
@@ -1041,7 +1041,7 @@
   grid-template-columns: repeat(5, 1fr);
   gap: 0;
   border: 1px solid var(--ink);
-  background: #fff;
+  background: var(--panel);
   padding: 0 !important;
 }
 
@@ -1101,7 +1101,7 @@
 
 .mistake-card {
   margin: 0;
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   overflow: hidden;
@@ -1218,7 +1218,7 @@
   display: grid;
   place-items: center;
   color: var(--muted);
-  background: #fff;
+  background: var(--panel);
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 0.7rem;
@@ -1268,7 +1268,7 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 500;
-  color: #ffffff;
+  color: var(--on-accent);
   background: var(--accent);
   border: 1px solid var(--accent-deep);
   padding: 0.3em 0.7em;
@@ -1377,7 +1377,7 @@
   margin: 0;
   max-width: 44rem;
   font-size: 0.95rem;
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--ink);
   border-left: 6px solid var(--malignant);
   border-radius: 0;
@@ -1408,7 +1408,7 @@
   padding: 0.95rem 1.15rem;
   border-radius: 0;
   background: var(--accent-deep);
-  color: #ffffff;
+  color: var(--on-accent);
   border: 1px solid var(--accent-ink);
 }
 
@@ -1542,7 +1542,7 @@
   height: 1.75rem;
   border-radius: 0;
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 0.8rem;
   align-items: center;
@@ -1581,7 +1581,7 @@
 }
 
 .landing-size .dot.benign-dot {
-  background: #fff;
+  background: var(--on-accent);
 }
 
 .landing-size .dot.malignant-dot {
@@ -1629,7 +1629,7 @@
 
 .landing-jumplink:hover,
 .landing-jumplink:focus-visible {
-  color: #ffffff;
+  color: var(--on-accent);
   background: var(--accent);
   outline: 2px solid var(--accent-deep);
   outline-offset: 2px;
@@ -1678,7 +1678,7 @@ a.landing-jumplink {
   height: 2rem;
   border-radius: 0;
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-accent);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -2135,7 +2135,7 @@ td {
   font-family: var(--font-mono);
   font-size: 0.75em;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--panel);
   color: var(--ink);
   padding: 0 0.3rem;
   border-radius: var(--radius);
@@ -2143,13 +2143,13 @@ td {
 
 /* Primary (ink) buttons: white-on-white kbd looked like a solid block (NEXT ████ ›). */
 .quiz-page .btn:not(.secondary) kbd {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.65);
-  color: #fff;
+  background: color-mix(in srgb, var(--on-ink) 14%, transparent);
+  border-color: color-mix(in srgb, var(--on-ink) 65%, transparent);
+  color: var(--on-ink);
 }
 
 .quiz-page .btn.secondary kbd {
-  background: #fff;
+  background: var(--panel);
   border-color: var(--line-strong);
   color: var(--ink);
 }
@@ -2298,7 +2298,7 @@ td {
 .quiz-thumb {
   appearance: none;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--panel);
   border-radius: var(--radius);
   padding: 0.35rem;
   cursor: pointer;
@@ -2363,7 +2363,7 @@ td {
 .results-tab {
   appearance: none;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--panel);
   color: var(--ink);
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -2377,7 +2377,7 @@ td {
 .results-tab.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .retrain-banner {
@@ -2418,7 +2418,7 @@ td {
 
 .verdict-likely_normal {
   border-color: var(--line-strong);
-  background: #fff;
+  background: var(--panel);
   color: var(--ink);
 }
 
@@ -2534,7 +2534,7 @@ td {
   width: 100%;
   height: auto;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--panel);
 }
 
 .draft-note {
@@ -2619,7 +2619,7 @@ td {
   gap: 0.15rem;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.55);
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
 }
 
 .cutoff-metric .label {
@@ -2652,8 +2652,59 @@ td {
   margin: 0;
 }
 
+
+/* Theme toggle (header) */
+.theme-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  margin-left: 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.theme-toggle button {
+  appearance: none;
+  margin: 0;
+  border: 0;
+  border-right: 1px solid var(--line-strong);
+  background: var(--panel);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.theme-toggle button:last-child {
+  border-right: 0;
+}
+
+.theme-toggle button:hover,
+.theme-toggle button:focus-visible {
+  color: var(--ink);
+  background: var(--bg-muted);
+  outline: none;
+}
+
+.theme-toggle button.is-active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.theme-toggle button:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
 @media print {
   .skip-link,
+  .theme-toggle,
   .site-top,
   .site-notice,
   .site-header,
