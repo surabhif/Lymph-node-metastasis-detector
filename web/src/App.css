@@ -933,6 +933,15 @@
   display: none !important;
 }
 
+.speed-note {
+  margin-top: 0.55rem !important;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
 .opacity-control {
   display: grid;
   grid-template-columns: auto 1fr auto;
