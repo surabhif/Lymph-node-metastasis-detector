@@ -17,6 +17,7 @@ import {
   verdictFor,
   verdictLabel,
   type ModelManifest,
+  type Verdict,
 } from '../lib/modelSettings'
 
 type Sample = (typeof samplesManifest.samples)[number]
@@ -38,8 +39,62 @@ type HardCaseNote = {
   threshold: number
 }
 
+type BatchRowStatus = 'queued' | 'running' | 'done' | 'error'
+
+type BatchRow = {
+  id: string
+  filename: string
+  objectUrl: string
+  status: BatchRowStatus
+  score: number | null
+  label: string | null
+  verdict: Verdict | null
+  uncertain: boolean | null
+  error?: string
+}
+
+const BATCH_CAP = 20
+
 function formatPct(p: number) {
   return `${(p * 100).toFixed(1)}%`
+}
+
+function downloadBatchCsv(
+  rows: BatchRow[],
+  threshold: number,
+  lo: number,
+  hi: number,
+  modelVersion: string,
+) {
+  const header =
+    'filename,score,label,uncertain,threshold,uncertain_lo,uncertain_hi,model_version'
+  const lines = rows
+    .filter((r) => r.status === 'done' && r.score != null && r.label != null)
+    .map((r) => {
+      const score = (r.score! * 100).toFixed(1)
+      const uncertain = r.uncertain ? 'true' : 'false'
+      const safeName = `"${r.filename.replace(/"/g, '""')}"`
+      const safeLabel = `"${r.label!.replace(/"/g, '""')}"`
+      return [
+        safeName,
+        score,
+        safeLabel,
+        uncertain,
+        threshold,
+        lo,
+        hi,
+        modelVersion,
+      ].join(',')
+    })
+  const blob = new Blob([[header, ...lines].join('\n')], {
+    type: 'text/csv;charset=utf-8',
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'batch-scores.csv'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 function failureToSample(item: FailureItem): Sample {
@@ -77,17 +132,28 @@ export default function DemoPage() {
     message: 'Model not loaded yet',
   })
   const [downloadBusy, setDownloadBusy] = useState(false)
+  const [batchRows, setBatchRows] = useState<BatchRow[]>([])
+  const [batchBusy, setBatchBusy] = useState(false)
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(
+    null,
+  )
+  const [batchMessage, setBatchMessage] = useState<string | null>(null)
+  const [batchDragOver, setBatchDragOver] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectUrlRef = useRef<string | null>(null)
+  const batchUrlsRef = useRef<string[]>([])
   const preloadDone = useRef(false)
   const optsRef = useRef({ tta: false, macenko: false })
   optsRef.current = { tta: useTta, macenko: useMacenko }
+  const galleryBusy = busy || batchBusy
 
   // Defer ORT + model download until the visitor asks (or deep-links a sample).
   useEffect(() => {
     void loadModelManifest().then(setManifest).catch(() => setManifest(null))
     return () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
+      for (const url of batchUrlsRef.current) URL.revokeObjectURL(url)
+      batchUrlsRef.current = []
     }
   }, [])
 
@@ -166,6 +232,115 @@ export default function DemoPage() {
     } finally {
       setBusy(false)
     }
+  }
+
+  function clearBatchRows() {
+    for (const url of batchUrlsRef.current) URL.revokeObjectURL(url)
+    batchUrlsRef.current = []
+    setBatchRows([])
+    setBatchProgress(null)
+    setBatchMessage(null)
+  }
+
+  async function runBatch(files: File[]) {
+    if (files.length === 0) return
+    if (files.length > BATCH_CAP) {
+      setBatchMessage(
+        `Please choose at most ${BATCH_CAP} images at a time. You selected ${files.length}.`,
+      )
+      return
+    }
+
+    clearBatchRows()
+    setBatchMessage(null)
+    setBatchBusy(true)
+
+    const rows: BatchRow[] = files.map((file, i) => {
+      const objectUrl = URL.createObjectURL(file)
+      batchUrlsRef.current.push(objectUrl)
+      return {
+        id: `${file.name}-${file.size}-${i}-${Date.now()}`,
+        filename: file.name,
+        objectUrl,
+        status: 'queued',
+        score: null,
+        label: null,
+        verdict: null,
+        uncertain: null,
+      }
+    })
+    setBatchRows(rows)
+    setBatchProgress({ done: 0, total: rows.length })
+
+    let settings = manifest
+    if (!settings) {
+      try {
+        settings = await loadModelManifest()
+        setManifest(settings)
+      } catch {
+        settings = null
+      }
+    }
+    const batchThreshold = settings?.threshold ?? 0.5
+    const batchLo = settings?.uncertain_lo ?? 0.35
+    const batchHi = settings?.uncertain_hi ?? 0.65
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]!
+        const rowId = rows[i]!.id
+        setBatchRows((prev) =>
+          prev.map((r) => (r.id === rowId ? { ...r, status: 'running' } : r)),
+        )
+        try {
+          const out = await runInference(file, setLoadProgress, {
+            tta: optsRef.current.tta,
+            macenko: optsRef.current.macenko,
+          })
+          const v = verdictFor(out.probability, batchThreshold, batchLo, batchHi)
+          setBatchRows((prev) =>
+            prev.map((r) =>
+              r.id === rowId
+                ? {
+                    ...r,
+                    status: 'done',
+                    score: out.probability,
+                    label: verdictLabel(v),
+                    verdict: v,
+                    uncertain: v === 'uncertain',
+                  }
+                : r,
+            ),
+          )
+        } catch (err) {
+          console.error(err)
+          setBatchRows((prev) =>
+            prev.map((r) =>
+              r.id === rowId
+                ? {
+                    ...r,
+                    status: 'error',
+                    error: err instanceof Error ? err.message : 'Inference failed',
+                  }
+                : r,
+            ),
+          )
+        }
+        setBatchProgress({ done: i + 1, total: files.length })
+      }
+    } finally {
+      setBatchBusy(false)
+    }
+  }
+
+  function acceptBatchFiles(list: FileList | File[] | null) {
+    if (!list) return
+    const files = Array.from(list).filter((f) => f.type.startsWith('image/'))
+    if (files.length === 0) {
+      setBatchMessage('No image files found. Please drop or select image files.')
+      return
+    }
+    void runBatch(files)
   }
 
   useEffect(() => {
@@ -251,7 +426,7 @@ export default function DemoPage() {
                 type="button"
                 className={`gallery-item${selectedId === sample.id ? ' selected' : ''}`}
                 onClick={() => analyze(`${import.meta.env.BASE_URL}${sample.src}`, sample)}
-                disabled={busy || loadProgress.status === 'error'}
+                disabled={galleryBusy || loadProgress.status === 'error'}
                 aria-pressed={selectedId === sample.id}
               >
                 <img
@@ -288,7 +463,7 @@ export default function DemoPage() {
                 className="sr-only"
                 type="file"
                 accept="image/*"
-                disabled={busy || loadProgress.status === 'error'}
+                disabled={galleryBusy || loadProgress.status === 'error'}
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) void analyze(file)
@@ -299,7 +474,7 @@ export default function DemoPage() {
             <button
               type="button"
               className="btn secondary"
-              disabled={busy || loadProgress.status === 'error'}
+              disabled={galleryBusy || loadProgress.status === 'error'}
               onClick={() => {
                 void (async () => {
                   try {
@@ -335,6 +510,7 @@ export default function DemoPage() {
               Try a hard one
             </button>
             {busy && <span className="muted">Running model…</span>}
+            {batchBusy && <span className="muted">Batch scoring…</span>}
           </div>
           {hardCase && (
             <p className="hard-case-note" role="note">
@@ -547,6 +723,159 @@ export default function DemoPage() {
           </details>
         </section>
       </div>
+
+      <section className="panel batch-section" aria-labelledby="batch-heading">
+        <h2 id="batch-heading" className="section-title">
+          Batch upload
+        </h2>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Drop or select up to {BATCH_CAP} images to score them one after another in your browser.
+          This research demo is for learning only, not clinical use. Results use the same model
+          settings as the single-image gallery above.
+        </p>
+
+        <div
+          className={`batch-dropzone${batchDragOver ? ' drag-over' : ''}${batchBusy ? ' busy' : ''}`}
+          onDragEnter={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (!galleryBusy && loadProgress.status !== 'error') setBatchDragOver(true)
+          }}
+          onDragOver={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (e.currentTarget === e.target) setBatchDragOver(false)
+          }}
+          onDrop={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setBatchDragOver(false)
+            if (galleryBusy || loadProgress.status === 'error') return
+            acceptBatchFiles(e.dataTransfer.files)
+          }}
+        >
+          <p className="batch-dropzone-title">Drop images here</p>
+          <p className="muted tiny">PNG, JPEG, or other common image types. Cap {BATCH_CAP} files.</p>
+          <label className="btn secondary">
+            Select multiple images
+            <input
+              className="sr-only"
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={galleryBusy || loadProgress.status === 'error'}
+              onChange={(e) => {
+                acceptBatchFiles(e.target.files)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
+
+        {batchMessage && (
+          <p className="error-text" role="alert">
+            {batchMessage}
+          </p>
+        )}
+
+        {batchProgress && (
+          <p className="muted batch-progress" aria-live="polite">
+            {batchBusy
+              ? `Scoring ${batchProgress.done} of ${batchProgress.total}…`
+              : `Finished ${batchProgress.done} of ${batchProgress.total}.`}
+          </p>
+        )}
+
+        {batchRows.length > 0 && (
+          <>
+            <div className="batch-table-wrap">
+              <table className="batch-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Thumbnail</th>
+                    <th scope="col">Score</th>
+                    <th scope="col">Label</th>
+                    <th scope="col">Uncertain</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {batchRows.map((row) => (
+                    <tr key={row.id} data-status={row.status}>
+                      <td className="batch-thumb-cell">
+                        <img
+                          className="batch-thumb"
+                          src={row.objectUrl}
+                          alt=""
+                          width={48}
+                          height={48}
+                        />
+                        <span className="batch-filename" title={row.filename}>
+                          {row.filename}
+                        </span>
+                      </td>
+                      <td>
+                        {row.status === 'done' && row.score != null
+                          ? formatPct(row.score)
+                          : row.status === 'running'
+                            ? '…'
+                            : row.status === 'error'
+                              ? '—'
+                              : 'queued'}
+                      </td>
+                      <td>
+                        {row.status === 'done' && row.label && row.verdict ? (
+                          <span className={`verdict-pill verdict-${row.verdict}`}>
+                            {row.label}
+                          </span>
+                        ) : row.status === 'error' ? (
+                          <span className="error-text">{row.error ?? 'Failed'}</span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td>
+                        {row.status === 'done' ? (row.uncertain ? 'Yes' : 'No') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="batch-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={
+                  batchBusy || !batchRows.some((r) => r.status === 'done' && r.score != null)
+                }
+                onClick={() =>
+                  downloadBatchCsv(
+                    batchRows,
+                    threshold,
+                    lo,
+                    hi,
+                    manifest?.model_version ?? 'full_pcam_int8_v1',
+                  )
+                }
+              >
+                Download CSV
+              </button>
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={batchBusy}
+                onClick={() => clearBatchRows()}
+              >
+                Clear batch
+              </button>
+            </div>
+          </>
+        )}
+      </section>
     </div>
   )
 }

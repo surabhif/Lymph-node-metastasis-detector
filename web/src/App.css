@@ -2707,3 +2707,127 @@ td {
     margin-bottom: 1rem;
   }
 }
+
+
+/* === batch upload (demo) === */
+.batch-section {
+  margin-top: 1.25rem;
+}
+
+.batch-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1.35rem 1rem;
+  border: 1.5px dashed var(--line-strong);
+  background: var(--bg-muted);
+  text-align: center;
+  transition: border-color 160ms var(--ease-snap), background 160ms var(--ease-snap);
+}
+
+.batch-dropzone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-pale);
+}
+
+.batch-dropzone.busy {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.batch-dropzone-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.batch-progress {
+  margin: 0.75rem 0 0;
+}
+
+.batch-table-wrap {
+  margin-top: 0.85rem;
+  overflow-x: auto;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+}
+
+.batch-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.batch-table th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: var(--bg-muted);
+}
+
+.batch-table th,
+.batch-table td {
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.batch-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.batch-table tr[data-status='running'] {
+  background: rgba(155, 86, 84, 0.06);
+}
+
+.batch-thumb-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 10rem;
+}
+
+.batch-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid var(--line-strong);
+  flex-shrink: 0;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.batch-filename {
+  display: inline-block;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.batch-table .verdict-pill {
+  margin: 0;
+}
+
+.batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .batch-filename {
+    max-width: 8rem;
+  }
+}
