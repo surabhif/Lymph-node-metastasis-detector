@@ -7,10 +7,12 @@ import { MODEL_STATUS, PATCH_SIZE } from '../lib/constants'
 import {
   preloadModel,
   runInference,
+  runProbabilityOnImageSource,
   type InferenceResult,
   type LoadProgress,
 } from '../lib/inference'
-import { camToOverlay, probabilityMapOverlay } from '../lib/image'
+import { camToOverlay, loadImage, probabilityMapOverlay } from '../lib/image'
+import { imageElementToImageData } from '../lib/macenko'
 import { downloadResultCard } from '../lib/downloadResultCard'
 import {
   loadModelManifest,
@@ -19,6 +21,12 @@ import {
   type ModelManifest,
   type Verdict,
 } from '../lib/modelSettings'
+import {
+  STAIN_COMPARE_PERTURBATIONS,
+  applyStainPerturbation,
+  imageDataToObjectUrl,
+  type StainPerturbationId,
+} from '../lib/stainPerturb'
 
 type Sample = (typeof samplesManifest.samples)[number]
 
@@ -63,6 +71,15 @@ type BatchRow = {
 }
 
 const BATCH_CAP = 20
+
+type StainCompareItem = {
+  id: StainPerturbationId
+  label: string
+  thumbUrl: string
+  probability: number | null
+  verdict: Verdict | null
+  error?: string
+}
 
 function formatPct(p: number) {
   return `${(p * 100).toFixed(1)}%`
@@ -150,11 +167,14 @@ export default function DemoPage() {
   const [batchDragOver, setBatchDragOver] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
   const copyLiveId = useId()
+  const [stainCompare, setStainCompare] = useState<StainCompareItem[] | null>(null)
+  const [stainCompareBusy, setStainCompareBusy] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectUrlRef = useRef<string | null>(null)
   const batchUrlsRef = useRef<string[]>([])
   const preloadDone = useRef(false)
   const copyTimerRef = useRef<number | null>(null)
+  const stainRunId = useRef(0)
   const optsRef = useRef({ tta: false, macenko: false })
   optsRef.current = { tta: useTta, macenko: useMacenko }
   const galleryBusy = busy || batchBusy
@@ -243,6 +263,9 @@ export default function DemoPage() {
     setBusy(true)
     setError(null)
     setResult(null)
+    setStainCompare(null)
+    setStainCompareBusy(false)
+    stainRunId.current += 1
     setHardCase(hard ?? null)
     setInferMs(null)
     setLinkCopied(false)
@@ -395,6 +418,93 @@ export default function DemoPage() {
     preloadDone.current = true
     void analyze(`${import.meta.env.BASE_URL}${sample.src}`, sample)
   }, [searchParams])
+
+  // Live stain / colour compare on single patches only (skip mosaics / sliding-window).
+  useEffect(() => {
+    if (!result || !sourceUrl) {
+      setStainCompare(null)
+      return
+    }
+    if (result.mode !== 'single-patch' || selectedMeta?.kind === 'tile') {
+      setStainCompare(null)
+      return
+    }
+
+    const runId = ++stainRunId.current
+    let cancelled = false
+    setStainCompareBusy(true)
+    setStainCompare(
+      STAIN_COMPARE_PERTURBATIONS.map((p) => ({
+        id: p.id,
+        label: p.label,
+        thumbUrl: '',
+        probability: null,
+        verdict: null,
+      })),
+    )
+
+    void (async () => {
+      try {
+        const img = await loadImage(sourceUrl)
+        if (cancelled || runId !== stainRunId.current) return
+        const base = imageElementToImageData(img)
+        const thr = manifest?.threshold ?? 0.5
+        const bandLo = manifest?.uncertain_lo ?? 0.35
+        const bandHi = manifest?.uncertain_hi ?? 0.65
+        const items: StainCompareItem[] = []
+
+        for (const spec of STAIN_COMPARE_PERTURBATIONS) {
+          if (cancelled || runId !== stainRunId.current) return
+          try {
+            const perturbed = applyStainPerturbation(base, spec.id)
+            const thumbUrl = imageDataToObjectUrl(perturbed)
+            const { probability } = await runProbabilityOnImageSource(perturbed)
+            if (cancelled || runId !== stainRunId.current) return
+            items.push({
+              id: spec.id,
+              label: spec.label,
+              thumbUrl,
+              probability,
+              verdict: verdictFor(probability, thr, bandLo, bandHi),
+            })
+            setStainCompare([...items, ...STAIN_COMPARE_PERTURBATIONS.slice(items.length).map((p) => ({
+              id: p.id,
+              label: p.label,
+              thumbUrl: '',
+              probability: null,
+              verdict: null,
+            }))])
+          } catch (err) {
+            items.push({
+              id: spec.id,
+              label: spec.label,
+              thumbUrl: '',
+              probability: null,
+              verdict: null,
+              error: err instanceof Error ? err.message : 'Score failed',
+            })
+            setStainCompare([...items])
+          }
+        }
+        if (!cancelled && runId === stainRunId.current) {
+          setStainCompare(items)
+        }
+      } catch (err) {
+        if (!cancelled && runId === stainRunId.current) {
+          setStainCompare(null)
+          console.error(err)
+        }
+      } finally {
+        if (!cancelled && runId === stainRunId.current) {
+          setStainCompareBusy(false)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [result, sourceUrl, selectedMeta, manifest])
 
   const progressPct =
     loadProgress.totalBytes && loadProgress.totalBytes > 0
@@ -776,6 +886,46 @@ export default function DemoPage() {
               scored separately and blended. A mosaic of separate patches is not continuous tissue.
             </p>
           </details>
+
+          {stainCompare && (
+            <div className="stain-compare" aria-live="polite">
+              <h3 className="stain-compare-title">Stain / colour compare</h3>
+              <p className="muted tiny stain-compare-copy">
+                Same patch under fixed colour shifts, each rescored live in your browser. This is an
+                educational check — not a clinical stain-normalization study.
+                {stainCompareBusy ? ' Scoring variants…' : ''}
+              </p>
+              <div className="stain-compare-row">
+                {stainCompare.map((item) => (
+                  <figure key={item.id} className="stain-compare-card">
+                    {item.thumbUrl ? (
+                      <img src={item.thumbUrl} alt="" width={96} height={96} />
+                    ) : (
+                      <div className="stain-compare-thumb-placeholder" aria-hidden="true" />
+                    )}
+                    <figcaption>
+                      <span className="stain-compare-label">{item.label}</span>
+                      <span className="stain-compare-score">
+                        {item.probability != null
+                          ? formatPct(item.probability)
+                          : item.error
+                            ? '—'
+                            : '…'}
+                      </span>
+                      {item.verdict && (
+                        <span className={`verdict-pill verdict-${item.verdict}`}>
+                          {verdictLabel(item.verdict)}
+                        </span>
+                      )}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+              <p className="muted tiny">
+                <Link to="/results#stain">See the held-out stain/colour stress-test results</Link>
+              </p>
+            </div>
+          )}
         </section>
       </div>
 

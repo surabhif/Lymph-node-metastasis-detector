@@ -714,7 +714,7 @@ export default function ResultsPage() {
       )}
 
       {stain && (
-        <section className="panel" style={{ marginTop: '1.25rem' }}>
+        <section id="stain" className="panel" style={{ marginTop: '1.25rem' }}>
           <h2 className="section-title">Stain and colour checks</h2>
           <p>
             <strong>{stain.label}.</strong> {stain.disclaimer} Held-out official-test subset (n=
