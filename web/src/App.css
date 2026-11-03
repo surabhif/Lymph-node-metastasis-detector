@@ -2472,7 +2472,7 @@ td {
   height: 96px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: #fff;
+  background: var(--panel);
   object-fit: cover;
 }
 
@@ -2480,7 +2480,7 @@ td {
   background: repeating-linear-gradient(
     -45deg,
     var(--bg-muted) 0 6px,
-    #fff 6px 12px
+    var(--panel) 6px 12px
   );
 }
 
