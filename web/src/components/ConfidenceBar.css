@@ -24,7 +24,7 @@
   height: 14px;
   border: 1px solid var(--ink-soft);
   border-radius: var(--radius);
-  background: linear-gradient(90deg, var(--accent-pale) 0%, #fff 50%, var(--malignant-soft) 100%);
+  background: linear-gradient(90deg, var(--accent-pale) 0%, var(--panel) 50%, var(--malignant-soft) 100%);
   overflow: visible;
   margin: 0.45rem 0 0.15rem;
 }
@@ -47,7 +47,7 @@
   z-index: 2;
   background: repeating-linear-gradient(
     45deg,
-    rgba(14, 14, 14, 0.14) 0 3px,
+    color-mix(in srgb, var(--ink) 18%, transparent) 0 3px,
     transparent 3px 6px
   );
   border-left: 1px solid var(--ink);
@@ -75,7 +75,7 @@
   margin-top: -6px;
   border-radius: 50%;
   background: var(--accent);
-  border: 2px solid #fff;
+  border: 2px solid var(--panel);
   box-shadow: 0 0 0 1px var(--ink);
   z-index: 4;
   pointer-events: none;
@@ -139,7 +139,7 @@
 .confidence-bar-legend-band::before {
   background: repeating-linear-gradient(
     45deg,
-    rgba(14, 14, 14, 0.2) 0 2px,
+    color-mix(in srgb, var(--ink) 22%, transparent) 0 2px,
     transparent 2px 4px
   );
 }
