@@ -866,6 +866,20 @@
   margin: 0 0 0.35rem;
 }
 
+.demo-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem 1.25rem;
+  margin-top: 1rem;
+}
+
+.demo-actions-row .opacity-control {
+  margin-top: 0;
+  flex: 1 1 280px;
+}
+
 .opacity-control {
   display: grid;
   grid-template-columns: auto 1fr auto;
