@@ -120,6 +120,13 @@ export default function ModelCardPage() {
           </ul>
         </section>
       </div>
+
+      <footer className="model-card-print-footer">
+        <p>
+          Model version <code>full_pcam_int8_v1</code>. Last updated {__BUILD_DATE__} (site build
+          date). Research demo, not for clinical use.
+        </p>
+      </footer>
     </article>
   )
 }

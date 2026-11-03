@@ -92,7 +92,12 @@ function ortWasmPlugin(): Plugin {
 
 // GitHub Pages project site needs the repo name as base.
 // Locally and on preview, use '/'. CI sets VITE_BASE.
+const buildDate = new Date().toISOString().slice(0, 10)
+
 export default defineConfig({
+  define: {
+    __BUILD_DATE__: JSON.stringify(buildDate),
+  },
   plugins: [
     react(),
     ortWasmPlugin(),
