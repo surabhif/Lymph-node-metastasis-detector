@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import samplesManifest from '../data/samples.json'
 import ConfidenceBar from '../components/ConfidenceBar'
@@ -21,6 +21,15 @@ import {
 } from '../lib/modelSettings'
 
 type Sample = (typeof samplesManifest.samples)[number]
+
+const GALLERY_IDS = new Set(samplesManifest.samples.map((s) => s.id))
+
+/** Absolute share URL for a gallery sample, respecting Vite BASE_URL (often ends with /). */
+function shareUrlForSample(id: string): string {
+  const base = import.meta.env.BASE_URL
+  const prefix = base.endsWith('/') ? base.slice(0, -1) : base
+  return `${window.location.origin}${prefix}/demo?sample=${encodeURIComponent(id)}`
+}
 
 type FailureItem = {
   kind: 'fn' | 'fp'
@@ -111,7 +120,7 @@ function failureToSample(item: FailureItem): Sample {
 }
 
 export default function DemoPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedMeta, setSelectedMeta] = useState<Sample | null>(null)
   const [sourceUrl, setSourceUrl] = useState<string | null>(null)
@@ -139,13 +148,19 @@ export default function DemoPage() {
   )
   const [batchMessage, setBatchMessage] = useState<string | null>(null)
   const [batchDragOver, setBatchDragOver] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+  const copyLiveId = useId()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectUrlRef = useRef<string | null>(null)
   const batchUrlsRef = useRef<string[]>([])
   const preloadDone = useRef(false)
+  const copyTimerRef = useRef<number | null>(null)
   const optsRef = useRef({ tta: false, macenko: false })
   optsRef.current = { tta: useTta, macenko: useMacenko }
   const galleryBusy = busy || batchBusy
+
+  const gallerySelected =
+    selectedId != null && GALLERY_IDS.has(selectedId) ? selectedId : null
 
   // Defer ORT + model download until the visitor asks (or deep-links a sample).
   useEffect(() => {
@@ -154,8 +169,31 @@ export default function DemoPage() {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
       for (const url of batchUrlsRef.current) URL.revokeObjectURL(url)
       batchUrlsRef.current = []
+      if (copyTimerRef.current != null) window.clearTimeout(copyTimerRef.current)
     }
   }, [])
+
+  function syncSampleQuery(id: string | null) {
+    const current = searchParams.get('sample')
+    if (id) {
+      if (current === id) return
+      setSearchParams({ sample: id }, { replace: true })
+    } else if (current != null) {
+      setSearchParams({}, { replace: true })
+    }
+  }
+
+  async function copyShareLink() {
+    if (!gallerySelected) return
+    try {
+      await navigator.clipboard.writeText(shareUrlForSample(gallerySelected))
+      setLinkCopied(true)
+      if (copyTimerRef.current != null) window.clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = window.setTimeout(() => setLinkCopied(false), 2000)
+    } catch {
+      setLinkCopied(false)
+    }
+  }
 
   useEffect(() => {
     if (!sourceUrl || !result || !canvasRef.current) return
@@ -207,6 +245,11 @@ export default function DemoPage() {
     setResult(null)
     setHardCase(hard ?? null)
     setInferMs(null)
+    setLinkCopied(false)
+    const nextId = meta?.id ?? null
+    const isGallery = nextId != null && GALLERY_IDS.has(nextId)
+    // Keep the address bar shareable for gallery picks; clear for uploads / hard cases.
+    syncSampleQuery(isGallery ? nextId : null)
     try {
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current)
@@ -215,7 +258,7 @@ export default function DemoPage() {
       const url = typeof src === 'string' ? src : URL.createObjectURL(src)
       if (typeof src !== 'string') objectUrlRef.current = url
       setSourceUrl(url)
-      setSelectedId(meta?.id ?? null)
+      setSelectedId(nextId)
       setSelectedMeta(meta ?? null)
       const t0 = performance.now()
       const out = await runInference(src, setLoadProgress, {
@@ -658,11 +701,23 @@ export default function DemoPage() {
             >
               {downloadBusy ? 'Saving…' : 'Download result PNG'}
             </button>
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={!gallerySelected}
+              onClick={() => void copyShareLink()}
+              aria-describedby={copyLiveId}
+            >
+              {linkCopied ? 'Copied' : 'Copy link'}
+            </button>
+            <span id={copyLiveId} className="sr-only" aria-live="polite">
+              {linkCopied ? 'Link copied to clipboard' : ''}
+            </span>
           </div>
           <p className="muted tiny">
             Drag toward 0% to hide the overlay, or toward 100% to see it more strongly on the patch.
             The download is one image with the patch, heatmap, score, model version, and a research
-            disclaimer.
+            disclaimer. Copy link shares the current gallery sample (uploads have no stable id).
           </p>
           <p className="muted tiny heatmap-legend" aria-hidden={false}>
             Heatmap legend: cool means lower contribution; warm means higher contribution to the

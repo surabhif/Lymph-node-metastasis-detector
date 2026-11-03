@@ -2805,7 +2805,7 @@ td {
   margin-top: 0.85rem;
   overflow-x: auto;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--panel);
 }
 
 .batch-table {
