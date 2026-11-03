@@ -1,0 +1,175 @@
+.confidence-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.confidence-bar-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.confidence-bar-score-readout {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+
+.confidence-bar-track {
+  position: relative;
+  height: 14px;
+  border: 1px solid var(--ink-soft);
+  border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--accent-pale) 0%, #fff 50%, var(--malignant-soft) 100%);
+  overflow: visible;
+  margin: 0.45rem 0 0.15rem;
+}
+
+.confidence-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  pointer-events: none;
+  border-radius: var(--radius) 0 0 var(--radius);
+  z-index: 1;
+}
+
+.confidence-bar-band {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  z-index: 2;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(14, 14, 14, 0.14) 0 3px,
+    transparent 3px 6px
+  );
+  border-left: 1px solid var(--ink);
+  border-right: 1px solid var(--ink);
+  pointer-events: none;
+}
+
+.confidence-bar-cutoff {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.confidence-bar-marker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--ink);
+  z-index: 4;
+  pointer-events: none;
+}
+
+.confidence-bar-axis {
+  position: relative;
+  height: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.confidence-bar-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.confidence-bar-tick--0 {
+  left: 0;
+  transform: none;
+}
+
+.confidence-bar-tick--100 {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+
+.confidence-bar-tick--cutoff {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.confidence-bar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+
+.confidence-bar-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.confidence-bar-legend-item::before {
+  content: '';
+  width: 0.65rem;
+  height: 0.65rem;
+  flex-shrink: 0;
+  border: 1px solid var(--ink);
+  background: var(--accent-pale);
+}
+
+.confidence-bar-legend-band::before {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(14, 14, 14, 0.2) 0 2px,
+    transparent 2px 4px
+  );
+}
+
+.confidence-bar-legend-score::before {
+  border-radius: 50%;
+  background: var(--accent);
+  border-color: var(--ink);
+}
+
+.confidence-bar-help {
+  margin: 0.15rem 0 0;
+}
+
+.confidence-bar--compact .confidence-bar-track {
+  height: 10px;
+  margin-top: 0.3rem;
+}
+
+.confidence-bar--compact .confidence-bar-marker {
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  margin-top: -5px;
+}
+
+.confidence-bar--compact .confidence-bar-help {
+  display: none;
+}
+
+.confidence-bar--compact .confidence-bar-legend {
+  gap: 0.25rem 0.6rem;
+}
