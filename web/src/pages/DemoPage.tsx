@@ -9,6 +9,7 @@ import {
   type LoadProgress,
 } from '../lib/inference'
 import { camToOverlay, probabilityMapOverlay } from '../lib/image'
+import { downloadResultCard } from '../lib/downloadResultCard'
 import {
   loadModelManifest,
   verdictFor,
@@ -40,6 +41,7 @@ export default function DemoPage() {
     totalBytes: null,
     message: 'Model not loaded yet',
   })
+  const [downloadBusy, setDownloadBusy] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const objectUrlRef = useRef<string | null>(null)
   const preloadDone = useRef(false)
@@ -355,20 +357,48 @@ export default function DemoPage() {
             </div>
           </div>
 
-          <label className="opacity-control">
-            <span>Heatmap opacity</span>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={opacity}
-              onChange={(e) => setOpacity(Number(e.target.value))}
-              disabled={!result}
-              aria-valuetext={`${Math.round(opacity * 100)} percent opacity`}
-            />
-            <span className="muted">{Math.round(opacity * 100)}%</span>
-          </label>
+          <div className="demo-actions-row">
+            <label className="opacity-control">
+              <span>Heatmap opacity</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={opacity}
+                onChange={(e) => setOpacity(Number(e.target.value))}
+                disabled={!result}
+                aria-valuetext={`${Math.round(opacity * 100)} percent opacity`}
+              />
+              <span className="muted">{Math.round(opacity * 100)}%</span>
+            </label>
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={!result || !canvasRef.current || downloadBusy}
+              onClick={() => {
+                if (!result || !canvasRef.current) return
+                setDownloadBusy(true)
+                void downloadResultCard({
+                  overlayCanvas: canvasRef.current,
+                  patchUrl: sourceUrl,
+                  score: result.probability,
+                  label: verdict ? verdictLabel(verdict) : 'Scored',
+                  modelVersion: manifest?.model_version ?? 'full_pcam_int8_v1',
+                })
+                  .catch((err: unknown) => {
+                    setError(err instanceof Error ? err.message : 'Download failed')
+                  })
+                  .finally(() => setDownloadBusy(false))
+              }}
+            >
+              {downloadBusy ? 'Saving…' : 'Download result PNG'}
+            </button>
+          </div>
+          <p className="muted tiny">
+            The download is one image with the patch, heatmap, score, model version, and a research
+            disclaimer.
+          </p>
           <p className="muted tiny heatmap-legend" aria-hidden={false}>
             Heatmap legend: cool means lower contribution; warm means higher contribution to the
             tumor score.
