@@ -2397,3 +2397,71 @@ td {
 .cutoff-cm {
   margin-top: 0.25rem;
 }
+
+.model-card-print-footer {
+  margin-top: 1.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--line-strong);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.model-card-print-footer p {
+  margin: 0;
+}
+
+@media print {
+  .skip-link,
+  .site-top,
+  .site-notice,
+  .site-header,
+  .site-nav,
+  .site-footer,
+  .update-banner,
+  .explainer-stage-shell,
+  .explainer-viewport,
+  #explainer-stages,
+  canvas,
+  .project-family,
+  .btn,
+  nav {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+
+  .app-shell,
+  .site-main,
+  .panel,
+  .prose,
+  .placeholder-box {
+    box-shadow: none !important;
+    background: #fff !important;
+    border-color: #ccc !important;
+  }
+
+  a {
+    color: #111 !important;
+    text-decoration: none !important;
+  }
+
+  .model-card-print-footer {
+    break-before: avoid;
+    color: #333 !important;
+    border-top: 1px solid #999;
+  }
+
+  .model-card-grid {
+    display: block !important;
+  }
+
+  .placeholder-box {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+}
