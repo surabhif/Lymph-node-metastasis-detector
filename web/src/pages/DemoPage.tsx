@@ -359,16 +359,19 @@ export default function DemoPage() {
 
           <div className="demo-actions-row">
             <label className="opacity-control">
-              <span>Heatmap opacity</span>
+              <span>Heatmap opacity (0–100%)</span>
               <input
                 type="range"
                 min={0}
-                max={1}
-                step={0.05}
-                value={opacity}
-                onChange={(e) => setOpacity(Number(e.target.value))}
+                max={100}
+                step={1}
+                value={Math.round(opacity * 100)}
+                onChange={(e) => setOpacity(Number(e.target.value) / 100)}
                 disabled={!result}
-                aria-valuetext={`${Math.round(opacity * 100)} percent opacity`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(opacity * 100)}
+                aria-valuetext={`${Math.round(opacity * 100)} percent`}
               />
               <span className="muted">{Math.round(opacity * 100)}%</span>
             </label>
@@ -396,6 +399,7 @@ export default function DemoPage() {
             </button>
           </div>
           <p className="muted tiny">
+            Drag toward 0% to hide the overlay, or toward 100% to see it more strongly on the patch.
             The download is one image with the patch, heatmap, score, model version, and a research
             disclaimer.
           </p>

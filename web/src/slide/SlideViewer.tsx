@@ -318,16 +318,21 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
           Model heatmap
         </label>
         <label className="opacity-control">
-          <span>Opacity</span>
+          <span>Heatmap opacity (0–100%)</span>
           <input
             type="range"
-            min={0.1}
-            max={1}
-            step={0.05}
-            value={opacity}
-            onChange={(e) => setOpacity(Number(e.target.value))}
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(opacity * 100)}
+            onChange={(e) => setOpacity(Number(e.target.value) / 100)}
+            disabled={!showHeatmap}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(opacity * 100)}
             aria-valuetext={`${Math.round(opacity * 100)} percent`}
           />
+          <span className="muted">{Math.round(opacity * 100)}%</span>
         </label>
         <label className="demo-opt">
           <input
