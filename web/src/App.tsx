@@ -149,7 +149,10 @@ export default function App() {
           </div>
         </div>
         <ProjectFamily />
-        <p className="footer-fine">MIT license. Research only. Not for clinical use.</p>
+        <p className="footer-fine">
+          MIT license. Research only. Not for clinical use. Site build {__BUILD_DATE__}{' '}
+          (America/New_York).
+        </p>
       </footer>
     </div>
   )
