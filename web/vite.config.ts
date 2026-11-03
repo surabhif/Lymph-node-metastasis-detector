@@ -92,7 +92,19 @@ function ortWasmPlugin(): Plugin {
 
 // GitHub Pages project site needs the repo name as base.
 // Locally and on preview, use '/'. CI sets VITE_BASE.
-const buildDate = new Date().toISOString().slice(0, 10)
+// Site build date in America/New_York (YYYY-MM-DD), not UTC.
+function formatBuildDateNy(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? ''
+  return `${get('year')}-${get('month')}-${get('day')}`
+}
+const buildDate = formatBuildDateNy()
 
 export default defineConfig({
   define: {

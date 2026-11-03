@@ -1819,6 +1819,15 @@ td {
     padding-right: 1rem;
   }
 
+  .site-header-inner {
+    gap: 0.75rem;
+  }
+
+  .site-nav {
+    width: 100%;
+    gap: 0.2rem;
+  }
+
   .metrics-grid,
   .metrics-strip {
     grid-template-columns: 1fr;
@@ -1826,6 +1835,19 @@ td {
 
   .opacity-control {
     grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .demo-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .demo-actions-row .btn,
+  .demo-actions-row .opacity-control {
+    width: 100%;
+    flex: none;
   }
 
   .landing-home {
@@ -1838,6 +1860,255 @@ td {
 
   .landing-title {
     font-size: clamp(2rem, 10vw, 2.6rem);
+  }
+}
+
+/* Phone widths (≈360–430px): avoid horizontal scroll, larger tap targets */
+@media (max-width: 430px) {
+  .app-shell {
+    overflow-x: clip;
+  }
+
+  .site-main,
+  .site-header-inner,
+  .site-footer,
+  .site-notice {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .site-header-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding-top: 0.85rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .brand-title {
+    font-size: 1.05rem;
+    line-height: 1.25;
+  }
+
+  .site-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    padding-bottom: 0.15rem;
+  }
+
+  .site-nav a {
+    flex: 0 0 auto;
+    padding: 0.55rem 0.75rem;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  .panel {
+    padding: 1rem 0.85rem;
+  }
+
+  .page-intro h1 {
+    font-size: clamp(1.55rem, 8vw, 1.95rem);
+  }
+
+  .btn {
+    min-height: 44px;
+    padding: 0.7rem 1rem;
+    justify-content: center;
+  }
+
+  .demo-layout {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 0.45rem;
+  }
+
+  .gallery-item {
+    min-height: 44px;
+  }
+
+  .gallery-item figcaption {
+    font-size: 0.62rem;
+    padding: 0.3rem 0.35rem 0.4rem;
+  }
+
+  .viewer {
+    min-height: 240px;
+    max-width: 100%;
+  }
+
+  .result-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    max-width: 100%;
+  }
+
+  .demo-actions-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.7rem;
+    margin-top: 0.85rem;
+  }
+
+  .demo-actions-row .opacity-control {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
+
+  .opacity-control {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+  }
+
+  .opacity-control input[type='range'] {
+    min-height: 44px;
+    height: 2rem;
+  }
+
+  .explainer,
+  .heatmap-explainer {
+    max-width: 100%;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .metrics-grid,
+  .metrics-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card,
+  .metrics-strip > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line-strong);
+  }
+
+  .metric-card:last-child,
+  .metrics-strip > div:last-child {
+    border-bottom: 0;
+  }
+
+  .metric-card .value,
+  .metric-value {
+    font-size: 1.45rem;
+  }
+
+  .cm-table th,
+  .cm-table td {
+    padding: 0.45rem 0.35rem;
+    font-size: 0.82rem;
+  }
+
+  .table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mistakes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .failure-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .failure-imgs {
+    flex-wrap: wrap;
+  }
+
+  .failure-imgs img {
+    width: min(96px, calc(50% - 0.2rem));
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .failure-card figcaption {
+    font-size: 0.78rem;
+  }
+
+  .results-view-toggle {
+    gap: 0.35rem;
+  }
+
+  .results-tab {
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .cutoff-explorer {
+    gap: 0.75rem;
+  }
+
+  .cutoff-slider-wrap input[type='range'] {
+    min-height: 44px;
+    height: 2rem;
+  }
+
+  .cutoff-metrics {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .cutoff-metric .value {
+    font-size: 1.2rem;
+  }
+
+  .stain-plots {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+  }
+
+  .project-family-list {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-fine {
+    font-size: 0.68rem;
+    line-height: 1.45;
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+  }
+
+  .glossary-tip {
+    width: min(18rem, calc(100vw - 2rem));
+  }
+
+  .macenko-compare {
+    flex-wrap: wrap;
+  }
+
+  .macenko-compare img {
+    max-width: 100%;
+    height: auto;
   }
 }
 
