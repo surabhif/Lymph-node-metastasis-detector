@@ -1,3 +1,4 @@
+import GlossaryTip from '../components/GlossaryTip'
 import LinkedInLink from '../components/LinkedInLink'
 
 export default function ModelCardPage() {
@@ -13,9 +14,11 @@ export default function ModelCardPage() {
         <h2>Current served model</h2>
         <p>
           The live demo runs a <strong>full-PCam retrain</strong>: ResNet-18 (pretrained on ImageNet)
-          trained on <strong>all 262,144</strong> official train patches for 8 epochs on CPU with
-          bfloat16; <strong>epoch 3</strong> selected by validation AUC <strong>0.9587</strong>. The
-          browser downloads a dynamic INT8 ONNX file (~10.7 MB). Platt calibration, Youden threshold{' '}
+          trained on <strong>all 262,144</strong> official train{' '}
+          <GlossaryTip term="patch">patches</GlossaryTip> for 8 epochs on CPU with bfloat16;{' '}
+          <strong>epoch 3</strong> selected by validation <GlossaryTip term="AUC">AUC</GlossaryTip>{' '}
+          <strong>0.9587</strong>. The browser downloads a dynamic INT8 ONNX file (~10.7 MB). Platt{' '}
+          <GlossaryTip term="calibration">calibration</GlossaryTip>, Youden threshold{' '}
           <strong>0.5201</strong>, and uncertain band <strong>0.4879–0.5522</strong> (on the
           calibrated probability) were chosen on the validation set.
         </p>
@@ -81,18 +84,19 @@ export default function ModelCardPage() {
         <section className="placeholder-box">
           <h2>Metrics (full official test, n=32,768)</h2>
           <p className="muted tiny">
-            AUC is how well scores rank tumor above normal. Sensitivity is the share of true tumor
-            patches called tumor. Specificity is the share of true normal patches called normal.
-            ECE (expected calibration error) measures how far predicted chances sit from observed
-            rates.
+            Hover or focus the dotted terms for short definitions. ECE (expected calibration error)
+            measures how far predicted chances sit from observed rates. Tissue here is typically{' '}
+            <GlossaryTip term="H&E">H&amp;E</GlossaryTip>-stained.
           </p>
           <ul>
             <li>
-              Test AUC <strong>0.9401</strong> (95% CI 0.9373–0.9428)
+              Test <GlossaryTip term="AUC">AUC</GlossaryTip> <strong>0.9401</strong> (95% CI
+              0.9373–0.9428)
             </li>
             <li>
-              Calibrated @ 0.5201: acc <strong>86.59%</strong>, sens 79.92%, spec 93.25%, ECE{' '}
-              <strong>0.0339</strong>
+              Calibrated @ 0.5201: acc <strong>86.59%</strong>,{' '}
+              <GlossaryTip term="sensitivity">sens</GlossaryTip> 79.92%,{' '}
+              <GlossaryTip term="specificity">spec</GlossaryTip> 93.25%, ECE <strong>0.0339</strong>
             </li>
             <li>Raw @ 0.5: acc 83.48%, sens 69.87%, spec 97.08%, ECE 0.1281</li>
             <li>Confusion @ t* (calibrated): TP 13,089 / FN 3,288 / FP 1,106 / TN 15,285</li>

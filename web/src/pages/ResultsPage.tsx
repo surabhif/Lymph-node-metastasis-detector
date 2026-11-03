@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import CutoffSlider from '../components/CutoffSlider'
+import GlossaryTip from '../components/GlossaryTip'
 
 type ViewMode = 'baseline' | 'retrain' | 'side'
 
@@ -425,7 +426,9 @@ export default function ResultsPage() {
             <>
               <div className="metrics-grid">
                 <div className="metric-card panel">
-                  <div className="label">Test AUC</div>
+                  <div className="label">
+                    Test <GlossaryTip term="AUC">AUC</GlossaryTip>
+                  </div>
                   <div className="value">{cal.auc.toFixed(4)}</div>
                   <p className="muted tiny">
                     95% CI [{full.test_auc_bootstrap95[0].toFixed(4)},{' '}
@@ -436,7 +439,8 @@ export default function ResultsPage() {
                   <div className="label">Accuracy at threshold {cal.threshold.toFixed(4)}</div>
                   <div className="value">{pct(cal.accuracy)}</div>
                   <p className="muted tiny">
-                    Sensitivity {pct(cal.sensitivity)}, specificity {pct(cal.specificity)}{' '}
+                    <GlossaryTip term="sensitivity">Sensitivity</GlossaryTip> {pct(cal.sensitivity)},{' '}
+                    <GlossaryTip term="specificity">specificity</GlossaryTip> {pct(cal.specificity)}{' '}
                     (calibrated)
                   </p>
                 </div>
@@ -481,7 +485,9 @@ export default function ResultsPage() {
                   </p>
                 </div>
                 <div className="metric-card panel">
-                  <div className="label">Calibration</div>
+                  <div className="label">
+                    <GlossaryTip term="calibration">Calibration</GlossaryTip>
+                  </div>
                   <div className="value value-sm">
                     Platt scaling (chosen on validation)
                   </div>

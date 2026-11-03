@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import samplesManifest from '../data/samples.json'
+import GlossaryTip from '../components/GlossaryTip'
 import { MODEL_STATUS, PATCH_SIZE } from '../lib/constants'
 import {
   preloadModel,
@@ -157,9 +158,9 @@ export default function DemoPage() {
       <header className="page-intro">
         <h1 tabIndex={-1}>Try the detector</h1>
         <p>
-          Choose a real PCam test-set patch or upload your own image. Scoring runs entirely in your
-          browser. The cutoff and uncertain range come from the model&apos;s settings, chosen on
-          validation data.
+          Choose a real PCam test-set <GlossaryTip term="patch">patch</GlossaryTip> or upload your
+          own image. Scoring runs entirely in your browser. The cutoff and uncertain range come from
+          the model&apos;s settings, chosen on validation data.
         </p>
       </header>
 
@@ -217,8 +218,8 @@ export default function DemoPage() {
                   src={`${import.meta.env.BASE_URL}${sample.src}`}
                   alt={
                     sample.kind === 'tile'
-                      ? 'PCam stitched mosaic of H&E-stained lymph-node tissue patches'
-                      : `PCam test patch ${'testIndex' in sample ? sample.testIndex : ''}, H&E-stained lymph-node tissue, ground truth ${sample.groundTruthTumor ? 'tumor' : 'normal'}`
+                      ? 'PCam stitched mosaic of hematoxylin-and-eosin stained lymph-node tissue patches'
+                      : `PCam test patch ${'testIndex' in sample ? sample.testIndex : ''}, hematoxylin-and-eosin stained lymph-node tissue, ground truth ${sample.groundTruthTumor ? 'tumor' : 'normal'}`
                   }
                   width={96}
                   height={96}
@@ -450,8 +451,10 @@ export default function DemoPage() {
             <summary>How to read this heatmap</summary>
             <p>
               For a single 96×96 patch, warmer colors mark regions that contributed more to the
-              metastasis score. That overlay is a class-activation map (CAM) built from the final
-              convolution features and classifier weights. No gradients run in the browser.
+              metastasis score. That overlay is a{' '}
+              <GlossaryTip term="Grad-CAM">Grad-CAM</GlossaryTip>-style class-activation map (
+              <GlossaryTip term="CAM">CAM</GlossaryTip>) built from the final convolution features
+              and classifier weights. No gradients run in the browser.
             </p>
             <p>
               For larger images, the overlay is a sliding-window probability map: each patch is
