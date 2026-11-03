@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import OpenSeadragon from 'openseadragon'
-import { loadModelManifest } from '../lib/modelSettings'
+import ConfidenceBar from '../components/ConfidenceBar'
+import { loadModelManifest, type ModelManifest } from '../lib/modelSettings'
 import { PATCH_SIZE, heatmapColor } from '../lib/tensor'
 import type { WorkerIn, WorkerOut } from '../workers/inference.worker'
 
@@ -69,10 +70,15 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
   const [status, setStatus] = useState('Idle. Tiles load without the model.')
   const [outline, setOutline] = useState<Outline | null>(null)
   const [hoverP, setHoverP] = useState<number | null>(null)
+  const [manifest, setManifest] = useState<ModelManifest | null>(null)
 
   const stride = meta.patch_size || PATCH_SIZE
   const cols = Math.max(1, Math.floor((meta.width - PATCH_SIZE) / stride) + 1)
   const rows = Math.max(1, Math.floor((meta.height - PATCH_SIZE) / stride) + 1)
+
+  useEffect(() => {
+    void loadModelManifest().then(setManifest).catch(() => setManifest(null))
+  }, [])
 
   useEffect(() => {
     void fetch(`${baseUrl}${regionPath}outline.json`)
@@ -358,6 +364,15 @@ export default function SlideViewer({ baseUrl, regionPath, meta }: Props) {
           {status}
           {hoverP != null ? ` Clicked cell score ${hoverP.toFixed(2)}` : ''}
         </p>
+        {manifest && hoverP != null && (
+          <ConfidenceBar
+            compact
+            score={hoverP}
+            threshold={manifest.threshold}
+            uncertainLo={manifest.uncertain_lo}
+            uncertainHi={manifest.uncertain_hi}
+          />
+        )}
         <div className="slide-actions">
           {!running ? (
             <button type="button" className="btn" onClick={() => void startRun()}>

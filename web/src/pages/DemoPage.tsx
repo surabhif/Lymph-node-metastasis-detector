@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import samplesManifest from '../data/samples.json'
+import ConfidenceBar from '../components/ConfidenceBar'
 import GlossaryTip from '../components/GlossaryTip'
 import { MODEL_STATUS, PATCH_SIZE } from '../lib/constants'
 import {
@@ -399,22 +400,12 @@ export default function DemoPage() {
             </div>
 
             <div className="gt-card">
-              <div className="label">Threshold bar</div>
-              <div
-                className="threshold-bar"
-                role="img"
-                aria-label={`Probability ${(result?.probability ?? 0).toFixed(2)}, uncertain band ${lo} to ${hi}, threshold ${threshold}`}
-              >
-                <i style={{ width: `${(result?.probability ?? 0) * 100}%` }} />
-                <span
-                  className="threshold-band"
-                  style={{ left: `${lo * 100}%`, width: `${(hi - lo) * 100}%` }}
-                />
-              </div>
-              <p className="tiny muted">
-                0 (normal) to 1 (tumor). Uncertain range in the middle. Cutoff{' '}
-                {Number(threshold).toFixed(4)}.
-              </p>
+              <ConfidenceBar
+                score={result?.probability ?? null}
+                threshold={threshold}
+                uncertainLo={lo}
+                uncertainHi={hi}
+              />
               <div className="label" style={{ marginTop: '0.75rem' }}>
                 Ground truth
               </div>
