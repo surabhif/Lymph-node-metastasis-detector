@@ -64,6 +64,7 @@ export default function DemoPage() {
   const [result, setResult] = useState<InferenceResult | null>(null)
   const [hardCase, setHardCase] = useState<HardCaseNote | null>(null)
   const [failurePool, setFailurePool] = useState<FailureItem[] | null>(null)
+  const [inferMs, setInferMs] = useState<number | null>(null)
   const [opacity, setOpacity] = useState(0.45)
   const [useTta, setUseTta] = useState(false)
   const [useMacenko, setUseMacenko] = useState(false)
@@ -138,6 +139,7 @@ export default function DemoPage() {
     setError(null)
     setResult(null)
     setHardCase(hard ?? null)
+    setInferMs(null)
     try {
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current)
@@ -148,14 +150,18 @@ export default function DemoPage() {
       setSourceUrl(url)
       setSelectedId(meta?.id ?? null)
       setSelectedMeta(meta ?? null)
+      const t0 = performance.now()
       const out = await runInference(src, setLoadProgress, {
         tta: optsRef.current.tta,
         macenko: optsRef.current.macenko,
       })
+      const t1 = performance.now()
+      setInferMs(Math.round(t1 - t0))
       setResult(out)
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'Inference failed')
+      setInferMs(null)
     } finally {
       setBusy(false)
     }
@@ -437,6 +443,11 @@ export default function DemoPage() {
                     : 'Sliding-window probability map'
                   : '—'}
               </p>
+              {inferMs != null && result && (
+                <p className="speed-note" aria-live="polite">
+                  Scored in {inferMs} ms on your device
+                </p>
+              )}
             </div>
           </div>
 
