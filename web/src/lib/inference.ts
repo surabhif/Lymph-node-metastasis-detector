@@ -265,6 +265,25 @@ async function ttaProbabilities(
   return { mean: sum / views.length, features: first!.features, camWeights: first!.camWeights }
 }
 
+/**
+ * Score a single patch from ImageData / canvas using the already-loaded session.
+ * Skips CAM / overlay work — used for live stain-perturbation compares on Demo.
+ */
+export async function runProbabilityOnImageSource(
+  source: CanvasImageSource | ImageData,
+  onProgress?: ProgressCb,
+  options: Pick<InferenceOptions, 'calibrate'> = {},
+): Promise<{ probability: number; rawProbability: number }> {
+  const ort = await loadOrt()
+  const session = await getSession(onProgress)
+  const manifest = await loadModelManifest()
+  const tensor = imageToTensor(source)
+  const { probability: raw } = await runPatch(session, tensor, ort)
+  const calibrate = options.calibrate !== false
+  const probability = calibrate ? applyCalibration(raw, manifest.calibration) : raw
+  return { probability, rawProbability: raw }
+}
+
 export async function runInference(
   source: string | File,
   onProgress?: ProgressCb,

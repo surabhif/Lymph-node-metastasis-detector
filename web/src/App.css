@@ -2430,6 +2430,90 @@ td {
   font-size: 0.92rem;
 }
 
+.stain-compare {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.stain-compare-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.stain-compare-copy {
+  margin: 0 0 0.75rem;
+}
+
+.stain-compare-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stain-compare-card {
+  flex: 0 0 auto;
+  margin: 0;
+  width: 7.25rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-muted);
+  padding: 0.4rem;
+}
+
+.stain-compare-card img,
+.stain-compare-thumb-placeholder {
+  display: block;
+  width: 96px;
+  height: 96px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  object-fit: cover;
+}
+
+.stain-compare-thumb-placeholder {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bg-muted) 0 6px,
+    var(--panel) 6px 12px
+  );
+}
+
+.stain-compare-card figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+}
+
+.stain-compare-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+.stain-compare-score {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.stain-compare-card .verdict-pill {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  padding: 0.15rem 0.35rem;
+}
+
 .macenko-compare {
   display: flex;
   gap: 0.75rem;
@@ -2523,6 +2607,10 @@ td {
 }
 
 /* Lymph-specific: stain robustness plots on Results */
+#stain {
+  scroll-margin-top: 1.25rem;
+}
+
 .stain-plots {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
