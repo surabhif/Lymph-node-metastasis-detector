@@ -880,6 +880,50 @@
   flex: 1 1 280px;
 }
 
+.glossary-wrap {
+  position: relative;
+  display: inline;
+}
+
+.glossary-term {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: help;
+  border-bottom: 1px dotted var(--accent-deep);
+}
+
+.glossary-term:focus-visible {
+  outline: 2px solid var(--accent-deep);
+  outline-offset: 2px;
+}
+
+.glossary-tip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.35rem);
+  z-index: 40;
+  width: min(22rem, 70vw);
+  padding: 0.55rem 0.7rem;
+  background: #1a1a1a;
+  color: #f5f5f5;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: normal;
+  border-radius: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.glossary-tip[hidden] {
+  display: none !important;
+}
+
 .opacity-control {
   display: grid;
   grid-template-columns: auto 1fr auto;
