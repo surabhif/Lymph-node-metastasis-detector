@@ -757,6 +757,15 @@
   color: var(--ink-soft);
 }
 
+.hard-case-note {
+  margin-top: 0.85rem;
+  padding: 0.7rem 0.85rem;
+  border-left: 3px solid var(--accent);
+  background: rgba(155, 86, 84, 0.08);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .upload-row {
   display: flex;
   flex-wrap: wrap;

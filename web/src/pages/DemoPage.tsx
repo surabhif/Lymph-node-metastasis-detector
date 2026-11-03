@@ -20,8 +20,38 @@ import {
 
 type Sample = (typeof samplesManifest.samples)[number]
 
+type FailureItem = {
+  kind: 'fn' | 'fp'
+  testIndex: number
+  trueLabel: string
+  score: number
+  threshold: number
+  patch: string
+}
+
+type HardCaseNote = {
+  kind: 'fn' | 'fp'
+  testIndex: number
+  trueLabel: string
+  recordedScore: number
+  threshold: number
+}
+
 function formatPct(p: number) {
   return `${(p * 100).toFixed(1)}%`
+}
+
+function failureToSample(item: FailureItem): Sample {
+  const tumor = item.trueLabel === 'tumor'
+  return {
+    id: `failure_${item.kind}_${item.testIndex}`,
+    kind: 'patch',
+    src: item.patch,
+    label: item.trueLabel,
+    groundTruthTumor: tumor,
+    testIndex: item.testIndex,
+    note: 'From the official-test failure gallery (model mistake).',
+  }
 }
 
 export default function DemoPage() {
@@ -32,6 +62,8 @@ export default function DemoPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<InferenceResult | null>(null)
+  const [hardCase, setHardCase] = useState<HardCaseNote | null>(null)
+  const [failurePool, setFailurePool] = useState<FailureItem[] | null>(null)
   const [opacity, setOpacity] = useState(0.45)
   const [useTta, setUseTta] = useState(false)
   const [useMacenko, setUseMacenko] = useState(false)
@@ -101,10 +133,11 @@ export default function DemoPage() {
     img.src = sourceUrl
   }, [sourceUrl, result, opacity])
 
-  async function analyze(src: string | File, meta?: Sample) {
+  async function analyze(src: string | File, meta?: Sample, hard?: HardCaseNote | null) {
     setBusy(true)
     setError(null)
     setResult(null)
+    setHardCase(hard ?? null)
     try {
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current)
@@ -256,8 +289,57 @@ export default function DemoPage() {
                 }}
               />
             </label>
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={busy || loadProgress.status === 'error'}
+              onClick={() => {
+                void (async () => {
+                  try {
+                    let pool = failurePool
+                    if (!pool) {
+                      const res = await fetch(
+                        `${import.meta.env.BASE_URL}results/failure_gallery.json`,
+                      )
+                      if (!res.ok) throw new Error('Could not load hard cases')
+                      const data = (await res.json()) as { items: FailureItem[] }
+                      pool = data.items
+                      setFailurePool(pool)
+                    }
+                    const item = pool[Math.floor(Math.random() * pool.length)]!
+                    const note: HardCaseNote = {
+                      kind: item.kind,
+                      testIndex: item.testIndex,
+                      trueLabel: item.trueLabel,
+                      recordedScore: item.score,
+                      threshold: item.threshold,
+                    }
+                    await analyze(
+                      `${import.meta.env.BASE_URL}${item.patch}`,
+                      failureToSample(item),
+                      note,
+                    )
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Could not load a hard case')
+                  }
+                })()
+              }}
+            >
+              Try a hard one
+            </button>
             {busy && <span className="muted">Running model…</span>}
           </div>
+          {hardCase && (
+            <p className="hard-case-note" role="note">
+              This patch is from the failure gallery: the model got it wrong on the official test
+              set
+              {hardCase.kind === 'fn'
+                ? ` (true tumor, but the recorded score was only ${(hardCase.recordedScore * 100).toFixed(2)}%, below the ${(hardCase.threshold * 100).toFixed(2)}% cutoff — a missed metastasis).`
+                : ` (true normal, but the recorded score was ${(hardCase.recordedScore * 100).toFixed(2)}%, above the cutoff — a false alarm).`}{' '}
+              These cases are tricky because stain, texture, or small tumor regions can fool the
+              model. See the <Link to="/failures">failures page</Link>.
+            </p>
+          )}
           {error && (
             <p className="error-text" role="alert">
               {error}
