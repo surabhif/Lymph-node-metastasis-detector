@@ -17,6 +17,7 @@ export type ModelManifest = {
 }
 
 let cached: ModelManifest | null = null
+let cachedBaseline: ModelManifest | null = null
 
 export async function loadModelManifest(): Promise<ModelManifest> {
   if (cached) return cached
@@ -25,6 +26,16 @@ export async function loadModelManifest(): Promise<ModelManifest> {
   if (!res.ok) throw new Error(`Failed to load model settings (${res.status})`)
   cached = (await res.json()) as ModelManifest
   return cached
+}
+
+/** Manifest for the earlier improved-baseline INT8 model (lazy Demo compare). */
+export async function loadBaselineModelManifest(): Promise<ModelManifest> {
+  if (cachedBaseline) return cachedBaseline
+  const url = `${import.meta.env.BASE_URL}models/model_manifest_baseline.json`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`Failed to load earlier-model settings (${res.status})`)
+  cachedBaseline = (await res.json()) as ModelManifest
+  return cachedBaseline
 }
 
 export function applyCalibration(rawProbOrLogit: number, cal: Calibration, fromLogit = false): number {

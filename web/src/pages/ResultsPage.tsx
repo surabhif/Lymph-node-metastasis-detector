@@ -370,6 +370,13 @@ export default function ResultsPage() {
   const m = data.metrics
   const cm = m.confusion_matrix.matrix
   const labels = m.confusion_matrix.labels
+  // Confusion is [[TN, FP], [FN, TP]] with row = true label (normal, tumor).
+  const baselineTn = cm[0]?.[0] ?? 0
+  const baselineFp = cm[0]?.[1] ?? 0
+  const baselineFn = cm[1]?.[0] ?? 0
+  const baselineTp = cm[1]?.[1] ?? 0
+  const baselineSens = baselineTp / Math.max(1, baselineTp + baselineFn)
+  const baselineSpec = baselineTn / Math.max(1, baselineTn + baselineFp)
 
   const showBaseline = view === 'baseline' || view === 'side'
   const showRetrain = view === 'retrain' || view === 'side'
@@ -413,6 +420,79 @@ export default function ResultsPage() {
           ))}
         </div>
       </header>
+
+      {full && cal && (
+        <section className="panel model-compare-table-section" id="model-compare">
+          <h2 className="section-title">Old vs new model</h2>
+          <p>
+            The earlier improved-baseline model (CPU subset train, 8,000-patch test eval, no
+            calibration) was replaced by the full-PCam retrain: more training data (all 262,144
+            train patches), Platt calibration on validation, and a full 32,768-patch test eval.
+            Numbers below are copied from the saved results files only. Educational research —
+            not for clinical use.
+          </p>
+          <div className="table-wrap model-compare-table-wrap">
+            <table className="metrics-table model-compare-table">
+              <caption className="sr-only">
+                Saved test metrics for earlier baseline vs live full-PCam retrain
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Metric</th>
+                  <th scope="col">Earlier model (improved baseline)</th>
+                  <th scope="col">Live model (full-PCam retrain)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Test AUC</th>
+                  <td>{m.test_roc_auc.toFixed(4)}</td>
+                  <td>{cal.auc.toFixed(4)}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Accuracy</th>
+                  <td>{pct(m.test_accuracy)}</td>
+                  <td>
+                    {pct(cal.accuracy)}
+                    <span className="muted tiny"> at cutoff {cal.threshold.toFixed(4)}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <GlossaryTip term="sensitivity">Sensitivity</GlossaryTip>
+                  </th>
+                  <td>{pct(baselineSens)}</td>
+                  <td>{pct(cal.sensitivity)}</td>
+                </tr>
+                <tr>
+                  <th scope="row">
+                    <GlossaryTip term="specificity">Specificity</GlossaryTip>
+                  </th>
+                  <td>{pct(baselineSpec)}</td>
+                  <td>{pct(cal.specificity)}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Test set size</th>
+                  <td>
+                    {Number(data.subset_sizes.test_used).toLocaleString()}
+                    <span className="muted tiny"> (fixed-seed subset)</span>
+                  </td>
+                  <td>
+                    {cal.n.toLocaleString()}
+                    <span className="muted tiny"> (full official test)</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="muted tiny">
+            Earlier row: <code>results/metrics.json</code> ({data.label}, threshold{' '}
+            {m.decision_threshold}). Live row: <code>results/full_retrain_metrics.json</code>{' '}
+            (calibrated @ Youden). Test sets differ, so this is not a paired sample-by-sample
+            comparison. The Demo can score one patch with both ONNX files side by side.
+          </p>
+        </section>
+      )}
 
       {showRetrain && (
         <section className="panel retrain-status" aria-live="polite">

@@ -1,0 +1,6 @@
+STATUS=improved_baseline_int8
+DESCRIPTION=Earlier browser model replaced by the full-PCam retrain. Restored from git blob before PR #23 for old-vs-new Demo compare.
+METHOD=onnxruntime.quantization.quantize_dynamic default ops (incl. Conv) QUInt8
+SOURCE_COMMIT=a6665b6bf3d09f9ec92765cae036c3ae66e55019
+ONNX_PATH=models/pcam_cam_improved_baseline_int8.onnx
+METRICS=results/metrics.json (test AUC ~0.9103 on 8,000-patch subset)

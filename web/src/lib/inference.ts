@@ -1,5 +1,12 @@
 import type * as OrtNS from 'onnxruntime-web'
-import { MODEL_CACHE, MODEL_URL, ORT_WASM_PATHS, PATCH_SIZE } from './constants'
+import {
+  BASELINE_MODEL_CACHE,
+  BASELINE_MODEL_URL,
+  MODEL_CACHE,
+  MODEL_URL,
+  ORT_WASM_PATHS,
+  PATCH_SIZE,
+} from './constants'
 import {
   camToOverlay,
   computeCam,
@@ -12,13 +19,23 @@ import {
   imageElementToImageData,
   macenkoNormalizeImageData,
 } from './macenko'
-import { applyCalibration, loadModelManifest } from './modelSettings'
+import {
+  applyCalibration,
+  loadBaselineModelManifest,
+  loadModelManifest,
+  type ModelManifest,
+} from './modelSettings'
+
+/** Which ONNX weights to use. Baseline is lazy-loaded only for old-vs-new compare. */
+export type ModelSlot = 'current' | 'baseline'
 
 export type InferenceOptions = {
   tta?: boolean
   macenko?: boolean
-  /** Apply calibration from model_manifest (default true). */
+  /** Apply calibration from that slot's manifest (default true). */
   calibrate?: boolean
+  /** Default `current` (live full-PCam). `baseline` loads the earlier model on demand. */
+  model?: ModelSlot
 }
 
 export type InferenceResult = {
@@ -46,9 +63,24 @@ export type LoadProgress = {
 type ProgressCb = (p: LoadProgress) => void
 type OrtModule = typeof OrtNS
 
+type SlotConfig = {
+  url: string
+  cacheName: string
+  label: string
+}
+
+const SLOT: Record<ModelSlot, SlotConfig> = {
+  current: { url: MODEL_URL, cacheName: MODEL_CACHE, label: 'model' },
+  baseline: {
+    url: BASELINE_MODEL_URL,
+    cacheName: BASELINE_MODEL_CACHE,
+    label: 'earlier model',
+  },
+}
+
 let ortModule: OrtModule | null = null
-let sessionPromise: Promise<OrtNS.InferenceSession> | null = null
-let cachedBuffer: ArrayBuffer | null = null
+const sessionPromises: Partial<Record<ModelSlot, Promise<OrtNS.InferenceSession>>> = {}
+const cachedBuffers: Partial<Record<ModelSlot, ArrayBuffer>> = {}
 
 async function loadOrt(): Promise<OrtModule> {
   if (ortModule) return ortModule
@@ -65,27 +97,33 @@ function configureOrt(ort: OrtModule): void {
   ort.env.wasm.numThreads = 1
 }
 
-async function fetchModelBuffer(onProgress?: ProgressCb): Promise<ArrayBuffer> {
-  if (cachedBuffer) return cachedBuffer
+async function fetchModelBuffer(
+  slot: ModelSlot,
+  onProgress?: ProgressCb,
+): Promise<ArrayBuffer> {
+  const hitBuf = cachedBuffers[slot]
+  if (hitBuf) return hitBuf
+
+  const { url, cacheName, label } = SLOT[slot]
 
   onProgress?.({
     status: 'checking-cache',
     loadedBytes: 0,
     totalBytes: null,
-    message: 'Checking browser cache…',
+    message: slot === 'baseline' ? 'Checking earlier-model cache…' : 'Checking browser cache…',
   })
 
   try {
-    const cache = await caches.open(MODEL_CACHE)
-    const hit = await cache.match(MODEL_URL)
+    const cache = await caches.open(cacheName)
+    const hit = await cache.match(url)
     if (hit) {
       const buf = await hit.arrayBuffer()
-      cachedBuffer = buf
+      cachedBuffers[slot] = buf
       onProgress?.({
         status: 'creating-session',
         loadedBytes: buf.byteLength,
         totalBytes: buf.byteLength,
-        message: 'Loaded model from cache…',
+        message: `Loaded ${label} from cache…`,
       })
       return buf
     }
@@ -97,16 +135,16 @@ async function fetchModelBuffer(onProgress?: ProgressCb): Promise<ArrayBuffer> {
     status: 'downloading',
     loadedBytes: 0,
     totalBytes: null,
-    message: 'Downloading model…',
+    message: slot === 'baseline' ? 'Downloading earlier model…' : 'Downloading model…',
   })
 
-  const res = await fetch(MODEL_URL)
-  if (!res.ok) throw new Error(`Model download failed (${res.status})`)
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`${label} download failed (${res.status})`)
   const total = Number(res.headers.get('Content-Length')) || null
   const reader = res.body?.getReader()
   if (!reader) {
     const buf = await res.arrayBuffer()
-    cachedBuffer = buf
+    cachedBuffers[slot] = buf
     return buf
   }
 
@@ -123,8 +161,8 @@ async function fetchModelBuffer(onProgress?: ProgressCb): Promise<ArrayBuffer> {
         loadedBytes: loaded,
         totalBytes: total,
         message: total
-          ? `Downloading model… ${(loaded / 1e6).toFixed(1)} / ${(total / 1e6).toFixed(1)} MB`
-          : `Downloading model… ${(loaded / 1e6).toFixed(1)} MB`,
+          ? `Downloading ${label}… ${(loaded / 1e6).toFixed(1)} / ${(total / 1e6).toFixed(1)} MB`
+          : `Downloading ${label}… ${(loaded / 1e6).toFixed(1)} MB`,
       })
     }
   }
@@ -136,12 +174,12 @@ async function fetchModelBuffer(onProgress?: ProgressCb): Promise<ArrayBuffer> {
     offset += c.byteLength
   }
   const buf = merged.buffer
-  cachedBuffer = buf
+  cachedBuffers[slot] = buf
 
   try {
-    const cache = await caches.open(MODEL_CACHE)
+    const cache = await caches.open(cacheName)
     await cache.put(
-      MODEL_URL,
+      url,
       new Response(buf.slice(0), {
         headers: { 'Content-Type': 'application/octet-stream' },
       }),
@@ -153,19 +191,25 @@ async function fetchModelBuffer(onProgress?: ProgressCb): Promise<ArrayBuffer> {
   return buf
 }
 
-export async function preloadModel(onProgress?: ProgressCb): Promise<OrtNS.InferenceSession> {
-  const alreadyLoading = Boolean(sessionPromise)
-  if (!sessionPromise) {
-    sessionPromise = (async () => {
+export async function preloadModel(
+  onProgress?: ProgressCb,
+  slot: ModelSlot = 'current',
+): Promise<OrtNS.InferenceSession> {
+  const alreadyLoading = Boolean(sessionPromises[slot])
+  if (!sessionPromises[slot]) {
+    sessionPromises[slot] = (async () => {
       try {
         const ort = await loadOrt()
         configureOrt(ort)
-        const buffer = await fetchModelBuffer(onProgress)
+        const buffer = await fetchModelBuffer(slot, onProgress)
         onProgress?.({
           status: 'creating-session',
           loadedBytes: buffer.byteLength,
           totalBytes: buffer.byteLength,
-          message: 'Initializing ONNX Runtime…',
+          message:
+            slot === 'baseline'
+              ? 'Initializing earlier model…'
+              : 'Initializing ONNX Runtime…',
         })
         const session = await ort.InferenceSession.create(buffer, {
           executionProviders: ['wasm'],
@@ -175,11 +219,11 @@ export async function preloadModel(onProgress?: ProgressCb): Promise<OrtNS.Infer
           status: 'ready',
           loadedBytes: buffer.byteLength,
           totalBytes: buffer.byteLength,
-          message: 'Model ready',
+          message: slot === 'baseline' ? 'Earlier model ready' : 'Model ready',
         })
         return session
       } catch (err) {
-        sessionPromise = null
+        sessionPromises[slot] = undefined
         onProgress?.({
           status: 'error',
           loadedBytes: 0,
@@ -190,20 +234,28 @@ export async function preloadModel(onProgress?: ProgressCb): Promise<OrtNS.Infer
       }
     })()
   }
-  const session = await sessionPromise
-  if (alreadyLoading && cachedBuffer) {
+  const session = await sessionPromises[slot]!
+  const buf = cachedBuffers[slot]
+  if (alreadyLoading && buf) {
     onProgress?.({
       status: 'ready',
-      loadedBytes: cachedBuffer.byteLength,
-      totalBytes: cachedBuffer.byteLength,
-      message: 'Model ready',
+      loadedBytes: buf.byteLength,
+      totalBytes: buf.byteLength,
+      message: slot === 'baseline' ? 'Earlier model ready' : 'Model ready',
     })
   }
   return session
 }
 
-export async function getSession(onProgress?: ProgressCb): Promise<OrtNS.InferenceSession> {
-  return preloadModel(onProgress)
+export async function getSession(
+  onProgress?: ProgressCb,
+  slot: ModelSlot = 'current',
+): Promise<OrtNS.InferenceSession> {
+  return preloadModel(onProgress, slot)
+}
+
+async function manifestForSlot(slot: ModelSlot): Promise<ModelManifest> {
+  return slot === 'baseline' ? loadBaselineModelManifest() : loadModelManifest()
 }
 
 async function runPatch(
@@ -272,11 +324,12 @@ async function ttaProbabilities(
 export async function runProbabilityOnImageSource(
   source: CanvasImageSource | ImageData,
   onProgress?: ProgressCb,
-  options: Pick<InferenceOptions, 'calibrate'> = {},
+  options: Pick<InferenceOptions, 'calibrate' | 'model'> = {},
 ): Promise<{ probability: number; rawProbability: number }> {
+  const slot = options.model ?? 'current'
   const ort = await loadOrt()
-  const session = await getSession(onProgress)
-  const manifest = await loadModelManifest()
+  const session = await getSession(onProgress, slot)
+  const manifest = await manifestForSlot(slot)
   const tensor = imageToTensor(source)
   const { probability: raw } = await runPatch(session, tensor, ort)
   const calibrate = options.calibrate !== false
@@ -289,9 +342,10 @@ export async function runInference(
   onProgress?: ProgressCb,
   options: InferenceOptions = {},
 ): Promise<InferenceResult> {
+  const slot = options.model ?? 'current'
   const ort = await loadOrt()
-  const session = await getSession(onProgress)
-  const manifest = await loadModelManifest()
+  const session = await getSession(onProgress, slot)
+  const manifest = await manifestForSlot(slot)
   let img = await loadImage(source)
   let macenkoBefore: string | undefined
   let macenkoAfter: string | undefined

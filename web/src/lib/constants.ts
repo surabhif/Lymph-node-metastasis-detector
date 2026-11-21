@@ -9,6 +9,9 @@ export const IMAGENET_STD = [0.229, 0.224, 0.225] as const
 /** Bundled model path (under Vite public/). */
 export const MODEL_URL = `${import.meta.env.BASE_URL}models/pcam_cam.onnx`
 
+/** Earlier INT8 model restored from git history (pre full-PCam retrain / PR #23). */
+export const BASELINE_MODEL_URL = `${import.meta.env.BASE_URL}models/pcam_cam_improved_baseline_int8.onnx`
+
 /**
  * Self-hosted ORT wasm directory. Must contain both
  * ort-wasm-simd-threaded.mjs (glue, dynamically imported) and
@@ -19,6 +22,9 @@ export const ORT_WASM_PATHS = `${import.meta.env.BASE_URL}ort/`
 /** Cache name for the ONNX weights in the browser Cache API. */
 export const MODEL_CACHE = 'pcam-onnx-v5-full-pcam'
 
+/** Separate cache for the earlier baseline ONNX (lazy-loaded only when comparing). */
+export const BASELINE_MODEL_CACHE = 'pcam-onnx-v3-improved-baseline'
+
 /**
  * Visitor-facing model label. Paths / quantization notes live in the README
  * and on the Model card “Current served model” section — not in the site banner.
@@ -27,6 +33,14 @@ export const MODEL_STATUS = {
   kind: 'full_pcam_int8' as const,
   label: 'Full-PCam retrain',
   sizeHintMb: 11,
+}
+
+/** Plain label for the earlier model in Demo / Results compare UI. */
+export const BASELINE_MODEL_STATUS = {
+  kind: 'improved_baseline_int8' as const,
+  label: 'Earlier model (improved baseline)',
+  sizeHintMb: 11,
+  metricsPath: 'results/metrics.json',
 }
 
 export const SITE = {
