@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import samplesManifest from '../data/samples.json'
 import ConfidenceBar from '../components/ConfidenceBar'
 import GlossaryTip from '../components/GlossaryTip'
-import { MODEL_STATUS, PATCH_SIZE } from '../lib/constants'
+import { BASELINE_MODEL_STATUS, MODEL_STATUS, PATCH_SIZE } from '../lib/constants'
 import {
   preloadModel,
   runInference,
@@ -15,6 +15,7 @@ import { camToOverlay, loadImage, probabilityMapOverlay } from '../lib/image'
 import { imageElementToImageData } from '../lib/macenko'
 import { downloadResultCard } from '../lib/downloadResultCard'
 import {
+  loadBaselineModelManifest,
   loadModelManifest,
   verdictFor,
   verdictLabel,
@@ -169,12 +170,20 @@ export default function DemoPage() {
   const copyLiveId = useId()
   const [stainCompare, setStainCompare] = useState<StainCompareItem[] | null>(null)
   const [stainCompareBusy, setStainCompareBusy] = useState(false)
+  const [compareModels, setCompareModels] = useState(false)
+  const [baselineManifest, setBaselineManifest] = useState<ModelManifest | null>(null)
+  const [baselineResult, setBaselineResult] = useState<InferenceResult | null>(null)
+  const [baselineBusy, setBaselineBusy] = useState(false)
+  const [baselineError, setBaselineError] = useState<string | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const baselineCanvasRef = useRef<HTMLCanvasElement>(null)
+  const compareLiveCanvasRef = useRef<HTMLCanvasElement>(null)
   const objectUrlRef = useRef<string | null>(null)
   const batchUrlsRef = useRef<string[]>([])
   const preloadDone = useRef(false)
   const copyTimerRef = useRef<number | null>(null)
   const stainRunId = useRef(0)
+  const baselineRunId = useRef(0)
   const optsRef = useRef({ tta: false, macenko: false })
   optsRef.current = { tta: useTta, macenko: useMacenko }
   const galleryBusy = busy || batchBusy
@@ -215,54 +224,121 @@ export default function DemoPage() {
     }
   }
 
-  useEffect(() => {
-    if (!sourceUrl || !result || !canvasRef.current) return
-    const canvas = canvasRef.current
+  function paintOverlay(
+    canvas: HTMLCanvasElement,
+    source: string,
+    scored: InferenceResult,
+    alpha: number,
+  ) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
-      canvas.width = result.displayWidth
-      canvas.height = result.displayHeight
+      canvas.width = scored.displayWidth
+      canvas.height = scored.displayHeight
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-      let overlay = result.overlay
-      if (result.mode === 'single-patch' && result.cam && result.camH && result.camW) {
+      let overlay = scored.overlay
+      if (scored.mode === 'single-patch' && scored.cam && scored.camH && scored.camW) {
         overlay = camToOverlay(
-          result.cam,
-          result.camH,
-          result.camW,
-          result.displayWidth,
-          result.displayHeight,
-          opacity,
+          scored.cam,
+          scored.camH,
+          scored.camW,
+          scored.displayWidth,
+          scored.displayHeight,
+          alpha,
         )
-      } else if (result.mode === 'sliding-window' && result.patchMap) {
+      } else if (scored.mode === 'sliding-window' && scored.patchMap) {
         overlay = probabilityMapOverlay(
-          result.patchMap,
-          result.displayWidth,
-          result.displayHeight,
+          scored.patchMap,
+          scored.displayWidth,
+          scored.displayHeight,
           PATCH_SIZE,
           Math.max(32, Math.floor(PATCH_SIZE / 2)),
-          opacity,
+          alpha,
         )
       }
 
       const overlayCanvas = document.createElement('canvas')
-      overlayCanvas.width = result.displayWidth
-      overlayCanvas.height = result.displayHeight
+      overlayCanvas.width = scored.displayWidth
+      overlayCanvas.height = scored.displayHeight
       overlayCanvas.getContext('2d')!.putImageData(overlay, 0, 0)
       ctx.drawImage(overlayCanvas, 0, 0)
     }
-    img.src = sourceUrl
+    img.src = source
+  }
+
+  useEffect(() => {
+    if (!sourceUrl || !result || !canvasRef.current) return
+    paintOverlay(canvasRef.current, sourceUrl, result, opacity)
   }, [sourceUrl, result, opacity])
+
+  useEffect(() => {
+    if (!sourceUrl || !baselineResult || !baselineCanvasRef.current) return
+    paintOverlay(baselineCanvasRef.current, sourceUrl, baselineResult, opacity)
+  }, [sourceUrl, baselineResult, opacity])
+
+  useEffect(() => {
+    if (!compareModels || !sourceUrl || !result || !compareLiveCanvasRef.current) return
+    paintOverlay(compareLiveCanvasRef.current, sourceUrl, result, opacity)
+  }, [compareModels, sourceUrl, result, opacity])
+
+  // Lazy-load earlier model and score the same patch when compare is on (single-patch only).
+  useEffect(() => {
+    if (!compareModels || !result || !sourceUrl) {
+      return
+    }
+    if (result.mode !== 'single-patch' || selectedMeta?.kind === 'tile') {
+      setBaselineResult(null)
+      setBaselineError('Earlier-model compare works on single patches, not mosaics.')
+      return
+    }
+
+    const runId = ++baselineRunId.current
+    let cancelled = false
+    setBaselineBusy(true)
+    setBaselineError(null)
+    setBaselineResult(null)
+
+    void (async () => {
+      try {
+        const [bm] = await Promise.all([
+          loadBaselineModelManifest(),
+          preloadModel(undefined, 'baseline'),
+        ])
+        if (cancelled || runId !== baselineRunId.current) return
+        setBaselineManifest(bm)
+        const out = await runInference(sourceUrl, undefined, {
+          model: 'baseline',
+          tta: optsRef.current.tta,
+          macenko: optsRef.current.macenko,
+        })
+        if (cancelled || runId !== baselineRunId.current) return
+        setBaselineResult(out)
+      } catch (err) {
+        if (!cancelled && runId === baselineRunId.current) {
+          setBaselineError(err instanceof Error ? err.message : 'Earlier model failed')
+          setBaselineResult(null)
+        }
+      } finally {
+        if (!cancelled && runId === baselineRunId.current) setBaselineBusy(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [compareModels, result, sourceUrl, selectedMeta, useTta, useMacenko])
 
   async function analyze(src: string | File, meta?: Sample, hard?: HardCaseNote | null) {
     setBusy(true)
     setError(null)
     setResult(null)
+    setBaselineResult(null)
+    setBaselineError(null)
+    baselineRunId.current += 1
     setStainCompare(null)
     setStainCompareBusy(false)
     stainRunId.current += 1
@@ -520,6 +596,13 @@ export default function DemoPage() {
   const lo = manifest?.uncertain_lo ?? 0.35
   const hi = manifest?.uncertain_hi ?? 0.65
   const verdict = result ? verdictFor(result.probability, threshold, lo, hi) : null
+  const baselineThreshold = baselineManifest?.threshold ?? 0.5
+  const baselineLo = baselineManifest?.uncertain_lo ?? 0.35
+  const baselineHi = baselineManifest?.uncertain_hi ?? 0.65
+  const baselineVerdict =
+    baselineResult != null
+      ? verdictFor(baselineResult.probability, baselineThreshold, baselineLo, baselineHi)
+      : null
 
   return (
     <div className="fade-in demo-page">
@@ -852,11 +935,21 @@ export default function DemoPage() {
               />
               Stain-normalize first (Macenko); educational before/after
             </label>
+            <label className="demo-opt">
+              <input
+                type="checkbox"
+                checked={compareModels}
+                onChange={(e) => setCompareModels(e.target.checked)}
+              />
+              Compare with earlier model (loads a second ~{BASELINE_MODEL_STATUS.sizeHintMb} MB
+              file only when you turn this on)
+            </label>
             <p className="muted tiny">
               Re-run a sample after changing options. Cutoff and uncertain range follow the live
               model settings
               {manifest ? ` (${manifest.label})` : ''}. See the{' '}
-              <Link to="/model-card">Model card</Link> for technical detail.
+              <Link to="/model-card">Model card</Link> for technical detail. Saved numbers for both
+              models are on <Link to="/results#model-compare">Results</Link>.
             </p>
             {result?.macenkoBefore && result.macenkoAfter && (
               <div className="macenko-compare">
@@ -886,6 +979,82 @@ export default function DemoPage() {
               scored separately and blended. A mosaic of separate patches is not continuous tissue.
             </p>
           </details>
+
+          {compareModels && (
+            <div className="model-compare" aria-live="polite">
+              <h3 className="model-compare-title">Old vs new model</h3>
+              <p className="muted tiny model-compare-copy">
+                Same patch scored by the live full-PCam model and by the earlier improved baseline
+                (the ~0.91 AUC model this project replaced). Research demo only — not for clinical
+                use.
+                {baselineBusy ? ' Loading and scoring with the earlier model…' : ''}
+              </p>
+              {baselineError && (
+                <p className="error-text" role="alert">
+                  {baselineError}
+                </p>
+              )}
+              <div className="model-compare-grid">
+                <div className="model-compare-col">
+                  <h4 className="model-compare-heading">Earlier model</h4>
+                  <p className="muted tiny">{BASELINE_MODEL_STATUS.label}</p>
+                  <div className="viewer model-compare-viewer">
+                    {baselineResult ? (
+                      <canvas
+                        ref={baselineCanvasRef}
+                        aria-label="Earlier model heatmap overlay"
+                      />
+                    ) : (
+                      <div className="viewer-empty">
+                        <p className="muted">
+                          {baselineBusy ? 'Scoring…' : 'Turn on compare after a single-patch score.'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="model-compare-score">
+                    {baselineResult ? formatPct(baselineResult.probability) : '—'}
+                  </p>
+                  {baselineVerdict && (
+                    <p className={`verdict-pill verdict-${baselineVerdict}`}>
+                      {verdictLabel(baselineVerdict)}
+                    </p>
+                  )}
+                  <p className="muted tiny">
+                    Raw score, cutoff {baselineThreshold.toFixed(4)} (no Platt calibration).
+                  </p>
+                </div>
+                <div className="model-compare-col">
+                  <h4 className="model-compare-heading">Live model</h4>
+                  <p className="muted tiny">{manifest?.label ?? MODEL_STATUS.label}</p>
+                  <div className="viewer model-compare-viewer">
+                    {result && sourceUrl ? (
+                      <canvas
+                        ref={compareLiveCanvasRef}
+                        aria-label="Live model heatmap (compare column)"
+                      />
+                    ) : (
+                      <div className="viewer-empty">
+                        <p className="muted">Score a patch above first.</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="model-compare-score">
+                    {result ? formatPct(result.probability) : '—'}
+                  </p>
+                  {verdict && (
+                    <p className={`verdict-pill verdict-${verdict}`}>{verdictLabel(verdict)}</p>
+                  )}
+                  <p className="muted tiny">
+                    Calibrated score, cutoff {Number(threshold).toFixed(4)}.
+                  </p>
+                </div>
+              </div>
+              <p className="muted tiny">
+                <Link to="/results#model-compare">See saved AUC / accuracy numbers for both</Link>
+              </p>
+            </div>
+          )}
 
           {stainCompare && (
             <div className="stain-compare" aria-live="polite">

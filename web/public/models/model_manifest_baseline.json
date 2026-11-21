@@ -1,0 +1,21 @@
+{
+  "model_version": "improved_baseline_int8_v3",
+  "label": "Earlier model (improved baseline)",
+  "threshold": 0.5,
+  "uncertain_lo": 0.35,
+  "uncertain_hi": 0.65,
+  "calibration": {
+    "method": "none",
+    "note": "Earlier browser model: raw ONNX probabilities, no validation-logit calibration. Restored from git history before the full-PCam retrain (PR #23)."
+  },
+  "macenko": {
+    "enabled": false,
+    "note": "Not used for this earlier model."
+  },
+  "tta": {
+    "default": false,
+    "transforms": 8
+  },
+  "status": "baseline",
+  "full_retrain_status": "superseded"
+}

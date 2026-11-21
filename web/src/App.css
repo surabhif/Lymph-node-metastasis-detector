@@ -2970,3 +2970,125 @@ td {
     max-width: 8rem;
   }
 }
+
+/* === old vs new model compare (Demo + Results) === */
+.model-compare {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.model-compare-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.model-compare-copy {
+  margin: 0 0 0.85rem;
+}
+
+.model-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.model-compare-col {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-muted);
+  padding: 0.75rem;
+  min-width: 0;
+}
+
+.model-compare-heading {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+}
+
+.model-compare-viewer {
+  margin: 0.55rem 0;
+  min-height: 120px;
+}
+
+.model-compare-viewer canvas {
+  width: 100%;
+  height: auto;
+  max-width: 240px;
+  margin-inline: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.model-compare-score {
+  margin: 0.35rem 0 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.model-compare-table-section {
+  margin-bottom: 1.25rem;
+}
+
+.model-compare-table-wrap {
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+
+.model-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.model-compare-table th,
+.model-compare-table td {
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.model-compare-table thead th {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: var(--bg-muted);
+}
+
+.model-compare-table tbody th {
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.model-compare-table tbody tr:last-child th,
+.model-compare-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 430px) {
+  .model-compare-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .model-compare-table th,
+  .model-compare-table td {
+    padding: 0.45rem 0.5rem;
+    font-size: 0.82rem;
+  }
+
+  .model-compare-table thead th:nth-child(2),
+  .model-compare-table tbody td:nth-child(2) {
+    min-width: 7.5rem;
+  }
+}
